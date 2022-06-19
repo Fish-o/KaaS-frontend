@@ -1,7 +1,7 @@
 import { Game } from "./Game";
-import { Card } from "./gameObjects/Card";
-import { Deck } from "./gameObjects/Deck";
-import { Hand, Player } from "./gameObjects/Player";
+import { Card } from "./Objects/Card";
+import { Deck } from "./Objects/Deck";
+import { Hand, Player } from "./Objects/Player";
 
 interface FilterObject {
   type: `filter:${string}`;
@@ -204,7 +204,6 @@ function filterHands(
         .reduce((acc, curr) => {
           return acc.concat(curr);
         }, [])
-        .filter((h) => h !== undefined)
         .filter((h, i, a) => a.indexOf(h) === i)
     );
   if ($not) not.push(...filterHands($not, game));
@@ -227,6 +226,7 @@ function filterHands(
   if (has_card) {
     if (has_card.minAmount !== 1 || has_card.maxAmount !== 1)
       throw new Error("has_card can only have minAmount and maxAmount of 1");
+
     const card = filterCards(has_card, game).shift()!;
     ands.push(hands.filter((h) => h.hasCard(card)));
   }

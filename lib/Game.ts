@@ -1,13 +1,13 @@
-import { filter, Filter } from "./Filters";
-import { Card } from "./gameObjects/Card";
-import { Deck, DeckType } from "./gameObjects/Deck";
-import { Hand, Player } from "./gameObjects/Player";
+import { Filter } from "./Filters";
+import { Card } from "./Objects/Card";
+import { Deck } from "./Objects/Deck";
+import { Hand, Player } from "./Objects/Player";
 import {
   GameObject,
   PlayerObject,
   resolveDecks,
   resolvePlayer,
-} from "./resolvers";
+} from "./Resolvers";
 
 export enum GameState {
   Setup = "setup",

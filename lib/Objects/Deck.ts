@@ -56,6 +56,10 @@ export class Deck extends BaseGameObject {
     return this._cards.filter((c) => cards.indexOf(c) !== -1).length >= x;
   }
 
+  contains(card: Card) {
+    return this._cards.indexOf(card) !== -1;
+  }
+
   // Settings
   get hidden() {
     return this._hidden;

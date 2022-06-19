@@ -20,6 +20,10 @@ export class Player extends BaseGameObject {
   hasHand(hand: Hand) {
     return this._hands.indexOf(hand) !== -1;
   }
+
+  contains(hand: Hand) {
+    return this._hands.indexOf(hand) !== -1;
+  }
 }
 
 export class Hand extends BaseGameObject {
@@ -46,6 +50,10 @@ export class Hand extends BaseGameObject {
 
   hasXOfCards(x: number, cards: Card[]) {
     return this._cards.filter((c) => cards.indexOf(c) !== -1).length >= x;
+  }
+
+  contains(card: Card) {
+    return this._cards.indexOf(card) !== -1;
   }
 
   // Actions

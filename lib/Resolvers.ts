@@ -1,6 +1,6 @@
-import { Card } from "./gameObjects/Card";
-import { Deck, DeckType } from "./gameObjects/Deck";
-import { Hand, Player } from "./gameObjects/Player";
+import { Card } from "./Objects/Card";
+import { Deck, DeckType } from "./Objects/Deck";
+import { Hand, Player } from "./Objects/Player";
 
 export interface CardObject {
   type: "object:card";
