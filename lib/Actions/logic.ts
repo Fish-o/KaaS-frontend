@@ -78,8 +78,9 @@ function performActionLogicForEach(
 }
 
 /*
-  Rest
+  Other
 */
+
 export type LogicAction = ActionLogicIf | ActionLogicForEach;
 export function performLogicAction(
   action: LogicAction,

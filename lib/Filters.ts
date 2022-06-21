@@ -396,7 +396,7 @@ function filterDecks(
   return filteredDecks;
 }
 
-function filterCardHolders(
+export function filterCardHolders(
   cardHolder: CardHolderFilterObject,
   game: Game
 ): Deck[] | Hand[] {
@@ -406,4 +406,19 @@ function filterCardHolders(
     case "filter:hand":
       return filterHands(cardHolder, game);
   }
+}
+
+export function filterIsPlayerFilter(
+  filter: Filter
+): filter is PlayerFilterObject {
+  return filter.type === "filter:player";
+}
+export function filterIsDeckFilter(filter: Filter): filter is DeckFilterObject {
+  return filter.type === "filter:deck";
+}
+export function filterIsHandFilter(filter: Filter): filter is HandFilterObject {
+  return filter.type === "filter:hand";
+}
+export function filterIsCardFilter(filter: Filter): filter is CardFilterObject {
+  return filter.type === "filter:card";
 }

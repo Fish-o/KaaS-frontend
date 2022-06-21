@@ -102,7 +102,7 @@ export class Deck extends BaseGameObject {
     return grabbedCards;
   }
 
-  addCardToDeck(card: Card, to: "top" | "bottom" | "random" = "top") {
+  addCard(card: Card, to: "top" | "bottom" | "random" = "top") {
     switch (this.type) {
       case DeckType.infinite:
         return;

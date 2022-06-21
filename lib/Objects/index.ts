@@ -1,3 +1,6 @@
+import { Game } from "../Game";
+import { Card } from "./Card";
+
 export class BaseGameObject {
   private _id: string;
   private _tags: string[];
@@ -37,4 +40,9 @@ export class BaseGameObject {
   removeTag(tag: string) {
     this._tags = this._tags.filter((t) => t !== tag);
   }
+}
+export function getCardSource(card: Card, game: Game) {
+  return [...game.getAllHands(), ...game.getAllDecks()].find((source) =>
+    source.hasCard(card)
+  );
 }

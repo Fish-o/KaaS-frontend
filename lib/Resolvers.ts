@@ -1,3 +1,4 @@
+import { EventObject } from "./Events";
 import { Card } from "./Objects/Card";
 import { Deck, DeckType } from "./Objects/Deck";
 import { Hand, Player } from "./Objects/Player";
@@ -28,12 +29,14 @@ export interface GameObject {
   name: string;
   description: string;
   decks: DeckObject[];
+  events: EventObject[];
   settings: {
     maxPlayerCount: number;
     minPlayerCount: number;
     turnDirection: "normal" | "reversed";
   };
 }
+
 export interface HandObject {
   type: "object:hand";
   object: {

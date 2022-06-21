@@ -57,8 +57,15 @@ export class Hand extends BaseGameObject {
   }
 
   // Actions
-  addCard(card: Card): void {
-    this._cards.push(card);
+  addCard(card: Card, to: "top" | "bottom" | "random" = "top"): void {
+    if (to === "top") this._cards.unshift(card);
+    else if (to === "bottom") this._cards.push(card);
+    else if (to === "random")
+      this._cards.splice(
+        Math.floor(Math.random() * this._cards.length),
+        0,
+        card
+      );
   }
   removeCard(card: Card) {
     this._cards = this._cards.filter((c) => c !== card);
