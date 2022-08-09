@@ -14,3 +14,11 @@ a {
 * {
   box-sizing: border-box;
 }
+
+#canvas {
+    position: fixed; /* absolute */
+    top: 0;
+    left: 0;
+    width: 100vw;    /* 100% */
+    height: 100vh;   /* 100% */
+}

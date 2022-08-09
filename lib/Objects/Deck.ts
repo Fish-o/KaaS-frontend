@@ -138,6 +138,10 @@ export class Deck extends BaseGameObject {
     }
   }
 
+  removeCard(card: Card) {
+    this._cards = this._cards.filter((c) => c !== card);
+  }
+
   shuffleDeck() {
     this._cards = _.shuffle(this._cards);
   }

@@ -68,6 +68,7 @@ function performMoveCardsAction(
     const source = getCardSource(card, game);
     if (!source) throw new Error("Card does not have a source");
 
+    source.removeCard(card);
     destination.addCard(card, where);
     performEvent(
       {
