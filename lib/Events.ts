@@ -59,16 +59,19 @@ export function performEvent<T extends EventObject>(
   },
   game: Game
 ) {
-  const event = game.getEventFromType<T>(eventData.type);
-  if (!event) return;
-  const variables: VariableMap = new Map();
-  if (event.returns)
-    for (let [type, name] of Object.entries(event.returns)) {
-      const entered = eventData.data[type as keyof T["returns"]];
-      if (!entered) throw new Error(`No event data with key ${type} provided`);
-      else if (!isValidVariableName(name))
-        throw new Error(`${name} is not a valid variable name`);
-      variables.set(name, entered);
-    }
-  performActions(event.actions, variables, game);
+  const events = game.getEventsFromType<T>(eventData.type);
+  if (!events) return;
+  for (let event of events) {
+    const variables: VariableMap = new Map();
+    if (event.returns)
+      for (let [type, name] of Object.entries(event.returns)) {
+        const entered = eventData.data[type as keyof T["returns"]];
+        if (!entered)
+          throw new Error(`No event data with key ${type} provided`);
+        else if (!isValidVariableName(name))
+          throw new Error(`${name} is not a valid variable name`);
+        variables.set(name, entered);
+      }
+    performActions(event.actions, variables, game);
+  }
 }

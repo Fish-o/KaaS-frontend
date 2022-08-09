@@ -2,7 +2,7 @@ import { Variable } from "./Actions";
 import { EventObject, performEvent } from "./Events";
 import { Filter } from "./Filters";
 import { Card } from "./Objects/Card";
-import { Deck } from "./Objects/Deck";
+import { Deck, DeckType } from "./Objects/Deck";
 import { Hand, Player } from "./Objects/Player";
 import {
   GameObject,
@@ -31,7 +31,7 @@ export class Game {
   private _turn: number;
   private _turnPlayerIndex: number;
   private _turnDirection: "normal" | "reversed";
-  private _events: Map<EventObject["type"], EventObject> = new Map();
+  private _events: Map<EventObject["type"], EventObject[]> = new Map();
 
   constructor(gameObject: GameObject) {
     this._player = [];
@@ -81,14 +81,16 @@ export class Game {
 
   // Events
   private storeEvents(events: EventObject[]) {
-    const eventsMaps: Map<EventObject["type"], EventObject> = new Map();
-    for (let event of events) eventsMaps.set(event.type, event);
+    const eventsMaps: Map<EventObject["type"], EventObject[]> = new Map();
+    for (let event of events)
+      if (eventsMaps.has(event.type)) eventsMaps.get(event.type)!.push(event);
+      else eventsMaps.set(event.type, [event]);
     this._events = eventsMaps;
   }
-  getEventFromType<T extends EventObject>(
+  getEventsFromType<T extends EventObject>(
     type: EventObject["type"]
-  ): T | undefined {
-    return this._events.get(type) as T;
+  ): T[] | undefined {
+    return this._events.get(type) as T[];
   }
 
   // Game lifecycle
@@ -147,3 +149,137 @@ export class Game {
     }
   }
 }
+
+const game = new Game({
+  type: "game",
+  name: "test",
+  description: "Eyo",
+  decks: [
+    {
+      type: "object:deck",
+      object: {
+        cards: [
+          {
+            type: "object:card",
+            object: {
+              name: "Test 1.1",
+              description: null,
+              tags: ["card", "test1"],
+            },
+          },
+          {
+            type: "object:card",
+            object: {
+              name: "Test 1.2",
+              description: null,
+              tags: ["card", "test1"],
+            },
+          },
+          {
+            type: "object:card",
+            object: {
+              name: "Test 2",
+              description: null,
+              tags: ["card", "test2"],
+            },
+          },
+        ],
+        type: DeckType.finite,
+        cardsOpen: false,
+        tags: ["deck1"],
+        hidden: false,
+        overflow: null,
+      },
+    },
+    {
+      type: "object:deck",
+      object: {
+        cards: [],
+        type: DeckType.finite,
+        cardsOpen: false,
+        tags: ["deck2"],
+        hidden: false,
+        overflow: null,
+      },
+    },
+  ],
+  settings: {
+    minPlayerCount: 1,
+    maxPlayerCount: 1,
+    turnDirection: "normal",
+  },
+
+  events: [
+    {
+      type: "event:game.init",
+      actions: [
+        {
+          type: "action:find.decks",
+          args: {
+            filter: {
+              type: "filter:deck",
+              maxAmount: 1,
+              minAmount: 1,
+              filter: {
+                has_tag: "deck1",
+              },
+            },
+          },
+          returns: {
+            found_one: "$deck1",
+          },
+        },
+        {
+          type: "action:find.decks",
+          args: {
+            filter: {
+              type: "filter:deck",
+              maxAmount: 1,
+              minAmount: 1,
+              filter: {
+                has_tag: "deck2",
+              },
+            },
+          },
+          returns: {
+            found_one: "$deck2",
+          },
+        },
+        {
+          type: "action:find.cards",
+          args: {
+            filter: {
+              type: "filter:card",
+              maxAmount: 10,
+              minAmount: 3,
+              filter: {
+                inside: "$deck1",
+              },
+            },
+          },
+          returns: {
+            found_many: "$cards_to_move",
+          },
+        },
+        {
+          type: "action:debug",
+          args: {
+            find: "$deck2",
+          },
+        },
+        {
+          type: "action:cards.move",
+          args: { cards: "$cards_to_move", to: "$deck2" },
+          returns: {},
+        },
+        {
+          type: "action:debug",
+          args: {
+            find: "$deck2",
+          },
+        },
+      ],
+      returns: {},
+    },
+  ],
+});

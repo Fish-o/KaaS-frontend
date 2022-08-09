@@ -2,7 +2,7 @@ import { BaseAction, Filters, Variable, VariableMap } from ".";
 import {
   CardFilterObject,
   DeckFilterObject,
-  filter,
+  performFilter,
   filterIsCardFilter,
   filterIsDeckFilter,
   filterIsHandFilter,
@@ -44,13 +44,14 @@ export function performFindAction(
     throw new Error("Required argument 'filter' not provided");
   const enteredFilter = action.args.filter;
   let result;
-  if (filterIsPlayerFilter(enteredFilter)) result = filter(enteredFilter, game);
+  if (filterIsPlayerFilter(enteredFilter))
+    result = performFilter(enteredFilter, variables, game);
   else if (filterIsDeckFilter(enteredFilter))
-    result = filter(enteredFilter, game);
+    result = performFilter(enteredFilter, variables, game);
   else if (filterIsCardFilter(enteredFilter))
-    result = filter(enteredFilter, game);
+    result = performFilter(enteredFilter, variables, game);
   else if (filterIsHandFilter(enteredFilter))
-    result = filter(enteredFilter, game);
+    result = performFilter(enteredFilter, variables, game);
   else throw new Error(`Invalid filter type ${action.args?.filter?.type}`);
 
   if (!action.returns) return;

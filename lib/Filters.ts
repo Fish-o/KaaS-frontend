@@ -1,3 +1,4 @@
+import { CardHolderResolvable, VariableMap } from "./Actions";
 import { Game } from "./Game";
 import { Card } from "./Objects/Card";
 import { Deck } from "./Objects/Deck";
@@ -71,7 +72,7 @@ export interface CardFilterObject extends FilterObject {
     has_one_of_tags: string[];
     has_all_of_tags: string[];
 
-    inside: CardHolderFilterObject;
+    inside: CardHolderResolvable;
 
     $not: CardFilterObject;
     $and: CardFilterObject[];
@@ -85,21 +86,45 @@ export type Filter =
   | HandFilterObject
   | CardFilterObject;
 
-export function filter(filter: DeckFilterObject, game: Game): Deck[];
-export function filter(filter: PlayerFilterObject, game: Game): Player[];
-export function filter(filter: HandFilterObject, game: Game): Hand[];
-export function filter(filter: CardFilterObject, game: Game): Card[];
-
-export function filter(filter: Filter, game: Game): any {
+export function performFilter(
+  filter: DeckFilterObject,
+  variables: VariableMap,
+  game: Game
+): Deck[];
+export function performFilter(
+  filter: PlayerFilterObject,
+  variables: VariableMap,
+  game: Game
+): Player[];
+export function performFilter(
+  filter: HandFilterObject,
+  variables: VariableMap,
+  game: Game
+): Hand[];
+export function performFilter(
+  filter: CardFilterObject,
+  variables: VariableMap,
+  game: Game
+): Card[];
+export function performFilter(
+  filter: Filter,
+  variables: VariableMap,
+  game: Game
+): any;
+export function performFilter(
+  filter: Filter,
+  variables: VariableMap,
+  game: Game
+): any {
   switch (filter.type) {
     case "filter:deck":
-      return filterDecks(filter, game);
+      return filterDecks(filter, variables, game);
     case "filter:player":
-      return filterPlayers(filter, game);
+      return filterPlayers(filter, variables, game);
     case "filter:hand":
-      return filterHands(filter, game);
+      return filterHands(filter, variables, game);
     case "filter:card":
-      return filterCards(filter, game);
+      return filterCards(filter, variables, game);
   }
 }
 
@@ -117,6 +142,7 @@ function filterPlayers(
       has_tag,
     },
   }: PlayerFilterObject,
+  variables: VariableMap,
   game: Game
 ) {
   const players = game.getAllPlayers();
@@ -135,16 +161,16 @@ function filterPlayers(
   if (has_hand) {
     if (has_hand.minAmount !== 1 || has_hand.maxAmount !== 1)
       throw new Error("has_hand can only have minAmount and maxAmount of 1");
-    const hand = filterHands(has_hand, game).shift()!;
+    const hand = filterHands(has_hand, variables, game).shift()!;
     ands.push(players.filter((p) => p.hasHand(hand)));
   }
 
-  if ($and) ands.push(...$and.map((f) => filterPlayers(f, game)));
+  if ($and) ands.push(...$and.map((f) => filterPlayers(f, variables, game)));
 
   if ($or)
     ands.push(
       $or
-        .map((f) => filterPlayers(f, game))
+        .map((f) => filterPlayers(f, variables, game))
         .reduce((acc, curr) => {
           return acc.concat(curr);
         }, [])
@@ -152,7 +178,7 @@ function filterPlayers(
         .filter((p, i, a) => a.indexOf(p) === i)
     );
 
-  if ($not) not.push(...filterPlayers($not, game));
+  if ($not) not.push(...filterPlayers($not, variables, game));
 
   // Combine the ands and remove the nots
   let filteredPlayers = [...players];
@@ -189,6 +215,7 @@ function filterHands(
       has_x_of_cards,
     },
   }: HandFilterObject,
+  variables: VariableMap,
   game: Game
 ): Hand[] {
   const hands = game.getAllHands();
@@ -196,22 +223,22 @@ function filterHands(
   const not: Hand[] = [];
 
   // Filters
-  if ($and) ands.push(...$and.map((f) => filterHands(f, game)));
+  if ($and) ands.push(...$and.map((f) => filterHands(f, variables, game)));
   if ($or)
     ands.push(
       $or
-        .map((f) => filterHands(f, game))
+        .map((f) => filterHands(f, variables, game))
         .reduce((acc, curr) => {
           return acc.concat(curr);
         }, [])
         .filter((h, i, a) => a.indexOf(h) === i)
     );
-  if ($not) not.push(...filterHands($not, game));
+  if ($not) not.push(...filterHands($not, variables, game));
 
   if (from_player) {
     if (from_player.minAmount !== 1 || from_player.maxAmount !== 1)
       throw new Error("from_player can only have minAmount and maxAmount of 1");
-    const player = filterPlayers(from_player, game).shift()!;
+    const player = filterPlayers(from_player, variables, game).shift()!;
     ands.push([player.hand]);
   }
 
@@ -227,13 +254,13 @@ function filterHands(
     if (has_card.minAmount !== 1 || has_card.maxAmount !== 1)
       throw new Error("has_card can only have minAmount and maxAmount of 1");
 
-    const card = filterCards(has_card, game).shift()!;
+    const card = filterCards(has_card, variables, game).shift()!;
     ands.push(hands.filter((h) => h.hasCard(card)));
   }
 
   if (has_x_of_cards) {
     const amount = has_x_of_cards.amount;
-    const cards = filterCards(has_x_of_cards.cards, game);
+    const cards = filterCards(has_x_of_cards.cards, variables, game);
     ands.push(hands.filter((h) => h.hasXOfCards(amount, cards)));
   }
 
@@ -270,6 +297,7 @@ function filterCards(
       inside,
     },
   }: CardFilterObject,
+  variables: VariableMap,
   game: Game
 ): Card[] {
   const cards = game.getAllCards();
@@ -277,17 +305,17 @@ function filterCards(
   const not: Card[] = [];
 
   // Filters
-  if ($and) ands.push(...$and.map((f) => filterCards(f, game)));
+  if ($and) ands.push(...$and.map((f) => filterCards(f, variables, game)));
   if ($or)
     ands.push(
       $or
-        .map((f) => filterCards(f, game))
+        .map((f) => filterCards(f, variables, game))
         .reduce((acc, curr) => {
           return acc.concat(curr);
         }, [])
         .filter((c, i, a) => a.indexOf(c) === i)
     );
-  if ($not) not.push(...filterCards($not, game));
+  if ($not) not.push(...filterCards($not, variables, game));
 
   if (has_all_of_tags)
     ands.push(cards.filter((c) => c.hasAllTags(has_all_of_tags)));
@@ -298,10 +326,22 @@ function filterCards(
   if (has_tag) ands.push(cards.filter((c) => c.hasTag(has_tag)));
 
   if (inside) {
-    if (inside.minAmount !== 1 || inside.maxAmount !== 1)
-      throw new Error("inside can only have minAmount and maxAmount of 1");
-    const container = filterCardHolders(inside, game).shift()!;
-    ands.push(cards.filter((card) => container.hasCard(card)));
+    if (typeof inside === "string") {
+      const result = variables.get(inside);
+      if (result instanceof Deck || result instanceof Hand)
+        ands.push(cards.filter((card) => result.hasCard(card)));
+      else if (result instanceof Array && result.length === 1) {
+        const el = result.shift();
+        if (el instanceof Deck || el instanceof Hand)
+          ands.push(cards.filter((card) => el.hasCard(card)));
+        else throw new Error("'inside' variable invalid type");
+      } else throw new Error("'inside' variable invalid");
+    } else {
+      if (inside.minAmount !== 1 || inside.maxAmount !== 1)
+        throw new Error("inside can only have minAmount and maxAmount of 1");
+      const container = filterCardHolders(inside, variables, game).shift()!;
+      ands.push(cards.filter((card) => container.hasCard(card)));
+    }
   }
 
   // Combine the ands and remove the nots
@@ -338,6 +378,7 @@ function filterDecks(
       has_card,
     },
   }: DeckFilterObject,
+  variables: VariableMap,
   game: Game
 ): Deck[] {
   const decks = game.getAllDecks();
@@ -345,17 +386,17 @@ function filterDecks(
   const not: Deck[] = [];
 
   // Filters
-  if ($and) ands.push(...$and.map((f) => filterDecks(f, game)));
+  if ($and) ands.push(...$and.map((f) => filterDecks(f, variables, game)));
   if ($or)
     ands.push(
       $or
-        .map((f) => filterDecks(f, game))
+        .map((f) => filterDecks(f, variables, game))
         .reduce((acc, curr) => {
           return acc.concat(curr);
         }, [])
         .filter((d, i, a) => a.indexOf(d) === i)
     );
-  if ($not) not.push(...filterDecks($not, game));
+  if ($not) not.push(...filterDecks($not, variables, game));
 
   if (has_all_of_tags)
     ands.push(decks.filter((d) => d.hasAllTags(has_all_of_tags)));
@@ -368,13 +409,13 @@ function filterDecks(
   if (has_card) {
     if (has_card.minAmount !== 1 || has_card.maxAmount !== 1)
       throw new Error("has_card can only have minAmount and maxAmount of 1");
-    const card = filterCards(has_card, game).shift()!;
+    const card = filterCards(has_card, variables, game).shift()!;
     ands.push(decks.filter((d) => d.hasCard(card)));
   }
 
   if (has_x_of_cards) {
     const amount = has_x_of_cards.amount;
-    const cards = filterCards(has_x_of_cards.cards, game);
+    const cards = filterCards(has_x_of_cards.cards, variables, game);
     ands.push(decks.filter((d) => d.hasXOfCards(amount, cards)));
   }
 
@@ -398,13 +439,14 @@ function filterDecks(
 
 export function filterCardHolders(
   cardHolder: CardHolderFilterObject,
+  variables: VariableMap,
   game: Game
 ): Deck[] | Hand[] {
   switch (cardHolder.type) {
     case "filter:deck":
-      return filterDecks(cardHolder, game);
+      return filterDecks(cardHolder, variables, game);
     case "filter:hand":
-      return filterHands(cardHolder, game);
+      return filterHands(cardHolder, variables, game);
   }
 }
 

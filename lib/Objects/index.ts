@@ -1,3 +1,4 @@
+import { nanoid } from "nanoid";
 import { Game } from "../Game";
 import { Card } from "./Card";
 
@@ -6,7 +7,7 @@ export class BaseGameObject {
   private _tags: string[];
 
   constructor(tags: string[]) {
-    this._id = crypto.randomUUID();
+    this._id = nanoid();
     this._tags = tags;
   }
 

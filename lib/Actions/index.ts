@@ -2,6 +2,8 @@ import {
   CardFilterObject,
   CardHolderFilterObject,
   DeckFilterObject,
+  performFilter,
+  Filter,
   HandFilterObject,
   PlayerFilterObject,
 } from "../Filters";
@@ -57,8 +59,19 @@ interface ActionGameReverseDirection extends BaseAction {
 }
 
 type GameStateActions = never;
+interface DebugAction extends BaseAction {
+  type: "action:debug";
+  args: {
+    find: Resolvable;
+  };
+}
 
-export type Action = CardAction | FindAction | LogicAction | GameStateActions;
+export type Action =
+  | CardAction
+  | FindAction
+  | LogicAction
+  | GameStateActions
+  | DebugAction;
 
 export function performAction(
   action: Action,
@@ -71,8 +84,19 @@ export function performAction(
     return performFindAction(action, variables, game);
   else if (actionIsCardAction(action))
     return performCardAction(action, variables, game);
-  // @ts-expect-error
-  else throw new Error(`Unknown action type: ${action?.type}`);
+  else if (action.type === "action:debug") {
+    const find = action.args.find;
+    let res = undefined;
+    console.log("[DEBUG]", action);
+    if (typeof find === "string") {
+      res = variables.get(find);
+      console.log("[DEBUG]", "found variable", find, res);
+    } else {
+      res = performFilter(find, variables, game);
+      console.log("[DEBUG]", "found", res);
+    }
+    // @ts-expect-error
+  } else throw new Error(`Unknown action type: ${action?.type}`);
 }
 
 export function performActions(

@@ -8,7 +8,7 @@ import {
   VariableTypes,
 } from ".";
 import { performEvent } from "../Events";
-import { filter, filterCardHolders } from "../Filters";
+import { performFilter, filterCardHolders } from "../Filters";
 import { Game, isValidVariableName } from "../Game";
 import { getCardSource } from "../Objects";
 import { Card } from "../Objects/Card";
@@ -37,7 +37,7 @@ function performMoveCardsAction(
 ) {
   let destinations = isValidVariableName(to)
     ? variables.get(to)
-    : filterCardHolders(to, game);
+    : filterCardHolders(to, variables, game);
   let destination: Deck | Hand | undefined = undefined;
   if (!destinations)
     throw new Error("No 'to' destinations found when moving cards");
@@ -55,19 +55,19 @@ function performMoveCardsAction(
 
   const cardsFound: VariableTypes | undefined = isValidVariableName(cards)
     ? variables.get(cards)
-    : filter(cards, game);
+    : performFilter(cards, variables, game);
   let cardsToMove;
   if (!cardsFound) throw new Error("No cards found");
   else if (!(cardsFound instanceof Array)) cardsToMove = [cardsFound];
   else {
     cardsToMove = cardsFound;
   }
-
   for (let card of cardsToMove) {
     if (!(card instanceof Card))
       throw new Error("Tried to move something that isn't a card");
     const source = getCardSource(card, game);
     if (!source) throw new Error("Card does not have a source");
+
     destination.addCard(card, where);
     performEvent(
       {
