@@ -329,8 +329,8 @@ export class Game {
   }
 
   disconnect() {
-    // console.log("[GAME/pusher]", "Disconnecting from Pusher...");
-    // this._pusher?.disconnect();
+    console.log("[GAME/pusher]", "Disconnecting from Pusher...");
+    this._pusher?.disconnect();
   }
 
   start() {
