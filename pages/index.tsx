@@ -1,9 +1,17 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import Image from "next/image";
-import styles from "../styles/Home.module.css";
-import "../interface";
+import { game } from "../lib/interface";
+import { useEffect } from "react";
+
 const Home: NextPage = () => {
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      // game?.connect("lobby-fish-391");
+      return () => {
+        game?.then((g) => g.disconnect());
+      };
+    }
+  });
   return (
     <div style={{}}>
       <Head>

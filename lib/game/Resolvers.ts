@@ -30,6 +30,7 @@ export interface GameObject {
   description: string;
   decks: DeckObject[];
   events: EventObject[];
+  players: PlayerObject[];
   settings: {
     maxPlayerCount: number;
     minPlayerCount: number;
@@ -50,12 +51,14 @@ export interface PlayerObject {
   object: {
     tags: string[];
     name: string;
+    user_id: string;
     hand: HandObject;
   };
 }
 
 export function resolvePlayer(playerObject: PlayerObject): Player {
   return new Player({
+    user_id: playerObject.object.user_id,
     name: playerObject.object.name,
     hand: resolveHand(playerObject.object.hand),
     tags: playerObject.object.tags,

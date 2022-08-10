@@ -1,12 +1,20 @@
 import { BaseGameObject } from ".";
+import { HandObject, PlayerObject } from "../Resolvers";
 import { Card } from "./Card";
 
 export class Player extends BaseGameObject {
+  private _user_id: string;
   private _name: string;
   private _hands: [Hand];
 
-  constructor(opts: { name: string; hand: Hand; tags: string[] }) {
+  constructor(opts: {
+    name: string;
+    hand: Hand;
+    tags: string[];
+    user_id: string;
+  }) {
     super(opts.tags);
+    this._user_id = opts.user_id;
     this._name = opts.name;
     this._hands = [opts.hand];
   }
@@ -16,6 +24,9 @@ export class Player extends BaseGameObject {
   get hand() {
     return this._hands[0];
   }
+  get user_id() {
+    return this._user_id;
+  }
 
   hasHand(hand: Hand) {
     return this._hands.indexOf(hand) !== -1;
@@ -24,11 +35,22 @@ export class Player extends BaseGameObject {
   contains(hand: Hand) {
     return this._hands.indexOf(hand) !== -1;
   }
+  makeGameObject(): PlayerObject {
+    return {
+      type: "object:player",
+      object: {
+        tags: [...this.tags],
+        name: this.name,
+        user_id: this.user_id,
+        hand: this.hand.makeGameObject(),
+      },
+    };
+  }
 }
 
 export class Hand extends BaseGameObject {
   private _cards: Card[];
-  constructor(opts: { name: string; tags: string[]; cards: Card[] }) {
+  constructor(private opts: { name: string; tags: string[]; cards: Card[] }) {
     super(opts.tags);
     this._cards = opts.cards;
   }
@@ -69,5 +91,16 @@ export class Hand extends BaseGameObject {
   }
   removeCard(card: Card) {
     this._cards = this._cards.filter((c) => c !== card);
+  }
+
+  makeGameObject(): HandObject {
+    return {
+      type: "object:hand",
+      object: {
+        tags: [...this.tags],
+        name: this.opts.name,
+        cards: this.cards.map((c) => c.makeGameObject()),
+      },
+    };
   }
 }

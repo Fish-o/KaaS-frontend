@@ -1,4 +1,5 @@
 import { BaseGameObject } from ".";
+import { CardObject } from "../Resolvers";
 
 export class Card extends BaseGameObject {
   private _name: string;
@@ -13,5 +14,16 @@ export class Card extends BaseGameObject {
   }
   get description() {
     return this._description;
+  }
+
+  makeGameObject(): CardObject {
+    return {
+      type: "object:card",
+      object: {
+        tags: [...this.tags],
+        name: this.name,
+        description: this.description ?? null,
+      },
+    };
   }
 }
