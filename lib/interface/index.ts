@@ -278,7 +278,7 @@ export async function init(): Promise<Game> {
         ],
         settings: {
           minPlayerCount: 2,
-          maxPlayerCount: 3,
+          maxPlayerCount: 100,
           turnDirection: "normal",
         },
 

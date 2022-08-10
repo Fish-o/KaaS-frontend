@@ -55,7 +55,7 @@ const Home: NextPage = () => {
             Play card games!
           </Text>
           <Text as="h2" css={{ marginTop: "10px" }}>
-            You don't have a choice!
+            You don&apos;t have a choice!
           </Text>
           <Text as="h3" css={{ marginTop: "-5px" }}>
             you, you, must
