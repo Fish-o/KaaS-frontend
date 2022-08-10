@@ -2,7 +2,12 @@ import { nanoid } from "nanoid";
 import Pusher, { Channel } from "pusher-js";
 import { Variable } from "./Actions";
 import { EventObject, performEvent } from "./Events";
-import { bindEvents, checkAlive, join_lobby, LobbyInfo } from "../networking";
+import {
+  bindEvents,
+  bindHostEvents,
+  checkAlive,
+  LobbyInfo,
+} from "../networking";
 import { Card } from "./Objects/Card";
 import { Deck } from "./Objects/Deck";
 import { Hand, Player } from "./Objects/Player";
@@ -13,8 +18,8 @@ import {
   resolvePlayer,
 } from "./Resolvers";
 import _ from "lodash";
-import { bindHostEvents } from "../networking/host";
-import { generateKeyPair } from "../crypto";
+import { generateKeyPair, generateSymmetricKey } from "../crypto";
+import { join_lobby } from "../networking/client/connect";
 
 export enum GameState {
   Setup = "setup",
@@ -46,7 +51,7 @@ export class Game {
 
   private _lobbyHost: boolean = false;
 
-  private _lobbyKey: string | undefined;
+  private _lobbyKey: CryptoKey | undefined;
   private _lobbyName: string | undefined;
   private _lobbyPassword: string | undefined;
   private _lobbyChannel: Channel | undefined;
@@ -82,6 +87,7 @@ export class Game {
       this._lobbyKey = lobbyInfo.key;
       this._lobbyName = lobbyInfo.name;
       this._lobbyPassword = lobbyInfo.password;
+      bindEvents(this, this._lobbyChannel);
     }
 
     this.storeEvents(gameObject.events);
@@ -102,7 +108,7 @@ export class Game {
   get private_key(): CryptoKey {
     return this._private_key;
   }
-  get lobby_key(): string {
+  get lobby_key(): CryptoKey {
     if (!this._lobbyKey)
       throw new Error("Lobby key not set, probably not connected yet");
     return this._lobbyKey;
@@ -122,6 +128,11 @@ export class Game {
   }
   get minPlayerCount(): number {
     return this._minPlayerCount;
+  }
+
+  get lobbyChannel(): Channel {
+    if (!this._lobbyChannel) throw new Error("Lobby channel not set");
+    return this._lobbyChannel;
   }
 
   addToPhoneBook(user_id: user_id, public_key: CryptoKey) {
@@ -227,6 +238,7 @@ export class Game {
       lobbyPassword,
       playerName
     );
+
     const game = new Game(
       gameObj,
       { privateKey, publicKey },
@@ -235,11 +247,12 @@ export class Game {
         name: playerName,
         password: lobbyPassword,
         user_id: user_id,
-
         pusher,
         lobby,
       }
     );
+    pusher.unbind();
+    pusher.unbind_all();
     return game;
   }
 
@@ -276,7 +289,7 @@ export class Game {
     this._lobbyChannel = lobby;
     this._lobbyChannel = lobby;
     this._lobbyHost = true;
-    this._lobbyKey = nanoid(48);
+    this._lobbyKey = await generateSymmetricKey();
     this._lobbyPassword = lobbyPassword;
     this._lobbyName = lobbyName;
     this.addPlayer({

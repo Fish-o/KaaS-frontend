@@ -21,6 +21,9 @@ export class Player extends BaseGameObject {
   get name() {
     return this._name;
   }
+  set name(newName: string) {
+    this._name = newName;
+  }
   get hand() {
     return this._hands[0];
   }

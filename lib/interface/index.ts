@@ -118,9 +118,10 @@ function render(ctx: CanvasRenderingContext2D, game: Game) {
     renderHand(
       ctx,
       player.hand,
-      player.user_id === game.user_id,
+      true,
       playerX,
-      playerY
+      playerY,
+      player.user_id === game.user_id
     );
   });
   // console.timeEnd("render");
@@ -131,13 +132,14 @@ function renderHand(
   hand: Hand,
   open: boolean,
   x: number,
-  y: number
+  y: number,
+  outlined: boolean = false
 ) {
   const cards = hand.cards;
   cards.forEach((card, index) => {
     const xOffset = (cards.length / 2 - index) * cardWidth - cardWidth / 2;
     const yOffset = 0;
-    renderCard(ctx, card, open, x + xOffset, y + yOffset);
+    renderCard(ctx, card, open, x + xOffset, y + yOffset, outlined);
   });
 }
 
@@ -146,12 +148,19 @@ function renderCard(
   card: Card,
   open: boolean,
   x: number,
-  y: number
+  y: number,
+  outlined: boolean = false
 ) {
   ctx.fillStyle = "white";
   ctx.fillRect(x, y, cardWidth, cardHeight);
   ctx.fillStyle = "black";
   ctx.font = "15px Arial";
+  if (outlined) {
+    ctx.strokeStyle = "red";
+    // set width
+    ctx.lineWidth = 5;
+    ctx.strokeRect(x, y, cardWidth, cardHeight);
+  }
   // console.log("[RENDERER] Rendering card ");
   if (open) ctx.fillText(card.name, x, y + 50);
 }
