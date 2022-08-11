@@ -1,17 +1,22 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import { game } from "../lib/interface";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { Graphics } from "../lib/graphics";
 
 const Game: NextPage = () => {
+  const graphics = useRef<Graphics>();
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // game?.connect("lobby-fish-391");
+      const createdGraphics = new Graphics();
+      graphics.current = createdGraphics;
+      createdGraphics.init().then(() => {
+        if (createdGraphics?.game) createdGraphics?.start();
+      });
       return () => {
-        game?.then((g) => g.disconnect());
+        createdGraphics?.stop();
       };
     }
-  });
+  }, []);
   return (
     <div style={{}}>
       <Head>

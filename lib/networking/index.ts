@@ -12,6 +12,7 @@ import {
 } from "../crypto";
 import { hostConnectHandler } from "./host/connect";
 import { handleEvent, verifyGameEvent } from "./events";
+import { log } from "../graphics";
 
 export type AliveRequest = {
   type: "request";
@@ -74,14 +75,14 @@ export type connectionRequest = HandshakeRequest | ConnectRequest;
 
 export function bindEvents(game: Game, lobby: Channel) {
   lobby.bind("client-debug", (data: any) => {
-    console.log("[GAME/pusher]", "<-", "<debug>", data);
+    log("game/pusher", "<-", "<debug>", data);
   });
 
   lobby.bind("client-alive", (data: AliveRequest | AliveResponse) => {
-    console.log("[GAME/pusher]", "<-", "<alive>", data);
+    log("game/pusher", "<-", "<alive>", data);
 
     if (data.type === "request" && data.sender_id !== game.user_id) {
-      console.log("[GAME/pusher]", "<-", "<alive>", "Is this lobby alive?");
+      log("game/pusher", "<-", "<alive>", "Is this lobby alive?");
       const res: AliveResponse = {
         type: "response",
         nonce: data.nonce,
@@ -90,15 +91,15 @@ export function bindEvents(game: Game, lobby: Channel) {
         sender_id: game.user_id,
       };
       lobby.trigger("client-alive", res);
-      console.log("[GAME/pusher]", "->", "<alive>", `Yes! From: ${res.from}`);
+      log("game/pusher", "->", "<alive>", `Yes! From: ${res.from}`);
     } else if (data.type === "response" && data.sender_id !== game.user_id) {
-      console.log("[GAME/pusher]", "<-", "<alive>", `Yes! From: ${data.from}`);
+      log("game/pusher", "<-", "<alive>", `Yes! From: ${data.from}`);
     }
   });
 
   lobby.bind("client-game", async (data: any) => {
     if (typeof data !== "object") {
-      console.log("[GAME/pusher]", "<-", "<game>", "Invalid data", data);
+      log("game/pusher", "<-", "<game>", "Invalid data", data);
       return;
     }
     const isGameEvent = await verifyGameEvent(game, data);
@@ -116,13 +117,13 @@ export function checkAlive(
   lobby: Channel
 ): Promise<GameState | null> {
   return new Promise((resolve) => {
-    console.log("[GAME/pusher]", "->", "<alive>", "Is this lobby alive?");
+    log("game/pusher", "->", "<alive>", "Is this lobby alive?");
     const nonce = nanoid();
 
     let game_state: GameState | null = null;
     let host_alive = false;
     lobby.bind("client-alive", (data: AliveResponse) => {
-      console.log("[GAME/pusher]", "<-", "<alive>", `Yes! From: ${data.from}`);
+      log("game/pusher", "<-", "<alive>", `Yes! From: ${data.from}`);
       if (data.nonce === nonce) {
         game_state = data.game_state;
         if (data.from === "host") {
@@ -140,10 +141,10 @@ export function checkAlive(
       if (host_alive) return;
       else if (game_state) return resolve(game_state);
       else {
-        console.log("[GAME/pusher]", "<-", "<alive>", "No");
+        log("game/pusher", "<-", "<alive>", "No");
         resolve(null);
       }
-    }, 3000);
+    }, 1000);
   });
 }
 

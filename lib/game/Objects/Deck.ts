@@ -1,5 +1,6 @@
 import _ from "lodash";
 import { BaseGameObject } from ".";
+import { DeckObject } from "../Resolvers";
 import { Card } from "./Card";
 
 export enum DeckType {
@@ -144,5 +145,23 @@ export class Deck extends BaseGameObject {
 
   shuffleDeck() {
     this._cards = _.shuffle(this._cards);
+  }
+
+  makeGameObject(): DeckObject {
+    return {
+      type: "object:deck",
+      object: {
+        cards: this.cards.map((c) => c.makeGameObject()),
+        tags: [...this.tags],
+        cardsOpen: this.cardsOpen,
+        hidden: this.hidden,
+        overflow: this._overflow ?? null,
+        type: this.type,
+      },
+    };
+  }
+
+  getIdentifier(): `deck:${string}` {
+    return `deck:${this.id}`;
   }
 }

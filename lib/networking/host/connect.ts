@@ -18,39 +18,40 @@ import {
 } from "../../crypto";
 import { Game, GameState } from "../../game/Game";
 import { PlayerObject } from "../../game/Resolvers";
-import { fireGameEvent } from "../events";
+import { log } from "../../graphics";
+import { broadcastGameEvent } from "../events";
 
 export async function hostConnectHandler(game: Game, lobby: Channel) {
   lobby.bind("client-connect", async (data: connectionRequest) => {
-    console.log("[NETWORKING/connect]", "<-", "<client-connect>", data);
+    log("[NETWORKING/connect]", "<-", "<client-connect>", data);
     const exported_host_key = await exportKey(game.public_key);
 
     if (data.sender_id === game.user_id) return;
     if (data.type === "handshake_request") {
       const client_public_key = await importKey(data.public_key);
       game.addToPhoneBook(data.sender_id, client_public_key);
-      console.log("KEYYYY", await exportKey(client_public_key));
+      log("KEYYYY", await exportKey(client_public_key));
       const symmetric_key = await generateSymmetricKey();
-      console.log("made symmetric");
+      log("made symmetric");
       const [encrypted_host_public_key, iv] = await encryptSymmetric({
         text: exported_host_key,
         key: symmetric_key,
       });
-      console.log("used symmetric");
+      log("used symmetric");
       const exported_symmetric_key = await exportSymmetricKey(symmetric_key);
-      console.log("exported symmetric");
+      log("exported symmetric");
       const encrypted_symmetric_key = await encrypt({
         text: exported_symmetric_key,
         publicKey: client_public_key,
       });
-      console.log("encrypted symmetric");
+      log("encrypted symmetric");
 
       const encrypted_symmetric_key_iv = await encrypt({
         text: iv,
         publicKey: client_public_key,
       });
 
-      console.log("encrypted iv");
+      log("encrypted iv");
       const response: HandshakeResponse = {
         type: "handshake_response",
         sender_id: game.user_id,
@@ -59,12 +60,7 @@ export async function hostConnectHandler(game: Game, lobby: Channel) {
         encrypted_symmetric_key,
         encrypted_symmetric_key_iv,
       };
-      console.log(
-        "[NETWORKING/connect]",
-        "->",
-        "<handshake_response>",
-        response
-      );
+      log("[NETWORKING/connect]", "->", "<handshake_response>", response);
 
       lobby.trigger("client-connect", response);
     } else if (data.type === "connect_request") {
@@ -143,7 +139,7 @@ export async function hostConnectHandler(game: Game, lobby: Channel) {
       };
       game.addPlayer(newPlayer);
 
-      fireGameEvent(game, {
+      broadcastGameEvent(game, {
         event: "player_join",
         player: newPlayer,
       });
@@ -159,5 +155,5 @@ export async function hostConnectHandler(game: Game, lobby: Channel) {
       lobby.trigger("client-connect", response);
     }
   });
-  console.log("[NETWORKING]", "client-connect bound");
+  log("[NETWORKING]", "client-connect bound");
 }

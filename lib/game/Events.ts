@@ -58,7 +58,12 @@ export function performEvent<T extends EventObject>(
     };
   },
   game: Game
+  // broadcast: boolean = false
 ) {
+  // if (broadcast) {
+  //   broadcastGameEventEvent(eventData, game);
+  // }
+
   const events = game.getEventsFromType<T>(eventData.type);
   if (!events) return;
   for (let event of events) {

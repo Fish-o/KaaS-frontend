@@ -2,9 +2,12 @@ import _ from "lodash";
 import { nanoid } from "nanoid";
 import { Channel } from "pusher-js";
 import { decryptSymmetric, encryptSymmetric } from "../crypto";
+import { EventObject } from "../game/Events";
 
 import { Game } from "../game/Game";
 import { PlayerObject } from "../game/Resolvers";
+import { log } from "../graphics";
+import { handleGameEventEvent, SendableEvent } from "./gameEvent";
 import { hostConnectHandler } from "./host/connect";
 
 interface BaseEvent {
@@ -28,15 +31,37 @@ interface PlayerNameChangeEvent extends BaseEvent {
   user_id: string;
   new_name: string;
 }
+
+interface PlayerNameChangeEvent extends BaseEvent {
+  event: "player_name_change";
+  user_id: string;
+  new_name: string;
+}
+interface GameStartEvent extends BaseEvent {
+  event: "game_start";
+}
+
+// export interface GameEventEvent extends BaseEvent {
+//   event: "game_event";
+//   data: SendableEvent<any>;
+// }
+
 type DistributiveOmit<T, K extends keyof any> = T extends any
   ? Omit<T, K>
   : never;
 
-type GameEvent = PlayerJoinEvent | PlayerLeaveEvent | PlayerNameChangeEvent;
+type GameEvent =
+  | PlayerJoinEvent
+  | PlayerLeaveEvent
+  | PlayerNameChangeEvent
+  | GameStartEvent;
+// | GameEventEvent;
+
 export type PartialGameEvent = DistributiveOmit<
   GameEvent,
   "sender_id" | "timestamp" | "proof" | "proof_iv"
 >;
+
 export async function handleEvent(game: Game, event: GameEvent) {
   switch (event.event) {
     case "player_join":
@@ -66,6 +91,11 @@ export async function handleEvent(game: Game, event: GameEvent) {
         player.name = event.new_name;
       }
       break;
+    case "game_start":
+      {
+        game.start();
+      }
+      break;
   }
 }
 export async function verifyGameEvent(game: Game, event: GameEvent) {
@@ -78,17 +108,17 @@ export async function verifyGameEvent(game: Game, event: GameEvent) {
       iv: proof_iv,
     });
     if (proofText !== timestamp.toString()) {
-      console.error("[GAME/events]", "Proof mismatch", event, proofText);
+      console.error("game/events", "Proof mismatch", event, proofText);
       return false;
     }
 
     return true;
   } catch (err) {
-    console.error("[GAME/events]", "Proofing error", event, err);
+    console.error("game/events", "Proofing error", event, err);
     return false;
   }
 }
-export async function fireGameEvent(game: Game, event: PartialGameEvent) {
+export async function broadcastGameEvent(game: Game, event: PartialGameEvent) {
   const channel = game.lobbyChannel;
   const timestamp = Date.now();
   const [encrypted, iv] = await encryptSymmetric({
@@ -103,6 +133,6 @@ export async function fireGameEvent(game: Game, event: PartialGameEvent) {
     proof_iv: iv,
     timestamp: timestamp,
   };
-  console.log("[GAME/events]", "->", "<game>", fullEvent);
+  log("game/events", "->", "<game>", fullEvent);
   channel.trigger("client-game", fullEvent);
 }

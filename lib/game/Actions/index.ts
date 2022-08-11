@@ -87,13 +87,13 @@ export function performAction(
   else if (action.type === "action:debug") {
     const find = action.args.find;
     let res = undefined;
-    // console.log("[DEBUG]", action);
+    // log("[DEBUG]", action);
     if (typeof find === "string") {
       res = variables.get(find);
-      // console.log("[DEBUG]", "found variable", find, res);
+      // log("[DEBUG]", "found variable", find, res);
     } else {
       res = performFilter(find, variables, game);
-      // console.log("[DEBUG]", "found", res);
+      // log("[DEBUG]", "found", res);
     }
     // @ts-expect-error
   } else throw new Error(`Unknown action type: ${action?.type}`);

@@ -20,6 +20,8 @@ import {
 import _ from "lodash";
 import { generateKeyPair, generateSymmetricKey } from "../crypto";
 import { join_lobby } from "../networking/client/connect";
+import { Graphics, log } from "../graphics";
+import { GameIdentifier } from "../networking/gameEvent";
 
 export enum GameState {
   Setup = "setup",
@@ -60,6 +62,7 @@ export class Game {
   private _minPlayerCount: number;
 
   constructor(
+    private graphics: Graphics,
     private gameObject: GameObject,
     auth: { privateKey: CryptoKey; publicKey: CryptoKey },
     lobbyInfo?: LobbyInfo
@@ -91,6 +94,9 @@ export class Game {
     }
 
     this.storeEvents(gameObject.events);
+  }
+  abort(): void {
+    this._pusher?.disconnect();
   }
 
   get user_id(): string {
@@ -177,6 +183,24 @@ export class Game {
     return this._players.map((p) => p.hand);
   }
 
+  getVariable(identifier: GameIdentifier) {
+    const [type, id] = identifier.split(":");
+    if (type === "deck") {
+      const deck = this._decks.find((d) => d.id === id);
+      return deck ?? null;
+    } else if (type === "player") {
+      const player = this._players.find((p) => p.id === id);
+      return player ?? null;
+    } else if (type === "hand") {
+      const hand = this._players.find((p) => p.id === id);
+      return hand ?? null;
+    } else if (type === "card") {
+      const card = this.getAllCards().find((c) => c.id === id);
+      return card ?? null;
+    } else {
+      throw new Error(`Unknown identifier type: ${identifier}`);
+    }
+  }
   // Events
   private storeEvents(events: EventObject[]) {
     const eventsMaps: Map<EventObject["type"], EventObject[]> = new Map();
@@ -192,17 +216,9 @@ export class Game {
   }
 
   // Game lifecycle
-  private init() {
-    this._state = GameState.Setup;
-    performEvent(
-      {
-        type: "event:game.init",
-        data: {},
-      },
-      this
-    );
-  }
+
   static async init_client(
+    g: Graphics,
     lobbyName: string,
     lobbyPassword: string,
     playerName: string
@@ -212,17 +228,19 @@ export class Game {
       cluster: "eu",
       authEndpoint: "/api/pusher/auth",
     });
+    const p = pusher;
+    assure(p, g);
     const lobby = pusher.subscribe(`private-lobby-${lobbyName}`);
+    assure(p, g);
     await bindDefaults(lobby);
+    assure(p, g);
     const gameState = await checkAlive(user_id, lobby);
+    assure(p, g);
     if (gameState === GameState.InGame || gameState === GameState.End) {
-      console.log(
-        "[GAME/init_client]",
-        "Lobby is alive, and has already started!!!!"
-      );
+      log("[GAME/init_client]", "Lobby is alive, and has already started!!!!");
       throw new Error("Lobby has already started");
     } else if (gameState !== GameState.Setup) {
-      console.log("[GAME/init_client]", "Lobby dead, cant join");
+      log("[GAME/init_client]", "Lobby dead, cant join");
       throw new Error("Lobby with that name does not exists");
     }
 
@@ -230,6 +248,8 @@ export class Game {
     // this._lobbyPassword = lobbyPassword;
     // this._lobbyHost = false;
     const { privateKey, publicKey } = await generateKeyPair();
+    assure(p, g);
+
     const { lobby_key, gameObj } = await join_lobby(
       user_id,
       publicKey,
@@ -238,8 +258,10 @@ export class Game {
       lobbyPassword,
       playerName
     );
+    assure(p, g);
 
     const game = new Game(
+      g,
       gameObj,
       { privateKey, publicKey },
       {
@@ -251,11 +273,18 @@ export class Game {
         lobby,
       }
     );
+    assure(p, g);
     pusher.unbind();
     pusher.unbind_all();
+    assure(p, g);
     return game;
   }
-
+  assure() {
+    if (this.graphics.abort) {
+      this.disconnect();
+      throw new Error("Graphics aborted");
+    }
+  }
   async init_host(
     lobbyName: string,
     lobbyPassword: string,
@@ -267,29 +296,32 @@ export class Game {
       cluster: "eu",
       authEndpoint: "/api/pusher/auth",
     });
-    console.log("[GAME/init_host]", "Creating lobby");
+    this._pusher = pusher;
+    this.assure();
+    log(this.graphics._id + " GAME/init_host", "Creating lobby");
     const lobby = pusher.subscribe(`private-lobby-${lobbyName}`);
-    console.log("[GAME/init_host]", "Created lobby", lobby.name);
+    log(this.graphics._id + " GAME/init_host", "Created lobby", lobby.name);
     await bindDefaults(lobby);
+    this.assure();
 
     const gameState = await checkAlive(this.user_id, lobby);
+    this.assure();
+
     if (gameState === GameState.InGame || gameState === GameState.End) {
-      console.log(
-        "[GAME/init_host]",
-        "Lobby is alive, and has already started!!!!"
-      );
+      log("GAME/init_host", "Lobby is alive, and has already started!!!!");
       throw new Error("Lobby with that name already exists");
     } else if (gameState === GameState.Setup) {
-      console.log("[GAME/init_host]", "Lobby already alive, could join it");
+      log("GAME/init_host", "Lobby already alive, could join it");
       throw new Error("Lobby with that name already exists");
     }
-    console.log("[GAME/init_host]", "Lobby dead! Creating lobby as host");
+    log("GAME/init_host", "Lobby dead! Creating lobby as host");
 
     this._pusher = pusher;
     this._lobbyChannel = lobby;
     this._lobbyChannel = lobby;
     this._lobbyHost = true;
     this._lobbyKey = await generateSymmetricKey();
+    this.assure();
     this._lobbyPassword = lobbyPassword;
     this._lobbyName = lobbyName;
     this.addPlayer({
@@ -319,60 +351,69 @@ export class Game {
     });
 
     bindEvents(this, lobby);
-    console.log(
-      "[GAME/init_host]",
-      "Created lobby",
-      lobby.name,
-      ", binding host events"
-    );
+    log("GAME/init_host", "Created lobby", lobby.name, ", binding host events");
     bindHostEvents(this, lobby);
+    this.assure();
   }
 
-  disconnect() {
-    console.log("[GAME/pusher]", "Disconnecting from Pusher...");
-    // this._pusher?.disconnect();
+  private disconnect() {
+    log(this.graphics._id + " GAME/pusher", "Disconnecting from Pusher...");
+    if (this._pusher) this._pusher.disconnect();
   }
 
   start() {
     if (this._state !== GameState.Setup)
       throw new Error("Game not in setup state");
     this._state = GameState.InGame;
+    log("GAME/start", "Starting game: firing init event");
     performEvent(
       {
-        type: "event:game.start",
+        type: "event:game.init",
         data: {},
       },
       this
     );
-    let previous: Player | null = null;
-    while (true) {
-      const current = this._players.at(this._turnPlayerIndex);
-      if (!current)
-        throw new Error(`Player not found at index ${this._turnPlayerIndex}`);
+    log("GAME/start", "Starting game: firing start event");
+    setTimeout(() => {
       performEvent(
         {
-          type: "event:game.new_turn",
-          data: {
-            previous,
-            current,
-          },
+          type: "event:game.start",
+          data: {},
         },
         this
       );
-      this._turn += 1;
-      if (this._turnDirection === "normal") {
-        this._turnPlayerIndex = Math.abs(
-          (this._players.length + this._turnPlayerIndex + 1) %
-            this._players.length
-        );
-      } else if (this._turnDirection === "reversed") {
-        this._turnPlayerIndex = Math.abs(
-          (this._players.length + this._turnPlayerIndex - 1) %
-            this._players.length
-        );
-      }
-      previous = current;
+      let previous: Player | null = null;
+      this.tick();
+    }, 500);
+  }
+  private _previous_player: Player | null = null;
+  tick() {
+    const current = this._players.at(this._turnPlayerIndex);
+    if (!current)
+      throw new Error(`Player not found at index ${this._turnPlayerIndex}`);
+    performEvent(
+      {
+        type: "event:game.new_turn",
+        data: {
+          previous: this._previous_player,
+          current,
+        },
+      },
+      this
+    );
+    this._turn += 1;
+    if (this._turnDirection === "normal") {
+      this._turnPlayerIndex = Math.abs(
+        (this._players.length + this._turnPlayerIndex + 1) %
+          this._players.length
+      );
+    } else if (this._turnDirection === "reversed") {
+      this._turnPlayerIndex = Math.abs(
+        (this._players.length + this._turnPlayerIndex - 1) %
+          this._players.length
+      );
     }
+    this._previous_player = current;
   }
   makeGameObject() {
     const gameObject = _.cloneDeep(this.gameObject);
@@ -385,21 +426,28 @@ function bindDefaults(channel: Channel): Promise<void> {
   return new Promise((resolve, reject) => {
     channel
       .bind("pusher:subscription_succeeded", () => {
-        console.log("[GAME/init_host]", "Subscription succeeded");
+        log("GAME/init_host", "Subscription succeeded");
         resolve();
       })
       .bind("pusher:subscription_error", (error: any) => {
-        console.log("[GAME/init_host]", "Subscription error", error);
+        log("GAME/init_host", "Subscription error", error);
         reject(error);
       })
       .bind("pusher:member_added", (member: any) => {
-        console.log("[GAME/init_host]", "Member added", member);
+        log("GAME/init_host", "Member added", member);
       })
       .bind("pusher:member_removed", (member: any) => {
-        console.log("[GAME/init_host]", "Member removed", member);
+        log("GAME/init_host", "Member removed", member);
       })
       .bind("pusher:member_updated", (member: any) => {
-        console.log("[GAME/init_host]", "Member updated", member);
+        log("GAME/init_host", "Member updated", member);
       });
   });
+}
+
+function assure(p: Pusher, graphics: Graphics) {
+  if (graphics.abort) {
+    p.disconnect();
+    throw new Error("Aborting");
+  }
 }

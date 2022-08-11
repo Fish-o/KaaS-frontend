@@ -1,4 +1,5 @@
 import _ from "lodash";
+import { log } from "../graphics";
 
 export async function generateKeyPair() {
   let keyPair = await window.crypto.subtle.generateKey(
@@ -18,17 +19,17 @@ export async function encrypt(args: {
   text: string;
   publicKey: CryptoKey;
 }): Promise<string> {
-  console.log("[GAME/crypto]", "<encrypt>", "Encoding...");
+  log("GAME/crypto", "<encrypt>", "Encoding...");
   const encoded = new TextEncoder().encode(args.text);
-  console.log("[GAME/crypto]", "<encrypt>", "Encrypting...");
-  console.log("[GAME/crypto]", "<encrypt>", "KEY", args.publicKey);
+  log("GAME/crypto", "<encrypt>", "Encrypting...");
+  log("GAME/crypto", "<encrypt>", "KEY", args.publicKey);
   // Split arraybuffer into chunks of size
   const result: ArrayBuffer = await window.crypto.subtle.encrypt(
     { name: "RSA-OAEP" },
     args.publicKey,
     encoded
   );
-  console.log("[GAME/crypto]", "<encrypt>", "Decoding...");
+  log("GAME/crypto", "<encrypt>", "Decoding...");
   return Buffer.from(result).toString("base64");
 }
 

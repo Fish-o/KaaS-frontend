@@ -49,6 +49,10 @@ export class Player extends BaseGameObject {
       },
     };
   }
+
+  getIdentifier(): `player:${string}` {
+    return `player:${this.id}`;
+  }
 }
 
 export class Hand extends BaseGameObject {
@@ -105,5 +109,9 @@ export class Hand extends BaseGameObject {
         cards: this.cards.map((c) => c.makeGameObject()),
       },
     };
+  }
+
+  getIdentifier(): `hand:${string}` {
+    return `hand:${this.id}`;
   }
 }

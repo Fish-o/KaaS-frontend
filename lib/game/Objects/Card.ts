@@ -26,4 +26,8 @@ export class Card extends BaseGameObject {
       },
     };
   }
+
+  getIdentifier(): `card:${string}` {
+    return `card:${this.id}`;
+  }
 }
