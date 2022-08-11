@@ -7,7 +7,6 @@ import { EventObject } from "../game/Events";
 import { Game } from "../game/Game";
 import { PlayerObject } from "../game/Resolvers";
 import { log } from "../graphics";
-import { handleGameEventEvent, SendableEvent } from "./gameEvent";
 import { hostConnectHandler } from "./host/connect";
 
 interface BaseEvent {

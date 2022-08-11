@@ -21,7 +21,6 @@ import _ from "lodash";
 import { generateKeyPair, generateSymmetricKey } from "../crypto";
 import { join_lobby } from "../networking/client/connect";
 import { Graphics, log } from "../graphics";
-import { GameIdentifier } from "../networking/gameEvent";
 
 export enum GameState {
   Setup = "setup",
@@ -183,24 +182,24 @@ export class Game {
     return this._players.map((p) => p.hand);
   }
 
-  getVariable(identifier: GameIdentifier) {
-    const [type, id] = identifier.split(":");
-    if (type === "deck") {
-      const deck = this._decks.find((d) => d.id === id);
-      return deck ?? null;
-    } else if (type === "player") {
-      const player = this._players.find((p) => p.id === id);
-      return player ?? null;
-    } else if (type === "hand") {
-      const hand = this._players.find((p) => p.id === id);
-      return hand ?? null;
-    } else if (type === "card") {
-      const card = this.getAllCards().find((c) => c.id === id);
-      return card ?? null;
-    } else {
-      throw new Error(`Unknown identifier type: ${identifier}`);
-    }
-  }
+  // getVariable(identifier: GameIdentifier) {
+  //   const [type, id] = identifier.split(":");
+  //   if (type === "deck") {
+  //     const deck = this._decks.find((d) => d.id === id);
+  //     return deck ?? null;
+  //   } else if (type === "player") {
+  //     const player = this._players.find((p) => p.id === id);
+  //     return player ?? null;
+  //   } else if (type === "hand") {
+  //     const hand = this._players.find((p) => p.id === id);
+  //     return hand ?? null;
+  //   } else if (type === "card") {
+  //     const card = this.getAllCards().find((c) => c.id === id);
+  //     return card ?? null;
+  //   } else {
+  //     throw new Error(`Unknown identifier type: ${identifier}`);
+  //   }
+  // }
   // Events
   private storeEvents(events: EventObject[]) {
     const eventsMaps: Map<EventObject["type"], EventObject[]> = new Map();
