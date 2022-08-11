@@ -330,7 +330,7 @@ export class Game {
 
   disconnect() {
     console.log("[GAME/pusher]", "Disconnecting from Pusher...");
-    this._pusher?.disconnect();
+    // this._pusher?.disconnect();
   }
 
   start() {
