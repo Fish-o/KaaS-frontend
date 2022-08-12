@@ -14,6 +14,11 @@ import { Hand, Player } from "../Objects/Player";
 import { actionIsCardAction, CardAction, performCardAction } from "./cards";
 import { actionIsFindAction, FindAction, performFindAction } from "./find";
 import { actionIsLogicAction, LogicAction, performLogicAction } from "./logic";
+import {
+  actionIsUserInputAction,
+  performUserInputAction,
+  UserInputAction,
+} from "./user_input";
 
 export type CardHolderResolvable = CardHolderFilterObject | Variable;
 
@@ -71,19 +76,22 @@ export type Action =
   | FindAction
   | LogicAction
   | GameStateActions
-  | DebugAction;
+  | DebugAction
+  | UserInputAction;
 
-export function performAction(
+export async function performAction(
   action: Action,
   variables: VariableMap,
   game: Game
-): void {
+): Promise<void> {
   if (actionIsLogicAction(action))
-    return performLogicAction(action, variables, game);
+    return await performLogicAction(action, variables, game);
   else if (actionIsFindAction(action))
-    return performFindAction(action, variables, game);
+    return await performFindAction(action, variables, game);
   else if (actionIsCardAction(action))
-    return performCardAction(action, variables, game);
+    return await performCardAction(action, variables, game);
+  else if (actionIsUserInputAction(action))
+    return await performUserInputAction(action, variables, game);
   else if (action.type === "action:debug") {
     const find = action.args.find;
     let res = undefined;
@@ -99,12 +107,12 @@ export function performAction(
   } else throw new Error(`Unknown action type: ${action?.type}`);
 }
 
-export function performActions(
+export async function performActions(
   actions: Action[],
   variables: VariableMap,
   game: Game
 ) {
   for (const action of actions) {
-    performAction(action, variables, game);
+    await performAction(action, variables, game);
   }
 }

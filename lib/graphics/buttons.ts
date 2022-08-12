@@ -1,4 +1,5 @@
 import { Graphics } from ".";
+import { Player } from "../game/Objects/Player";
 
 export interface ButtonField {
   key: string;
@@ -7,7 +8,12 @@ export interface ButtonField {
   width: number;
   height: number;
   onActive?: (active: boolean) => void | Promise<void>;
-  onClick: (x: number, y: number) => void | Promise<void>;
+  onClick: (x?: number, y?: number) => void | Promise<void>;
+}
+export interface PlayerButton {
+  player: Player;
+  onActive?: (active: boolean) => void | Promise<void>;
+  onClick: (x?: number, y?: number) => void | Promise<void>;
 }
 
 function isInside(x: number, y: number, field: ButtonField) {
@@ -18,6 +24,7 @@ function isInside(x: number, y: number, field: ButtonField) {
     y <= field.y + field.height
   );
 }
+
 function getMousePos(canvas: HTMLCanvasElement, evt: MouseEvent) {
   const rect = canvas.getBoundingClientRect();
   return {
@@ -25,6 +32,7 @@ function getMousePos(canvas: HTMLCanvasElement, evt: MouseEvent) {
     y: evt.clientY - rect.top,
   };
 }
+
 export function bindButtons(graphics: Graphics) {
   const canvas = graphics.canvas;
   canvas.addEventListener("mousedown", (e) => {
@@ -62,6 +70,7 @@ export function bindButtons(graphics: Graphics) {
         cursor = "pointer";
       }
     });
+
     canvas.style.cursor = cursor;
   });
 }

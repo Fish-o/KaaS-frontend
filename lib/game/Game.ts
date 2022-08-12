@@ -61,7 +61,7 @@ export class Game {
   private _minPlayerCount: number;
 
   constructor(
-    private graphics: Graphics,
+    public graphics: Graphics,
     private gameObject: GameObject,
     auth: { privateKey: CryptoKey; publicKey: CryptoKey },
     lobbyInfo?: LobbyInfo
@@ -386,11 +386,12 @@ export class Game {
     }, 500);
   }
   private _previous_player: Player | null = null;
-  tick() {
+  async tick() {
     const current = this._players.at(this._turnPlayerIndex);
     if (!current)
       throw new Error(`Player not found at index ${this._turnPlayerIndex}`);
-    performEvent(
+    log("GAME/tick", "Tick", current.name, this._turnPlayerIndex);
+    await performEvent(
       {
         type: "event:game.new_turn",
         data: {
@@ -413,6 +414,9 @@ export class Game {
       );
     }
     this._previous_player = current;
+    setTimeout(() => {
+      this.tick();
+    }, 1000);
   }
   makeGameObject() {
     const gameObject = _.cloneDeep(this.gameObject);

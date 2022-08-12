@@ -3,6 +3,7 @@ import { Game, GameState } from "../game/Game";
 import { Card } from "../game/Objects/Card";
 import { Hand } from "../game/Objects/Player";
 import config from "./config";
+import { renderSelector } from "./selector";
 
 export function renderCanvas(
   ctx: CanvasRenderingContext2D,
@@ -15,6 +16,7 @@ export function renderCanvas(
   renderDecks(ctx, game);
   renderPlayers(ctx, game);
   renderStartButton(ctx, graphics);
+  renderSelector(graphics);
 }
 
 function renderStartButton(ctx: CanvasRenderingContext2D, graphics: Graphics) {
@@ -111,6 +113,7 @@ function renderPlayers(ctx: CanvasRenderingContext2D, game: Game) {
     );
   });
 }
+
 function renderCard(
   ctx: CanvasRenderingContext2D,
   card: Card,

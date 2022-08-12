@@ -1,11 +1,18 @@
 import { generateKeyPair } from "../crypto";
 import { Game } from "../game/Game";
 import { DeckType } from "../game/Objects/Deck";
-import { bindButtons, ButtonField, removeButton } from "./buttons";
+import {
+  bindButtons,
+  ButtonField,
+  PlayerButton,
+  removeButton,
+} from "./buttons";
 import { renderCanvas } from "./render";
 import exampleGame from "../games/example";
 import { nanoid } from "nanoid";
 import { broadcastGameEvent } from "../networking/events";
+import { Player } from "../game/Objects/Player";
+import { getInfoOfPlayerButton } from "./selector";
 
 function update(delta: number) {
   // log(this._id + " Tick", delta, "ms");
@@ -44,11 +51,16 @@ export class Graphics {
   public canvas: HTMLCanvasElement;
   public ctx: CanvasRenderingContext2D;
   public game!: Game;
+
   public buttons: ButtonField[] = [];
+
+  public playersSelecting: Player[] | null = null;
+
   public activeButtons: ButtonField[] = [];
   private _lastTime: number = Date.now();
   private _initializing: boolean = false;
   public abort: boolean = false;
+
   constructor() {
     const canvas = document.getElementById("canvas") as HTMLCanvasElement;
     if (!canvas) throw new Error("Could not get canvas");
@@ -70,6 +82,7 @@ export class Graphics {
     bindButtons(this);
     log(this._id + " graphics", " <constructor>", "Made");
   }
+
   public async init() {
     if (this._initializing) throw new Error("Already initializing");
     else if (this.game) throw new Error("Already initialized");
@@ -90,9 +103,11 @@ export class Graphics {
       this.abort = true;
     }
   }
+
   public render() {
     renderCanvas(this.ctx, this);
   }
+
   public start() {
     if (!this.game) throw new Error("Graphics not initialized, run init()");
     this._lastTime = Date.now();
@@ -125,6 +140,7 @@ export class Graphics {
         if (!this.abort) this.tick();
       });
   }
+
   public stop() {
     if (this.abort)
       return log(this._id + " graphics", " <stop> Redundant stop call");
@@ -142,6 +158,7 @@ export class Graphics {
     this.cleanup();
     log(this._id + " graphics", " <stop> Cleaned up!");
   }
+
   private cleanup() {
     this.buttons = [];
     this.game.abort();
@@ -151,8 +168,35 @@ export class Graphics {
   public addButton(button: ButtonField) {
     this.buttons.push(button);
   }
+
   public removeButton(button: ButtonField | string) {
     removeButton(button, this);
+  }
+
+  public promptPlayerSelection(players: Player[]): Promise<Player> {
+    return new Promise((resolve, reject) => {
+      this.playersSelecting = players;
+      const oldButtons = this.buttons;
+      players.forEach((player) => {
+        const { x, y, height, width } = getInfoOfPlayerButton(
+          this,
+          players,
+          player
+        );
+        this.addButton({
+          key: `select-player-${player.id}`,
+          onClick: () => {
+            this.playersSelecting = null;
+            this.buttons = oldButtons;
+            resolve(player);
+          },
+          x,
+          y,
+          width,
+          height,
+        });
+      });
+    });
   }
 }
 

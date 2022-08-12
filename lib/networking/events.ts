@@ -39,6 +39,14 @@ interface PlayerNameChangeEvent extends BaseEvent {
 interface GameStartEvent extends BaseEvent {
   event: "game_start";
 }
+interface BaseSelectEvent extends BaseEvent {
+  event: `select:${string}`;
+  selected_by: string;
+  results: string[];
+}
+export interface SelectPlayerEvent extends BaseSelectEvent {
+  event: `select:player`;
+}
 
 // export interface GameEventEvent extends BaseEvent {
 //   event: "game_event";
@@ -53,7 +61,8 @@ type GameEvent =
   | PlayerJoinEvent
   | PlayerLeaveEvent
   | PlayerNameChangeEvent
-  | GameStartEvent;
+  | GameStartEvent
+  | SelectPlayerEvent;
 // | GameEventEvent;
 
 export type PartialGameEvent = DistributiveOmit<
@@ -95,8 +104,14 @@ export async function handleEvent(game: Game, event: GameEvent) {
         game.start();
       }
       break;
+    case "select:player":
+      {
+        // TODO: implement
+      }
+      break;
   }
 }
+
 export async function verifyGameEvent(game: Game, event: GameEvent) {
   try {
     const { proof, proof_iv, timestamp } = event;
@@ -117,6 +132,7 @@ export async function verifyGameEvent(game: Game, event: GameEvent) {
     return false;
   }
 }
+
 export async function broadcastGameEvent(game: Game, event: PartialGameEvent) {
   const channel = game.lobbyChannel;
   const timestamp = Date.now();
@@ -134,4 +150,34 @@ export async function broadcastGameEvent(game: Game, event: PartialGameEvent) {
   };
   log("game/events", "->", "<game>", fullEvent);
   channel.trigger("client-game", fullEvent);
+}
+
+// TODO: Make this good typescript pls
+export async function awaitEvent<T extends GameEvent>(
+  game: Game,
+  type: T["event"],
+  timeout?: number
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const channel = game.lobbyChannel;
+    const eventListener = (event: GameEvent) => {
+      if (isEventType(event, type)) {
+        channel.unbind("client-game", eventListener);
+        resolve(event);
+      }
+    };
+    channel.bind("client-game", eventListener);
+    if (timeout !== undefined)
+      setTimeout(() => {
+        channel.unbind("client-game", eventListener);
+        reject(new Error("Timeout"));
+      }, timeout);
+  });
+}
+
+function isEventType<T extends GameEvent>(
+  event: any,
+  type: T["event"]
+): event is T {
+  return event.event === type;
 }

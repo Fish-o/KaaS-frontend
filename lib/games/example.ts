@@ -178,6 +178,24 @@ const exampleGame: GameObject = {
       ],
       returns: {},
     },
+    {
+      type: "event:game.new_turn",
+      returns: {
+        current: "$current",
+      },
+
+      actions: [
+        {
+          type: "action:user_input.select_players",
+          args: {
+            selector: `$current`,
+            max: 1,
+            min: 1,
+            message: "Select a player",
+          },
+        },
+      ],
+    },
   ],
   players: [],
 };

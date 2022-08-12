@@ -50,7 +50,7 @@ export type EventObject =
   | GameStartEventObject
   | GameNewTurnEventObject;
 
-export function performEvent<T extends EventObject>(
+export async function performEvent<T extends EventObject>(
   eventData: {
     type: T["type"];
     data: {
@@ -77,6 +77,6 @@ export function performEvent<T extends EventObject>(
           throw new Error(`${name} is not a valid variable name`);
         variables.set(name, entered);
       }
-    performActions(event.actions, variables, game);
+    await performActions(event.actions, variables, game);
   }
 }
