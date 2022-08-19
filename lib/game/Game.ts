@@ -46,7 +46,7 @@ export class Game {
   private _decks: Deck[];
   private _turn: number;
   private _turnPlayerIndex: number;
-  private _turnDirection: "normal" | "reversed";
+  private _turnDirection: "clockwise" | "anti-clockwise";
   private _events: Map<EventObject["type"], EventObject[]> = new Map();
   private _pusher: Pusher | undefined;
 
@@ -59,6 +59,9 @@ export class Game {
 
   private _maxPlayerCount: number;
   private _minPlayerCount: number;
+
+  public currentPlayer: Player | undefined;
+  public nextPlayer: Player | undefined;
 
   constructor(
     public graphics: Graphics,
@@ -337,7 +340,7 @@ export class Game {
               {
                 type: "object:card",
                 object: {
-                  name: "host",
+                  name: playerName,
                   description: "a",
                   tags: [],
                 },
@@ -382,14 +385,40 @@ export class Game {
         this
       );
       let previous: Player | null = null;
-      this.tick();
+      this.graphics.game_tick();
     }, 500);
   }
+
+  private getNextPlayer(save: boolean): Player {
+    let turnPlayerIndex;
+    if (this._turnDirection === "clockwise") {
+      turnPlayerIndex = Math.abs(
+        (this._players.length + this._turnPlayerIndex + 1) %
+          this._players.length
+      );
+    } else if (this._turnDirection === "anti-clockwise") {
+      turnPlayerIndex = Math.abs(
+        (this._players.length + this._turnPlayerIndex - 1) %
+          this._players.length
+      );
+    } else {
+      throw new Error("Invalid turn direction");
+    }
+    if (save) {
+      this._turnPlayerIndex = turnPlayerIndex;
+    }
+    return this._players[turnPlayerIndex];
+  }
+
   private _previous_player: Player | null = null;
   async tick() {
     const current = this._players.at(this._turnPlayerIndex);
     if (!current)
       throw new Error(`Player not found at index ${this._turnPlayerIndex}`);
+    let next = this.getNextPlayer(false);
+
+    this.currentPlayer = current;
+    this.nextPlayer = next;
     log("GAME/tick", "Tick", current.name, this._turnPlayerIndex);
     await performEvent(
       {
@@ -397,26 +426,18 @@ export class Game {
         data: {
           previous: this._previous_player,
           current,
+          next,
         },
       },
       this
     );
     this._turn += 1;
-    if (this._turnDirection === "normal") {
-      this._turnPlayerIndex = Math.abs(
-        (this._players.length + this._turnPlayerIndex + 1) %
-          this._players.length
-      );
-    } else if (this._turnDirection === "reversed") {
-      this._turnPlayerIndex = Math.abs(
-        (this._players.length + this._turnPlayerIndex - 1) %
-          this._players.length
-      );
-    }
+    next = this.getNextPlayer(true);
     this._previous_player = current;
-    setTimeout(() => {
-      this.tick();
-    }, 1000);
+    this.currentPlayer = next;
+    return {
+      next: next,
+    };
   }
   makeGameObject() {
     const gameObject = _.cloneDeep(this.gameObject);

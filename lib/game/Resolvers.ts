@@ -34,7 +34,7 @@ export interface GameObject {
   settings: {
     maxPlayerCount: number;
     minPlayerCount: number;
-    turnDirection: "normal" | "reversed";
+    turnDirection: "clockwise" | "anti-clockwise";
   };
 }
 

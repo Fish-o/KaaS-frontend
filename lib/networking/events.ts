@@ -39,6 +39,9 @@ interface PlayerNameChangeEvent extends BaseEvent {
 interface GameStartEvent extends BaseEvent {
   event: "game_start";
 }
+interface GameTickEvent extends BaseEvent {
+  event: "game_tick";
+}
 interface BaseSelectEvent extends BaseEvent {
   event: `select:${string}`;
   selected_by: string;
@@ -62,6 +65,7 @@ type GameEvent =
   | PlayerLeaveEvent
   | PlayerNameChangeEvent
   | GameStartEvent
+  | GameTickEvent
   | SelectPlayerEvent;
 // | GameEventEvent;
 
@@ -101,7 +105,12 @@ export async function handleEvent(game: Game, event: GameEvent) {
       break;
     case "game_start":
       {
-        game.start();
+        // game.start();
+      }
+      break;
+    case "game_tick":
+      {
+        // game.graphics.game_tick();
       }
       break;
     case "select:player":

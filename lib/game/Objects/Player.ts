@@ -1,4 +1,5 @@
 import { BaseGameObject } from ".";
+import { Game } from "../Game";
 import { HandObject, PlayerObject } from "../Resolvers";
 import { Card } from "./Card";
 
@@ -52,6 +53,14 @@ export class Player extends BaseGameObject {
 
   getIdentifier(): `player:${string}` {
     return `player:${this.id}`;
+  }
+
+  isCurrentPlayer(game: Game) {
+    return this.id === game.currentPlayer?.id;
+  }
+
+  isNextPlayer(game: Game) {
+    return this.id === game.nextPlayer?.id;
   }
 }
 

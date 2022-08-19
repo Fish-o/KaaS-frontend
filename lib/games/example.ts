@@ -12,7 +12,7 @@ const exampleGame: GameObject = {
           {
             type: "object:card",
             object: {
-              name: "Test 1.1",
+              name: "Card 1.1",
               description: null,
               tags: ["card", "test1"],
             },
@@ -20,7 +20,7 @@ const exampleGame: GameObject = {
           {
             type: "object:card",
             object: {
-              name: "Test 1.2",
+              name: "Card 1.2",
               description: null,
               tags: ["card", "test1"],
             },
@@ -28,7 +28,7 @@ const exampleGame: GameObject = {
           {
             type: "object:card",
             object: {
-              name: "Test 2",
+              name: "Card 2",
               description: null,
               tags: ["card", "test2"],
             },
@@ -97,7 +97,7 @@ const exampleGame: GameObject = {
   settings: {
     minPlayerCount: 2,
     maxPlayerCount: 100,
-    turnDirection: "normal",
+    turnDirection: "clockwise",
   },
 
   events: [
@@ -144,8 +144,8 @@ const exampleGame: GameObject = {
           args: {
             filter: {
               type: "filter:card",
-              maxAmount: 10,
-              minAmount: 3,
+              maxAmount: 8,
+              minAmount: 0,
               filter: {
                 inside: "$deck1",
                 has_tag: "card",
@@ -192,6 +192,55 @@ const exampleGame: GameObject = {
             max: 1,
             min: 1,
             message: "Select a player",
+          },
+          returns: {
+            selected: "$selected",
+          },
+        },
+        {
+          type: "action:find.cards",
+          args: {
+            filter: {
+              type: "filter:card",
+              filter: {
+                inside: {
+                  type: "filter:deck",
+                  filter: {
+                    has_tag: "deck2",
+                  },
+                  maxAmount: 1,
+                  minAmount: 1,
+                },
+              },
+              maxAmount: 1,
+              minAmount: 0,
+            },
+          },
+          returns: {
+            found_many: "$card",
+          },
+        },
+        {
+          type: "action:find.hands",
+          args: {
+            filter: {
+              type: "filter:hand",
+              maxAmount: 1,
+              minAmount: 1,
+              filter: {
+                from_player: "$selected",
+              },
+            },
+          },
+          returns: {
+            found_one: "$hand",
+          },
+        },
+        {
+          type: "action:cards.move",
+          args: {
+            cards: "$card",
+            to: "$hand",
           },
         },
       ],

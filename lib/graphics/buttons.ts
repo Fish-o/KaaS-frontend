@@ -7,8 +7,16 @@ export interface ButtonField {
   y: number;
   width: number;
   height: number;
-  onActive?: (active: boolean) => void | Promise<void>;
-  onClick: (x?: number, y?: number) => void | Promise<void>;
+  display?: boolean;
+  color?: string;
+  text?: string;
+  hideOnClick?: boolean;
+  onActive?: (active: boolean, button?: ButtonField) => void | Promise<void>;
+  onClick: (
+    x?: number,
+    y?: number,
+    button?: ButtonField
+  ) => void | Promise<void>;
 }
 export interface PlayerButton {
   player: Player;
@@ -39,7 +47,7 @@ export function bindButtons(graphics: Graphics) {
     const mousePos = getMousePos(canvas, e);
     graphics.buttons.forEach((button) => {
       if (isInside(mousePos.x, mousePos.y, button)) {
-        button.onActive && button.onActive(true);
+        button.onActive && button.onActive(true, button);
         graphics.activeButtons.push(button);
       }
     });
@@ -48,9 +56,10 @@ export function bindButtons(graphics: Graphics) {
     const mousePos = getMousePos(canvas, e);
     graphics.activeButtons.map((b) => {
       if (isInside(mousePos.x, mousePos.y, b)) {
+        if (b.hideOnClick) graphics.removeButton(b);
         b.onClick(mousePos.x, mousePos.y);
       }
-      b.onActive && b.onActive(false);
+      b.onActive && b.onActive(false, b);
     }).length = 0;
   });
   canvas.addEventListener("mousemove", (e) => {
@@ -58,7 +67,7 @@ export function bindButtons(graphics: Graphics) {
     let cursor = "default";
     graphics.activeButtons.forEach((button) => {
       if (!isInside(mousePos.x, mousePos.y, button)) {
-        button.onActive && button.onActive(false);
+        button.onActive && button.onActive(false, button);
         graphics.activeButtons.splice(
           graphics.activeButtons.indexOf(button),
           1

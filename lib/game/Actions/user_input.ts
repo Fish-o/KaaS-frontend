@@ -14,7 +14,7 @@ import {
   SelectPlayerEvent,
 } from "../../networking/events";
 import { performFilter } from "../Filters";
-import { Game } from "../Game";
+import { Game, isValidVariableName } from "../Game";
 import { Player } from "../Objects/Player";
 
 interface BaseUserInputAction extends BaseAction {
@@ -32,7 +32,7 @@ interface ActionUserInputSelectPlayers extends BaseUserInputAction {
   };
   returns?: {
     selected?: Variable;
-    options?: Variable;
+    // options?: Variable;
   };
 }
 export type UserInputAction = ActionUserInputSelectPlayers;
@@ -95,8 +95,8 @@ async function performActionUserInputSelectPlayers(
   console.log("GOT THE FUCKING PLAYER MAN", results[0]);
 
   if (action.returns) {
-    const { selected, options } = action.returns;
-    // if (selected) variables.set(selected, selected);
+    const { selected } = action.returns;
+    if (isValidVariableName(selected)) variables.set(selected, results);
     // if (options) variables.set(options, players);
   }
 }

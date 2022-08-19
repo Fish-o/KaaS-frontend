@@ -2,8 +2,8 @@ import { Graphics } from ".";
 import { Game, GameState } from "../game/Game";
 import { Card } from "../game/Objects/Card";
 import { Hand } from "../game/Objects/Player";
+import { ButtonField } from "./buttons";
 import config from "./config";
-import { renderSelector } from "./selector";
 
 export function renderCanvas(
   ctx: CanvasRenderingContext2D,
@@ -15,8 +15,9 @@ export function renderCanvas(
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   renderDecks(ctx, game);
   renderPlayers(ctx, game);
-  renderStartButton(ctx, graphics);
-  renderSelector(graphics);
+  // renderStartButton(ctx, graphics);
+  graphics.buttons.forEach((b) => renderButton(ctx, b));
+  // renderSelector(graphics);
 }
 
 function renderStartButton(ctx: CanvasRenderingContext2D, graphics: Graphics) {
@@ -38,6 +39,21 @@ function renderStartButton(ctx: CanvasRenderingContext2D, graphics: Graphics) {
   ctx.fillStyle = "black";
   ctx.font = "30px Arial";
   ctx.fillText("Start", xPos + 40, yPos + 30);
+}
+function renderButton(ctx: CanvasRenderingContext2D, button: ButtonField) {
+  if (!button.display) return;
+  const buttonHeight = button.height;
+  const buttonWidth = button.width;
+  const xPos = button.x;
+  const yPos = button.y;
+
+  ctx.shadowColor = "transparent";
+  ctx.strokeStyle = button.color ?? "#07d853";
+  ctx.fillStyle = button.color ?? "#07d853";
+  roundRect(ctx, xPos, yPos, buttonWidth, buttonHeight, 5, true);
+  ctx.fillStyle = "black";
+  ctx.font = "30px Arial";
+  if (button.text) ctx.fillText(button.text, xPos + 40, yPos + 30);
 }
 
 function renderDecks(ctx: CanvasRenderingContext2D, game: Game) {
@@ -84,7 +100,11 @@ function renderPlayers(ctx: CanvasRenderingContext2D, game: Game) {
   );
   const playerCount = players.length;
   const playerAngle = (Math.PI * 2) / playerCount;
-  const angleStart = Math.PI / 2;
+  const playerIndex = players.findIndex(
+    (player) => player.user_id === game.user_id
+  );
+  const angleStart = Math.PI / 2 - playerAngle * playerIndex;
+
   // console.timeLog("render", "Drawing players..");
 
   ctx.fillStyle = "white";
@@ -109,7 +129,7 @@ function renderPlayers(ctx: CanvasRenderingContext2D, game: Game) {
       true,
       playerX,
       playerY,
-      player.user_id === game.user_id
+      player.isCurrentPlayer(game)
     );
   });
 }

@@ -40,6 +40,7 @@ interface GameNewTurnEventObject extends BaseEventObject {
   returns: Partial<{
     previous: Variable;
     current: Variable;
+    next: Variable;
   }>;
   actions: Action[];
 }

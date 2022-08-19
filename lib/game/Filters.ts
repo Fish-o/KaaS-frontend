@@ -1,5 +1,5 @@
-import { CardHolderResolvable, VariableMap } from "./Actions";
-import { Game } from "./Game";
+import { CardHolderResolvable, PlayerResolvable, VariableMap } from "./Actions";
+import { Game, isValidVariableName } from "./Game";
 import { Card } from "./Objects/Card";
 import { Deck } from "./Objects/Deck";
 import { Hand, Player } from "./Objects/Player";
@@ -57,7 +57,7 @@ export interface HandFilterObject extends FilterObject {
       amount: number;
       cards: CardFilterObject;
     };
-    from_player: PlayerFilterObject;
+    from_player: PlayerResolvable;
 
     $not: HandFilterObject;
     $and: HandFilterObject[];
@@ -235,11 +235,21 @@ function filterHands(
     );
   if ($not) not.push(...filterHands($not, variables, game));
 
-  if (from_player) {
+  if (from_player && typeof from_player !== "string") {
     if (from_player.minAmount !== 1 || from_player.maxAmount !== 1)
       throw new Error("from_player can only have minAmount and maxAmount of 1");
     const player = filterPlayers(from_player, variables, game).shift()!;
     ands.push([player.hand]);
+  } else if (isValidVariableName(from_player)) {
+    const player = variables.get(from_player);
+    if (Array.isArray(player) && player.length !== 1)
+      throw new Error("from_player must have 1 player");
+    else if (Array.isArray(player)) {
+      let singlePlayer = player.shift()!;
+      if (singlePlayer instanceof Player) ands.push([singlePlayer.hand]);
+      else throw new Error("from_player must only have players");
+    } else if (player instanceof Player) ands.push([player.hand]);
+    else throw new Error("from_player must only have a single player");
   }
 
   if (has_all_of_tags)

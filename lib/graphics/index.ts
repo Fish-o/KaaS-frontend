@@ -10,9 +10,8 @@ import {
 import { renderCanvas } from "./render";
 import exampleGame from "../games/example";
 import { nanoid } from "nanoid";
-import { broadcastGameEvent } from "../networking/events";
+import { awaitEvent, broadcastGameEvent } from "../networking/events";
 import { Player } from "../game/Objects/Player";
-import { getInfoOfPlayerButton } from "./selector";
 
 function update(delta: number) {
   // log(this._id + " Tick", delta, "ms");
@@ -96,6 +95,7 @@ export class Graphics {
       }
       this._initializing = false;
       log(this._id + " graphics", " <init>", "Init'd");
+      this.tick();
     } catch (e) {
       log(this._id + " graphics", " <init>", "ERROR");
       console.error(e);
@@ -113,22 +113,57 @@ export class Graphics {
     this._lastTime = Date.now();
     this.abort = false;
     log(this._id + " graphics", " <start>", "Starded'd");
-    this.addButton({
-      x: this.canvas.width - 150 + 10,
-      y: this.canvas.height - 80,
-      height: 40,
-      width: 150,
-      key: "start",
-      onClick: (x, y) => {
-        broadcastGameEvent(this.game, {
-          event: "game_start",
-        });
+    if (this.game.is_host)
+      this.addButton({
+        x: this.canvas.width - 150 + 10,
+        y: this.canvas.height - 80,
+        height: 40,
+        width: 150,
+        key: "start",
+        text: "Start",
+        color: "#07d853",
+        display: true,
+        hideOnClick: true,
+        onClick: (x, y) => {
+          broadcastGameEvent(this.game, {
+            event: "game_start",
+          });
+          this.game.start();
+        },
+      });
+    else
+      awaitEvent(this.game, "game_start").then((e) => {
         this.game.start();
-      },
-    });
-    this.tick();
+      });
   }
-
+  async game_tick() {
+    const { next } = await this.game.tick();
+    const shouldDisplay = this.game.user_id === next.user_id;
+    if (shouldDisplay)
+      this.addButton({
+        x: this.canvas.width - 200 + 10,
+        y: this.canvas.height - 80,
+        height: 40,
+        width: 200,
+        key: "tick",
+        text: "Start turn",
+        color: "#07d853",
+        display: shouldDisplay,
+        hideOnClick: true,
+        onClick: async (x, y) => {
+          await broadcastGameEvent(this.game, {
+            event: "game_tick",
+          });
+          setTimeout(() => {
+            this.game_tick();
+          }, 50);
+        },
+      });
+    else
+      awaitEvent(this.game, "game_tick").then((e) => {
+        this.game_tick();
+      });
+  }
   private tick() {
     const now = Date.now();
     const dt = (now - this._lastTime) / 1000.0;
@@ -177,12 +212,16 @@ export class Graphics {
     return new Promise((resolve, reject) => {
       this.playersSelecting = players;
       const oldButtons = this.buttons;
-      players.forEach((player) => {
-        const { x, y, height, width } = getInfoOfPlayerButton(
-          this,
-          players,
-          player
-        );
+      this.buttons = [];
+      const buttonWidth = 100;
+      const buttonHeight = 40;
+      players.forEach((player, index, players) => {
+        const x =
+          this.canvas.width / 2 -
+          (players.length * (buttonWidth + 10)) / 2 +
+          index * (buttonWidth + 10);
+        const y = this.canvas.height / 2 - buttonHeight / 2;
+
         this.addButton({
           key: `select-player-${player.id}`,
           onClick: () => {
@@ -192,8 +231,11 @@ export class Graphics {
           },
           x,
           y,
-          width,
-          height,
+          display: true,
+          text: player.name,
+          color: "#bbb",
+          width: buttonWidth,
+          height: buttonHeight,
         });
       });
     });
