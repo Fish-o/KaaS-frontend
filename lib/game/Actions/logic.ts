@@ -25,11 +25,11 @@ interface ActionLogicIf extends BaseLogicAction {
   };
 }
 
-function performActionLogicIf(
+async function performActionLogicIf(
   action: ActionLogicIf,
   variables: VariableMap,
   game: Game
-): void {
+): Promise<void> {
   const { condition, true_actions, false_actions } = action.args;
   const result = performCondition(condition, variables);
   if (result) {
@@ -51,11 +51,11 @@ interface ActionLogicForEach extends BaseLogicAction {
     actions: Action[];
   };
 }
-function performActionLogicForEach(
+async function performActionLogicForEach(
   action: ActionLogicForEach,
   variables: VariableMap,
   game: Game
-): void {
+): Promise<void> {
   const { collection, as, actions } = action.args;
   if (!as.startsWith("$")) throw new Error("Variable name must start with $");
 
@@ -72,7 +72,7 @@ function performActionLogicForEach(
     throw new Error(`Collection is not an array`);
   for (const item of iterable) {
     variables.set(as, item);
-    performActions(actions, variables, game);
+    await performActions(actions, variables, game);
   }
   variables.delete(as);
 }
@@ -86,7 +86,7 @@ export function performLogicAction(
   action: LogicAction,
   variables: VariableMap,
   game: Game
-): void {
+): Promise<void> {
   switch (action.type) {
     case "action:logic.if":
       return performActionLogicIf(action, variables, game);
