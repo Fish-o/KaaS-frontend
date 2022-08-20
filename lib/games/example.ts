@@ -183,7 +183,6 @@ const exampleGame: GameObject = {
       returns: {
         current: "$current",
       },
-
       actions: [
         {
           type: "action:user_input.select_players",

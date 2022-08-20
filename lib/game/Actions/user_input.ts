@@ -17,11 +17,11 @@ import { performFilter } from "../Filters";
 import { Game, isValidVariableName } from "../Game";
 import { Player } from "../Objects/Player";
 
-interface BaseUserInputAction extends BaseAction {
+class BaseUserInputAction extends BaseAction {
   type: `action:user_input.${string}`;
 }
 
-interface ActionUserInputSelectPlayers extends BaseUserInputAction {
+class ActionUserInputSelectPlayers extends BaseUserInputAction {
   type: "action:user_input.select_players";
   args: {
     selector: PlayerResolvable;

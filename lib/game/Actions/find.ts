@@ -12,8 +12,7 @@ import {
 } from "../Filters";
 import { Game, isValidVariableName } from "../Game";
 
-interface BaseActionFind<T extends Filters, N extends string>
-  extends BaseAction {
+class BaseActionFind<T extends Filters, N extends string> extends BaseAction {
   type: `action:find.${N}`;
   args: {
     filter: T;

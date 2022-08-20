@@ -14,10 +14,10 @@ import { getCardSource } from "../Objects";
 import { Card } from "../Objects/Card";
 import { Deck } from "../Objects/Deck";
 import { Hand } from "../Objects/Player";
-interface BaseCardAction extends BaseAction {
+class BaseCardAction extends BaseAction {
   type: `action:cards.${string}`;
 }
-interface ActionMoveCards extends BaseCardAction {
+class ActionMoveCards extends BaseCardAction {
   type: "action:cards.move";
   args: {
     cards: CardResolvable;

@@ -9,14 +9,14 @@ import {
 import { Condition, performCondition } from "../Conditions";
 import { Game } from "../Game";
 
-interface BaseLogicAction extends BaseAction {
+class BaseLogicAction extends BaseAction {
   type: `action:logic.${string}`;
 }
 /*
   Logic If
 */
 
-interface ActionLogicIf extends BaseLogicAction {
+class ActionLogicIf extends BaseLogicAction {
   type: "action:logic.if";
   args: {
     condition: Condition;
@@ -43,7 +43,7 @@ async function performActionLogicIf(
   Logic For Each
 */
 
-interface ActionLogicForEach extends BaseLogicAction {
+class ActionLogicForEach extends BaseLogicAction {
   type: "action:logic.for_each";
   args: {
     collection: Resolvable;

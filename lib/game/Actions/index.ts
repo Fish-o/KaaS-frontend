@@ -51,19 +51,19 @@ export type VariableTypes =
   | null;
 export type VariableMap = Map<Variable, VariableTypes>;
 
-export interface BaseAction {
+export class BaseAction {
   type: `action:${string}`;
   args: { [key: string]: any };
   returns?: { [key: string]: Variable };
 }
 
-interface ActionGameReverseDirection extends BaseAction {
-  type: "action:game_reverse_direction";
-  args: {};
-  returns: undefined;
-}
+//  class ActionGameReverseDirection extends BaseAction {
+//   type: "action:game_reverse_direction";
+//   args: {};
+//   returns: undefined;
+// }
 
-type GameStateActions = never;
+// type GameStateActions = never;
 interface DebugAction extends BaseAction {
   type: "action:debug";
   args: {
@@ -75,7 +75,7 @@ export type Action =
   | CardAction
   | FindAction
   | LogicAction
-  | GameStateActions
+  // | GameStateActions
   | DebugAction
   | UserInputAction;
 
