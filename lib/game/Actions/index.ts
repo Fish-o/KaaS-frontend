@@ -11,6 +11,7 @@ import { Game } from "../Game";
 import { Card } from "../Objects/Card";
 import { Deck } from "../Objects/Deck";
 import { Hand, Player } from "../Objects/Player";
+import { BaseAction } from "./BaseAction";
 import { actionIsCardAction, CardAction, performCardAction } from "./cards";
 import { actionIsFindAction, FindAction, performFindAction } from "./find";
 import { actionIsLogicAction, LogicAction, performLogicAction } from "./logic";
@@ -38,6 +39,7 @@ export type Filters =
   | HandFilterObject;
 
 export type TODO = never;
+
 export type Variable = `$${string}`;
 export type VariableTypes =
   | Deck
@@ -50,12 +52,6 @@ export type VariableTypes =
   | Player[]
   | null;
 export type VariableMap = Map<Variable, VariableTypes>;
-
-export class BaseAction {
-  type: `action:${string}`;
-  args: { [key: string]: any };
-  returns?: { [key: string]: Variable };
-}
 
 //  class ActionGameReverseDirection extends BaseAction {
 //   type: "action:game_reverse_direction";

@@ -226,8 +226,8 @@ export class Game {
     playerName: string
   ) {
     const user_id = nanoid();
-    const pusher = new Pusher("b84ab7e2e0b525e71529", {
-      cluster: "eu",
+    const pusher = new Pusher("9b15d4512b24e69e67f5", {
+      cluster: "us2",
       authEndpoint: "/api/pusher/auth",
     });
     const p = pusher;
@@ -294,8 +294,8 @@ export class Game {
   ) {
     if (this._state !== GameState.Setup || this._pusher)
       throw new Error("Game already initialized");
-    const pusher = new Pusher("b84ab7e2e0b525e71529", {
-      cluster: "eu",
+    const pusher = new Pusher("9b15d4512b24e69e67f5", {
+      cluster: "us2",
       authEndpoint: "/api/pusher/auth",
     });
     this._pusher = pusher;

@@ -1,11 +1,5 @@
-import {
-  Action,
-  BaseAction,
-  performActions,
-  Resolvable,
-  Variable,
-  VariableMap,
-} from ".";
+import { Action, performActions, Resolvable, Variable, VariableMap } from ".";
+import { BaseAction } from "./BaseAction";
 import { Condition, performCondition } from "../Conditions";
 import { Game } from "../Game";
 

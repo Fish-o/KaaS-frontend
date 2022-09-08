@@ -4,46 +4,215 @@
   flex-wrap: wrap;
 }
 
+@mixin node {
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 6px 12px -2px,
+    rgba(0, 0, 0, 0.3) 0px 3px 7px -3px;
+}
+
 .actionNode {
+  @include node;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  flex-direction: row;
+  flex-shrink: 0;
+  justify-content: left;
+  align-items: center;
   min-width: 250px;
-  margin: 10px;
-  padding: 5px;
+  // margin: 10px;
+  padding: 10px;
+  gap: 10px;
   background-color: #ccc;
   border-radius: 10px;
   position: relative;
-  &::after {
-    position: absolute;
-    right: -18px;
-    // arrow to the right
-    content: "➡️";
+  // &::after {
+  //   position: absolute;
+  //   right: -18px;
+  //   // arrow to the right
+  //   content: "➡️";
+  // }
+}
+.rowList {
+  text-align: center;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  // margin: 10px;
+  padding: 10px;
+}
+.actionArgument {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: left;
+  align-items: left;
+}
+
+.placeholder {
+  background-color: rgb(78, 78, 78);
+  border-radius: 10px;
+  // margin: 10px;
+}
+.heldContainer {
+  position: fixed;
+  width: 10000px;
+  height: 10000px;
+  top: -3000px;
+  left: -3000px;
+  z-index: 10;
+}
+
+.detachedObjectsCanvasWindow {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  * {
+    pointer-events: all;
+  }
+}
+.detachedObjectsCanvasRoot {
+  // transform: scale(0.5);
+  position: absolute;
+  top: -1000px;
+  left: -1000px;
+  width: 3000px;
+  height: 3000px;
+  pointer-events: none;
+  * {
+    pointer-events: all;
   }
 }
 
-.actionArgument {
-  text-align: left;
+.detachedObjectsCanvas {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  top: 0px;
+  left: 0px;
+
+  z-index: -1000;
+  // pointer-events: none;
+}
+
+.heldBorder {
+  box-shadow: rgba(0, 0, 0, 0.3) 0px 19px 38px,
+    rgba(0, 0, 0, 0.22) 0px 15px 12px;
+  border-radius: 10px;
+}
+
+.detachedBorder {
+  box-shadow: rgba(0, 0, 0, 0.19) 0px 10px 20px, rgba(0, 0, 0, 0.23) 0px 6px 6px;
+  border-radius: 10px;
+}
+
+.held {
+  opacity: 100%;
+  position: absolute;
+  z-index: 100;
+
+  // border: red solid 4px;
+}
+.detached {
+  opacity: 100%;
+  position: absolute;
+  z-index: 100;
+  pointer-events: none;
 }
 
 .filterNode {
+  @include node;
+
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-width: 250px;
-  margin: 10px;
+  // margin: 10px;
+  padding: 10px;
   background-color: #bbc;
   border-radius: 10px;
 }
 
-.eventNode {
+.filterArgument {
+  text-align: left;
   display: flex;
   flex-direction: row;
-  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+// .active {}
+.dropPosition {
+  height: 0px;
+  // border-radius: 10px;
+  // border-width: 2px;
+  // border-color: yellow;
+  // border-style: solid;
+
+  // transition-duration: 100ms;
+  // transition-property: height;
+}
+.activeDropPosition {
+  height: 50px;
+  padding: 10px;
+  border-radius: 10px;
+  // border-width: 2px;
+  // border-color: yellow;
+  // border-style: solid;
+  // transition-duration: 100ms;
+  // transition-property: height;
+  background-color: grey;
+}
+.disabledDropPosition {
+  height: 50px;
+  padding: 10px;
+  border-radius: 10px;
+  // border-width: 2px;
+  // border-color: yellow;
+  // border-style: solid;
+  // transition-duration: 100ms;
+  // transition-property: height;
+  background-color: darkgrey;
+}
+
+.returnsNode {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin: 10px;
+  min-width: 250px;
+  padding: 10px;
+  background-color: rgb(204, 187, 187);
+  border-radius: 10px;
+}
+
+.pickNewNode {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  min-width: 250px;
+  padding: 10px;
+  gap: 30px;
+  background-color: rgb(204, 187, 187);
+  border-radius: 10px;
+  flex-wrap: wrap;
+}
+
+.eventNode {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  // margin: 10px;
+  padding: 10px;
+  // gap:10px;
   background-color: #abb;
   border-radius: 10px;
 }

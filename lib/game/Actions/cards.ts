@@ -1,12 +1,13 @@
 import {
   Action,
-  BaseAction,
+  // BaseAction,
   CardHolderResolvable,
   CardResolvable,
   Variable,
   VariableMap,
   VariableTypes,
 } from ".";
+import { BaseAction } from "./BaseAction";
 import { performEvent } from "../Events";
 import { performFilter, filterCardHolders } from "../Filters";
 import { Game, isValidVariableName } from "../Game";

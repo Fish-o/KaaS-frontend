@@ -1,4 +1,5 @@
-import { BaseAction, Filters, Variable, VariableMap } from ".";
+import { Filters, Variable, VariableMap } from ".";
+import { BaseAction } from "./BaseAction";
 import {
   CardFilterObject,
   DeckFilterObject,

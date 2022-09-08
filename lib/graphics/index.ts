@@ -27,16 +27,18 @@ export async function init(graphics: Graphics): Promise<Game> {
     throw new Error("Missing parameters");
   }
   let game: Game;
+  log(graphics._id + " startinit", "init");
   if (!queryParams.get("host")) {
     log(graphics._id + " init", "initClient");
     game = await Game.init_client(graphics, lobby, password, playerName);
   } else {
-    log(graphics._id + " init", " Generating hostKeys");
-    const hostKeys = await generateKeyPair();
-    if (graphics.abort) {
-      log(graphics._id + " init", "INIT HOST ABORT");
-      throw new Error("Aborted from init");
-    }
+    log(graphics._id + " init", " Generating hostKeys", graphics.abort);
+    const hostKeys = await generateKeyPair(); //Error looking mother fucker happens here. wss shit
+    log(graphics._id + " init", hostKeys, graphics.abort);
+    // if (graphics.abort) {
+    //   log(graphics._id + " init", "INIT HOST ABORT");
+    //   throw new Error("Aborted from init here");
+    // }
     game = new Game(graphics, exampleGame, hostKeys);
     log(graphics._id + " init", "initHost");
     await game.init_host(lobby, password, playerName);

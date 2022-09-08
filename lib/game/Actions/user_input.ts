@@ -1,6 +1,5 @@
 import {
   Action,
-  BaseAction,
   performActions,
   PlayerResolvable,
   Resolvable,
@@ -8,6 +7,7 @@ import {
   VariableMap,
   VariableTypes,
 } from ".";
+import { BaseAction } from "./BaseAction";
 import {
   awaitEvent,
   broadcastGameEvent,
