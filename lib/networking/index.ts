@@ -144,7 +144,7 @@ export function checkAlive(
         log("game/pusher", "<-", "<alive>", "No");
         resolve(null);
       }
-    }, 1000);
+    }, 5000);
   });
 }
 

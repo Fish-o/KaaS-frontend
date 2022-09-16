@@ -1,5 +1,6 @@
 import _ from "lodash";
 import { BaseGameObject } from ".";
+import { shuffle } from "../../random";
 import { DeckObject } from "../Resolvers";
 import { Card } from "./Card";
 
@@ -20,12 +21,13 @@ export class Deck extends BaseGameObject {
   constructor(opts: {
     cards: Card[];
     tags: string[];
+    data: Record<string, string>;
     cardsOpen: boolean;
     hidden: boolean;
     type: DeckType;
     overflow?: number;
   }) {
-    super(opts.tags);
+    super(opts.tags, opts.data);
     this._cards = opts.cards;
     this._originalCards = opts.cards;
 
@@ -143,8 +145,8 @@ export class Deck extends BaseGameObject {
     this._cards = this._cards.filter((c) => c !== card);
   }
 
-  shuffleDeck() {
-    this._cards = _.shuffle(this._cards);
+  shuffleDeck(seed: string) {
+    this._cards = shuffle(this._cards, seed);
   }
 
   makeGameObject(): DeckObject {

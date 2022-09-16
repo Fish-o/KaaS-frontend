@@ -4,8 +4,13 @@ import { CardObject } from "../Resolvers";
 export class Card extends BaseGameObject {
   private _name: string;
   private _description: string | undefined;
-  constructor(opts: { name: string; description?: string; tags: string[] }) {
-    super(opts.tags);
+  constructor(opts: {
+    name: string;
+    description?: string;
+    tags: string[];
+    data: Record<string, string>;
+  }) {
+    super(opts.tags, opts.data);
     this._name = opts.name;
     this._description = opts.description ?? undefined;
   }
@@ -21,6 +26,7 @@ export class Card extends BaseGameObject {
       type: "object:card",
       object: {
         tags: [...this.tags],
+        data: { ...this.data },
         name: this.name,
         description: this.description ?? null,
       },

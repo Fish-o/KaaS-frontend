@@ -42,6 +42,11 @@ interface GameStartEvent extends BaseEvent {
 interface GameTickEvent extends BaseEvent {
   event: "game_tick";
 }
+export interface SyncRandomSeedEvent extends BaseEvent {
+  event: "sync_random_seed";
+  seed: string;
+}
+
 interface BaseSelectEvent extends BaseEvent {
   event: `select:${string}`;
   selected_by: string;
@@ -66,7 +71,8 @@ type GameEvent =
   | PlayerNameChangeEvent
   | GameStartEvent
   | GameTickEvent
-  | SelectPlayerEvent;
+  | SelectPlayerEvent
+  | SyncRandomSeedEvent;
 // | GameEventEvent;
 
 export type PartialGameEvent = DistributiveOmit<
@@ -114,6 +120,11 @@ export async function handleEvent(game: Game, event: GameEvent) {
       }
       break;
     case "select:player":
+      {
+        // TODO: implement
+      }
+      break;
+    case "sync_random_seed":
       {
         // TODO: implement
       }
@@ -173,6 +184,7 @@ export async function awaitEvent<T extends GameEvent>(
       if (isEventType(event, type)) {
         channel.unbind("client-game", eventListener);
         resolve(event);
+        log("game/events", "->", "<game>", event);
       }
     };
     channel.bind("client-game", eventListener);

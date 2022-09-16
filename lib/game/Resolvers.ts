@@ -1,12 +1,14 @@
 import { EventObject } from "./Events";
 import { Card } from "./Objects/Card";
+import { ResolveBundles } from "./Objects/CardBundle";
 import { Deck, DeckType } from "./Objects/Deck";
 import { Hand, Player } from "./Objects/Player";
-
+import { BundleType } from "./Objects/CardBundle";
 export interface CardObject {
   type: "object:card";
   object: {
     tags: string[];
+    data?: Record<string, string>;
     name: string;
     description: string | null;
   };
@@ -16,6 +18,8 @@ export interface DeckObject {
   type: "object:deck";
   object: {
     tags: string[];
+    data?: Record<string, string>;
+    card_bundles?: BundleType[];
     cardsOpen: boolean;
     hidden: boolean;
     type: DeckType;
@@ -42,6 +46,8 @@ export interface HandObject {
   type: "object:hand";
   object: {
     tags: string[];
+    data?: Record<string, string>;
+
     name: string;
     cards: CardObject[];
   };
@@ -50,6 +56,8 @@ export interface PlayerObject {
   type: "object:player";
   object: {
     tags: string[];
+    data?: Record<string, string>;
+
     name: string;
     user_id: string;
     hand: HandObject;
@@ -62,6 +70,7 @@ export function resolvePlayer(playerObject: PlayerObject): Player {
     name: playerObject.object.name,
     hand: resolveHand(playerObject.object.hand),
     tags: playerObject.object.tags,
+    data: playerObject.object.data ?? {},
   });
 }
 export function resolveHand(handObject: HandObject): Hand {
@@ -69,13 +78,19 @@ export function resolveHand(handObject: HandObject): Hand {
     name: handObject.object.name,
     cards: resolveCards(handObject.object.cards),
     tags: handObject.object.tags,
+    data: handObject.object.data ?? {},
   });
 }
 export function resolveDecks(decks: DeckObject[]): Deck[] {
   return decks.map((deck) => {
+    let cardBundle: Card[] = [];
+    if (deck.object.card_bundles) {
+      cardBundle = ResolveBundles(deck.object.card_bundles);
+    }
     return new Deck({
       tags: deck.object.tags,
-      cards: resolveCards(deck.object.cards),
+      data: deck.object.data ?? {},
+      cards: [...cardBundle, ...resolveCards(deck.object.cards)],
       cardsOpen: deck.object.cardsOpen,
       hidden: deck.object.hidden,
       type: deck.object.type,
@@ -87,6 +102,7 @@ export function resolveCards(cards: CardObject[]): Card[] {
   return cards.map((card) => {
     return new Card({
       name: card.object.name,
+      data: card.object.data ?? {},
       description: card.object.description ?? undefined,
       tags: card.object.tags,
     });

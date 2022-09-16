@@ -12,9 +12,10 @@ export class Player extends BaseGameObject {
     name: string;
     hand: Hand;
     tags: string[];
+    data: Record<string, string>;
     user_id: string;
   }) {
-    super(opts.tags);
+    super(opts.tags, opts.data);
     this._user_id = opts.user_id;
     this._name = opts.name;
     this._hands = [opts.hand];
@@ -66,8 +67,15 @@ export class Player extends BaseGameObject {
 
 export class Hand extends BaseGameObject {
   private _cards: Card[];
-  constructor(private opts: { name: string; tags: string[]; cards: Card[] }) {
-    super(opts.tags);
+  constructor(
+    private opts: {
+      name: string;
+      tags: string[];
+      data: Record<string, string>;
+      cards: Card[];
+    }
+  ) {
+    super(opts.tags, opts.data);
     this._cards = opts.cards;
   }
   get cards() {

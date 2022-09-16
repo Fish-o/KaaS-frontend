@@ -1,8 +1,6 @@
 import {
   Action,
   performActions,
-  PlayerResolvable,
-  Resolvable,
   Variable,
   VariableMap,
   VariableTypes,
@@ -16,6 +14,7 @@ import {
 import { performFilter } from "../Filters";
 import { Game, isValidVariableName } from "../Game";
 import { Player } from "../Objects/Player";
+import { PlayerResolvable, resolvePlayerResolvable } from "./resolvables";
 
 class BaseUserInputAction extends BaseAction {
   type: `action:user_input.${string}`;
@@ -43,38 +42,15 @@ async function performActionUserInputSelectPlayers(
   game: Game
 ): Promise<void> {
   const { from, max, min, message, selector } = action.args;
-  const players: any[] | any = from
-    ? typeof from === "string"
-      ? variables.get(from)
-      : performFilter(from, variables, game)
-    : [...game.getAllPlayers()];
-  if (typeof players !== "object") throw new Error("Invalid players");
-  else if (Array.isArray(players)) {
-    if (players.length < min) throw new Error("Not enough players");
-    if (players.some((p) => !(p instanceof Player)))
-      throw new Error("Non player object(s) in player selector");
-  } else {
-    if (!(players instanceof Player))
-      throw new Error("Non player object in player selector");
-  }
 
-  let playerSelecting =
-    typeof selector === "string"
-      ? variables.get(selector)
-      : performFilter(selector, variables, game);
-  if (typeof playerSelecting !== "object")
-    throw new Error("Invalid player selecting, not an object");
-  else if (Array.isArray(playerSelecting)) {
-    if (playerSelecting.length !== 1)
-      throw new Error("Invalid player selecting, multiple players matched");
-    playerSelecting = playerSelecting[0];
-  }
-  if (!(playerSelecting instanceof Player))
-    throw new Error("Invalid player selecting, not a player");
+  const players = await resolvePlayerResolvable(from, variables, game, 1);
+  const playerSelecting = (
+    await resolvePlayerResolvable(selector, variables, game, 1)
+  )[0];
 
   let results: Player[] = [];
   if (playerSelecting.user_id === game.user_id) {
-    const player = await game.graphics.promptPlayerSelection(
+    const player = await game.graphics.UI.promptPlayerSelection(
       Array.isArray(players) ? players : [players]
     );
     await broadcastGameEvent(game, {

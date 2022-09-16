@@ -229,6 +229,7 @@ export class Game {
     const pusher = new Pusher("9b15d4512b24e69e67f5", {
       cluster: "us2",
       authEndpoint: "/api/pusher/auth",
+      forceTLS: false,
     });
     const p = pusher;
     assure(p, g);
@@ -292,11 +293,13 @@ export class Game {
     lobbyPassword: string,
     playerName: string
   ) {
+    log("[GAME/init_host]", "Initializing game");
     if (this._state !== GameState.Setup || this._pusher)
       throw new Error("Game already initialized");
     const pusher = new Pusher("9b15d4512b24e69e67f5", {
       cluster: "us2",
       authEndpoint: "/api/pusher/auth",
+      forceTLS: false,
     });
     this._pusher = pusher;
     this.assure();
@@ -343,6 +346,7 @@ export class Game {
                   name: playerName,
                   description: "a",
                   tags: [],
+                  data: {},
                 },
               },
             ],
