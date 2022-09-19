@@ -21,7 +21,7 @@ function ResolveStandard52(): Card[] {
     ["clubs", "C"],
   ];
   const ranks = [
-    ["ace", "A"],
+    ["ace", "ace"],
     ["two", "2"],
     ["three", "3"],
     ["four", "4"],
@@ -31,9 +31,9 @@ function ResolveStandard52(): Card[] {
     ["eight", "8"],
     ["nine", "9"],
     ["ten", "10"],
-    ["jack", "J"],
-    ["queen", "Q"],
-    ["king", "K"],
+    ["jack", "jack"],
+    ["queen", "queen"],
+    ["king", "king"],
   ];
   const cards: Card[] = [];
   for (const suit of suits) {
@@ -43,6 +43,7 @@ function ResolveStandard52(): Card[] {
           name: `${rank[1]}${suit[1]}`,
           tags: [suit[0], rank[0]],
           description: `The ${rank[0]} of ${suit[0]}`,
+          image_name: `${rank[1]}_of_${suit[0]}.png`,
           data: {
             suit: suit[0],
             rank: rank[0],

@@ -41,6 +41,7 @@ export class UI {
     });
   }
   public render() {
+    console.log("Rendering UI");
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.buttons.forEach((b) => b.render());
   }

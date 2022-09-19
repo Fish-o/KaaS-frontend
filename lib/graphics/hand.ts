@@ -19,26 +19,13 @@ export function renderHand(
     const xOffset =
       (cards.length / 2 - index) * config.cardWidth - config.cardWidth / 2;
     const yOffset = 0;
-    graphics.cardRenderer.renderCardBackground(
-      ctx,
-      card,
-      open,
-      xOffset + x,
-      yOffset + y,
-      outlined
-    );
-  });
-  cards.forEach((card, index) => {
-    const xOffset =
-      (cards.length / 2 - index) * config.cardWidth - config.cardWidth / 2;
-    const yOffset = 0;
     graphics.cardRenderer.renderCard(
       ctx,
       card,
       open,
       xOffset + x,
       yOffset + y,
-      outlined
+      0
     );
   });
 }

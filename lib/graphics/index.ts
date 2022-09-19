@@ -131,6 +131,7 @@ export class Graphics {
   }
 
   public render() {
+    console.log("render");
     const ctx = this.mainCtx;
     const game = this.game;
     if (!game) return;

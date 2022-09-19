@@ -36,6 +36,12 @@ class ActionUserInputSelectPlayers extends BaseUserInputAction {
 }
 export type UserInputAction = ActionUserInputSelectPlayers;
 
+/**
+ * Prompts the user to select a player
+ * @param action The action to perform
+ * @param variables  The variables to use
+ * @param game The global game state
+ */
 async function performActionUserInputSelectPlayers(
   action: ActionUserInputSelectPlayers,
   variables: VariableMap,

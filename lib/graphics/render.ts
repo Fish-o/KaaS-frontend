@@ -33,27 +33,15 @@ export function renderDecks(graphics: Graphics, game: Game) {
       const yOffset = Math.floor(
         (config.offsetPerCard * index) / 2 - config.cardWidth / 2
       );
-      graphics.cardRenderer.renderCardBackground(
+      graphics.cardRenderer.renderCard(
         ctx,
         card,
-        deck.cardsOpen,
+        deck.cardsOpen && index === cards.length - 1,
         centerX + xOffset,
         centerY + yOffset
       );
       // ctx.fillRect(centerX + xOffset, centerY + yOffset, config.cardWidth, config.cardHeight);
     });
-    if (cards.length > 0) {
-      const yOffset = Math.floor(
-        (config.offsetPerCard * (cards.length - 1)) / 2 - config.cardWidth / 2
-      );
-      graphics.cardRenderer.renderCard(
-        ctx,
-        cards[cards.length - 1],
-        deck.cardsOpen,
-        centerX + xOffset,
-        centerY + yOffset
-      );
-    }
     // cards.forEach((card, index, cardsArr) => {
     //   const yOffset = Math.floor(
     //     (config.offsetPerCard * -index) / 2 - config.cardWidth / 2

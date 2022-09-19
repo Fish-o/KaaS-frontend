@@ -26,28 +26,30 @@ export class CardRenderer {
 
     roundRect(ctx, 0, 0, config.cardWidth, config.cardHeight, 8, true);
   }
-  renderCardBackground(
-    ctx: CanvasRenderingContext2D,
-    card: Card,
-    open: boolean,
-    x: number,
-    y: number,
-    outlined: boolean = false
-  ) {
-    ctx.drawImage(this.cardImageCanvas, x, y);
-  }
   renderCard(
     ctx: CanvasRenderingContext2D,
     card: Card,
     open: boolean,
     x: number,
     y: number,
+    rotationRadians: number = -0.3,
     outlined: boolean = false
   ) {
-    if (open) {
-      ctx.fillStyle = "black";
-      ctx.font = "15px Arial";
-      ctx.fillText(card.name, x, y + 50);
+    ctx.translate(x, y);
+    ctx.rotate(rotationRadians);
+    if (open && card.loadedImage) {
+      ctx.drawImage(
+        card.loadedImage,
+        0,
+        0,
+        config.cardWidth,
+        config.cardHeight
+      );
+    } else {
+      ctx.drawImage(this.cardImageCanvas, 0, 0);
     }
+    // if (card.loadedImage) ctx.drawImage(card.loadedImage, 0, 0);
+    ctx.rotate(-rotationRadians);
+    ctx.translate(-x, -y);
   }
 }
