@@ -9,12 +9,19 @@ import { BaseAction } from "./BaseAction";
 import {
   awaitEvent,
   broadcastGameEvent,
+  SelectCardEvent,
   SelectPlayerEvent,
 } from "../../networking/events";
 import { performFilter } from "../Filters";
 import { Game, isValidVariableName } from "../Game";
 import { Player } from "../Objects/Player";
-import { PlayerResolvable, resolvePlayerResolvable } from "./resolvables";
+import {
+  CardResolvable,
+  PlayerResolvable,
+  resolveCardResolvable,
+  resolvePlayerResolvable,
+} from "./resolvables";
+import { Card } from "../Objects/Card";
 
 class BaseUserInputAction extends BaseAction {
   type: `action:user_input.${string}`;
@@ -34,7 +41,25 @@ class ActionUserInputSelectPlayers extends BaseUserInputAction {
     // options?: Variable;
   };
 }
-export type UserInputAction = ActionUserInputSelectPlayers;
+
+class ActionUserInputSelectCards extends BaseUserInputAction {
+  type: "action:user_input.select_cards";
+  args: {
+    selector: PlayerResolvable;
+    max: number;
+    min: number;
+    message: string;
+    from?: CardResolvable;
+  };
+  returns?: {
+    selected?: Variable;
+    // options?: Variable;
+  };
+}
+
+export type UserInputAction =
+  | ActionUserInputSelectPlayers
+  | ActionUserInputSelectCards;
 
 /**
  * Prompts the user to select a player
@@ -83,6 +108,44 @@ async function performActionUserInputSelectPlayers(
   }
 }
 
+async function preformActionUserInputSelectCards(
+  action: ActionUserInputSelectCards,
+  variables: VariableMap,
+  game: Game
+) {
+  const { from, max, min, message, selector } = action.args;
+
+  const cards = await resolveCardResolvable(from, variables, game);
+  const playerSelecting = (
+    await resolvePlayerResolvable(selector, variables, game, 1)
+  )[0];
+
+  let results: Card[] = [];
+  if (playerSelecting.user_id === game.user_id) {
+    const selectedCards = await game.graphics.UI.promptCardSelection(
+      Array.isArray(cards) ? cards : [cards]
+    );
+
+    await broadcastGameEvent(game, {
+      event: "select:card",
+      selected_by: playerSelecting.user_id,
+      results: selectedCards.map((c) => c.id),
+    });
+    results = selectedCards;
+  } else {
+    const event = (await awaitEvent(game, "select:card")) as SelectCardEvent;
+    results = event.results.map(
+      (result) => game.getAllCards().find((c) => c.id === result)!
+    );
+  }
+  console.log("GOT THE FUCKING CARD", results);
+
+  if (action.returns) {
+    const { selected } = action.returns;
+    if (isValidVariableName(selected)) variables.set(selected, results);
+    // if (options) variables.set(options, cards);
+  }
+}
 export async function performUserInputAction(
   action: UserInputAction,
   variables: VariableMap,
@@ -91,6 +154,8 @@ export async function performUserInputAction(
   switch (action.type) {
     case "action:user_input.select_players":
       return await performActionUserInputSelectPlayers(action, variables, game);
+    case "action:user_input.select_cards":
+      return await preformActionUserInputSelectCards(action, variables, game);
   }
 }
 

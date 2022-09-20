@@ -1,7 +1,9 @@
 import { Graphics } from "..";
+import { Card } from "../../game/Objects/Card";
 import { Player } from "../../game/Objects/Player";
 import { Button } from "./button";
 import { bindButtons, ButtonField, removeButton } from "./buttons";
+import { CardSelectionUI } from "./cardSelection";
 import { PlayerSelectionUI } from "./playerSelection";
 const CANVAS_ID = "uiCanvas";
 export class UI {
@@ -40,8 +42,16 @@ export class UI {
       });
     });
   }
+  public promptCardSelection(cards: Card[]): Promise<Card[]> {
+    console.log("Prompting card selection");
+    return new Promise((resolve, reject) => {
+      new CardSelectionUI(this, cards, (card) => {
+        resolve(card);
+      });
+    });
+  }
   public render() {
-    console.log("Rendering UI");
+    // console.log("Rendering UI");
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.buttons.forEach((b) => b.render());
   }

@@ -53,7 +53,7 @@ export async function resolvePlayerResolvable(
 }
 
 export async function resolveCardResolvable(
-  resolvable: CardResolvable,
+  resolvable: CardResolvable | undefined,
   variables: VariableMap,
   game: Game,
   max: number = Infinity,

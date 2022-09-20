@@ -1032,6 +1032,13 @@ export let TypedNodeProperties: FilterNodePropertiesVerifier = {
     min: ["required", "number"],
     selector: ["required", "variable", "filter:player"]
   },
+  "action:user_input.select_cards": {
+    from: ["variable", "filter:card"],
+    max: ["required", 'number'],
+    message: ["required", "string"],
+    min: ["required", "number"],
+    selector: ["required", "variable", "filter:player"]
+  },
   "condition:amount": {
     a: ["required", "variable"],
     b: ["required", "number", "string"],

@@ -9,12 +9,12 @@ import Pusher from "pusher";
 // });
 
 const pusher = new Pusher({
-  appId: "1466528",
-  key: "9b15d4512b24e69e67f5",
-  secret: "deadd00c5078dcd9d9b5",
-  cluster: "us2",
-  useTLS: false,
+  appId: process.env.PUSHER_APPID!,
+  key: process.env.PUSHER_KEY!,
+  secret: process.env.PUSHER_SECRET!,
+  cluster: process.env.PUSHER_CLUSTER!,
 
+  useTLS: false,
   // useTLS: true,
 });
 

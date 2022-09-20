@@ -5,6 +5,7 @@ import { GameObject } from "../lib/game/Resolvers";
 const FileUploadButton: React.FC<{ onUpload: (file: File) => void }> = ({ onUpload }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploadedFile, setUploadedFile] = useState<File>()
+  const [uploadedGameSettings, setUploadedGameSettings] = useState<GameObject>()
   return (
     <label>
       <input type="file" multiple style={{ display: "none" }} ref={inputRef} accept=".json" onChange={(e) => {
@@ -15,7 +16,6 @@ const FileUploadButton: React.FC<{ onUpload: (file: File) => void }> = ({ onUplo
           let file = files[0]
           setUploadedFile(file);
           onUpload(file)
-          let file = files[0];
           let reader = new FileReader();
           reader.readAsText(file, "UTF-8");
           reader.onload = (evt) => {

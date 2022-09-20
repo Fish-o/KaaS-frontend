@@ -131,7 +131,9 @@ export class Graphics {
   }
 
   public render() {
-    console.log("render");
+    // console.time("render");
+    // console.timeLog("render");
+
     const ctx = this.mainCtx;
     const game = this.game;
     if (!game) return;
@@ -142,6 +144,8 @@ export class Graphics {
     renderPlayers(this, game);
 
     this.UI.render();
+    // console.timeLog("render");
+    // console.timeEnd("render");
   }
 
   public start() {

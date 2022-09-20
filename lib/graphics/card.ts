@@ -35,6 +35,8 @@ export class CardRenderer {
     rotationRadians: number = -0.3,
     outlined: boolean = false
   ) {
+    card.setRenderedPosition(x, y);
+
     ctx.translate(x, y);
     ctx.rotate(rotationRadians);
     if (open && card.loadedImage) {

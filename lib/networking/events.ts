@@ -55,7 +55,9 @@ interface BaseSelectEvent extends BaseEvent {
 export interface SelectPlayerEvent extends BaseSelectEvent {
   event: `select:player`;
 }
-
+export interface SelectCardEvent extends BaseSelectEvent {
+  event: `select:card`;
+}
 // export interface GameEventEvent extends BaseEvent {
 //   event: "game_event";
 //   data: SendableEvent<any>;
@@ -72,6 +74,7 @@ type GameEvent =
   | GameStartEvent
   | GameTickEvent
   | SelectPlayerEvent
+  | SelectCardEvent
   | SyncRandomSeedEvent;
 // | GameEventEvent;
 

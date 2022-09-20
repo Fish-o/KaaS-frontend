@@ -39,12 +39,13 @@ export const ActionNode: React.FC<{ action: Action, rootHeld?: boolean, held?: b
     if (!action.args) {
       action.args = {}
     }
-    if (grabbedObject && !held) {
-      Object.entries(TypedNodeProperties[action.type]).forEach(([key,]) => {
-        //@ts-ignore
-        let possibleTypes = TypedNodeProperties[action.type][key] as string[];
 
-        if (Array.isArray(possibleTypes)) {
+    Object.entries(TypedNodeProperties[action.type]).forEach(([key,]) => {
+      //@ts-ignore
+      let possibleTypes = TypedNodeProperties[action.type][key] as string[];
+
+      if (Array.isArray(possibleTypes)) {
+        if (grabbedObject && !held) {
           if (possibleTypes.some((possibleType) => grabbedObject.data.type.startsWith(possibleType))) {
             //@ts-ignore
             if (!action.args[key]) {
@@ -53,9 +54,16 @@ export const ActionNode: React.FC<{ action: Action, rootHeld?: boolean, held?: b
             }
           }
         }
-      })
-    }
-    else {
+        if (possibleTypes.includes("variable")) {
+          //@ts-ignore
+          if (!action.args[key]) {
+            //@ts-ignore
+            action.args[key] = undefined
+          }
+        }
+      }
+    })
+    if (!grabbedObject) {
       Object.entries(action.args).forEach(([key, value]) => {
         if (value === "<Placeholder>") {
           //@ts-ignore
@@ -63,6 +71,11 @@ export const ActionNode: React.FC<{ action: Action, rootHeld?: boolean, held?: b
         }
       })
     }
+
+
+
+
+
     if (action.type === "action:logic.if") {
       const logicIf = action as ActionLogicIf
       return <IfNode action={logicIf} rootHeld={rootHeld} held={held} />

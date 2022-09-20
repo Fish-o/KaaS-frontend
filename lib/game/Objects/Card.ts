@@ -5,8 +5,12 @@ import { CardObject } from "../Resolvers";
 export class Card extends BaseGameObject {
   private _name: string;
   private _description: string | undefined;
-  public _loadedImage: HTMLImageElement | undefined;
-  public _imageLoaded: boolean = false;
+  private _loadedImage: HTMLImageElement | undefined;
+  private _imageLoaded: boolean = false;
+  public selectable: boolean = true;
+  public onSelect: (arg0: Card) => void = () => {};
+  public renderedPosition: { x: number; y: number } = { x: 0, y: 0 };
+
   constructor(opts: {
     name: string;
     description?: string;
@@ -48,5 +52,9 @@ export class Card extends BaseGameObject {
 
   getIdentifier(): `card:${string}` {
     return `card:${this.id}`;
+  }
+
+  setRenderedPosition(x: number, y: number) {
+    this.renderedPosition = { x, y };
   }
 }
