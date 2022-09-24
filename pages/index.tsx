@@ -6,6 +6,9 @@ import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { NextUIProvider, useInput } from "@nextui-org/react";
 
 import { lightTheme, darkTheme } from "../components/theme";
+import DropZone from "../components/DropZone";
+import { useReducer, useState, useRef } from "react";
+import { GameObject } from "../lib/game/Resolvers";
 
 function createLobby(name: string, password: string, nickname: string) {
   const params = new URLSearchParams();
@@ -30,6 +33,28 @@ const Home: NextPage = () => {
   const lobby_name = useInput("");
   const lobby_password = useInput("");
   const nickname = useInput("");
+
+
+  // const reducer = (state, action) => {
+  //   switch (action.type) {
+  //     case "SET_IN_DROP_ZONE":
+  //       return { ...state, inDropZone: action.inDropZone };
+  //     case "ADD_FILE_TO_LIST":
+  //       return { ...state, fileList: state.fileList.concat(action.files) };
+  //     default:
+  //       return state;
+  //   }
+  // };
+
+  // destructuring state and dispatch, initializing fileList to empty array
+  // const [data, dispatch] = useReducer<{ inDropZone: boolean, fileList: number[] }>(reducer,);
+
+
+  const [uploadedGameSettings, setUploadedGameSettings] = useState<GameObject>()
+
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
   styles();
   return (
     <NextThemesProvider
@@ -117,6 +142,69 @@ const Home: NextPage = () => {
             >
               Create new lobby
             </Button>
+
+
+            {/* <input
+              type="file"
+              id="file"
+
+              onChange={(e) => {
+                setFileList([...fileList, ...Array.from(e.target.files)])
+              }}
+
+            > */}
+            <label className="custom-file-upload">
+              <input type="file" multiple style={{ display: "none" }} ref={inputRef} accept=".json" onChange={(e) => {
+                let jsonData: GameObject
+                let files = Array.from(e.target.files ?? [])
+
+                if (files.length > 0) {
+                  let file = files[0];
+                  let reader = new FileReader();
+                  reader.readAsText(file, "UTF-8");
+                  reader.onload = (evt) => {
+                    try {
+                      if (evt.target) {
+                        jsonData = JSON.parse(evt.target.result as string)
+                        setUploadedGameSettings(jsonData)
+                        //Store the settings in local
+                        localStorage.setItem("gameSettings", JSON.stringify(jsonData))
+
+                        console.log(jsonData)
+                      }
+                    }
+                    catch (e) {
+                      console.error(e)
+                    }
+
+                  }
+                  reader.onerror = (evt) => {
+                    console.log(evt)
+                  }
+                }
+              }} />
+
+              <i className="fa fa-cloud-upload">
+                <Button
+                  shadow
+                  css={{ flex: 1 }}
+                  bordered
+                  color="gradient"
+                  onClick={() => {
+                    inputRef.current?.click()
+                  }
+                    // createLobby(
+                    //   lobby_name.value,
+                    //   lobby_password.value,
+                    //   nickname.value
+                    // )
+                  }
+                >
+                  {uploadedGameSettings ? 'game "' + uploadedGameSettings.name + '" selected' : "Upload Game rules"}
+                </Button>
+              </i>
+            </label>
+
           </div>
         </Container>
         <style global jsx>{`
@@ -131,7 +219,7 @@ const Home: NextPage = () => {
           }
         `}</style>
       </NextUIProvider>
-    </NextThemesProvider>
+    </NextThemesProvider >
   );
 };
 

@@ -1,12 +1,12 @@
 import {
   Action,
-  BaseAction,
-  CardHolderResolvable,
-  CardResolvable,
+  // BaseAction,
   Variable,
   VariableMap,
   VariableTypes,
 } from ".";
+
+import { BaseAction } from "./BaseAction";
 import { performEvent } from "../Events";
 import { performFilter, filterCardHolders } from "../Filters";
 import { Game, isValidVariableName } from "../Game";
@@ -14,6 +14,7 @@ import { getCardSource } from "../Objects";
 import { Card } from "../Objects/Card";
 import { Deck } from "../Objects/Deck";
 import { Hand } from "../Objects/Player";
+import { CardHolderResolvable, CardResolvable } from "./resolvables";
 class BaseCardAction extends BaseAction {
   type: `action:cards.${string}`;
 }
@@ -30,14 +31,14 @@ class ActionMoveCards extends BaseCardAction {
   }>;
 }
 
-function performMoveCardsAction(
+async function performMoveCardsAction(
   { type, args: { cards, to, where }, returns }: ActionMoveCards,
   variables: VariableMap,
   game: Game
 ) {
   let destinations = isValidVariableName(to)
     ? variables.get(to)
-    : filterCardHolders(to, variables, game);
+    : await filterCardHolders(to, variables, game);
   let destination: Deck | Hand | undefined = undefined;
   if (!destinations)
     throw new Error("No 'to' destinations found when moving cards");
@@ -49,13 +50,13 @@ function performMoveCardsAction(
   }
   if (destinations instanceof Hand) destination = destinations;
   else if (destinations instanceof Deck) destination = destinations;
-
+  console.log("destinations", destinations);
   if (!destination)
     throw new Error("Invalid to type, couldn't find a destination");
 
   const cardsFound: VariableTypes | undefined = isValidVariableName(cards)
     ? variables.get(cards)
-    : performFilter(cards, variables, game);
+    : await performFilter(cards, variables, game);
   let cardsToMove;
   if (!cardsFound) throw new Error("No cards found");
   else if (!(cardsFound instanceof Array)) cardsToMove = [cardsFound];

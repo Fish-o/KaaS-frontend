@@ -1,5 +1,7 @@
+import { BundleType } from "../game/Objects/CardBundle";
 import { DeckType } from "../game/Objects/Deck";
 import { GameObject } from "../game/Resolvers";
+
 const exampleGame: GameObject = {
   type: "game",
   name: "test",
@@ -8,67 +10,11 @@ const exampleGame: GameObject = {
     {
       type: "object:deck",
       object: {
-        cards: [
-          {
-            type: "object:card",
-            object: {
-              name: "Card 1.1",
-              description: null,
-              tags: ["card", "test1"],
-            },
-          },
-          {
-            type: "object:card",
-            object: {
-              name: "Card 1.2",
-              description: null,
-              tags: ["card", "test1"],
-            },
-          },
-          {
-            type: "object:card",
-            object: {
-              name: "Card 2",
-              description: null,
-              tags: ["card", "test2"],
-            },
-          },
-          {
-            type: "object:card",
-            object: {
-              name: "Filler 1",
-              description: null,
-              tags: ["a"],
-            },
-          },
-          {
-            type: "object:card",
-            object: {
-              name: "Filler 2",
-              description: null,
-              tags: ["a"],
-            },
-          },
-          {
-            type: "object:card",
-            object: {
-              name: "Filler 3",
-              description: null,
-              tags: ["a"],
-            },
-          },
-          {
-            type: "object:card",
-            object: {
-              name: "Filler 4",
-              description: null,
-              tags: ["a"],
-            },
-          },
-        ],
+        cards: [],
+        card_bundles: [BundleType.standard_52],
         type: DeckType.finite,
-        cardsOpen: false,
-        tags: ["deck1"],
+        cardsOpen: true,
+        tags: ["draw"],
         hidden: false,
         overflow: null,
       },
@@ -76,24 +22,16 @@ const exampleGame: GameObject = {
     {
       type: "object:deck",
       object: {
-        cards: [
-          {
-            type: "object:card",
-            object: {
-              name: "4H",
-              description: null,
-              tags: ["card", "test1"],
-            },
-          },
-        ],
+        cards: [],
         type: DeckType.finite,
         cardsOpen: true,
-        tags: ["deck2"],
+        tags: ["discard"],
         hidden: false,
         overflow: null,
       },
     },
   ],
+
   settings: {
     minPlayerCount: 2,
     maxPlayerCount: 100,
@@ -105,20 +43,16 @@ const exampleGame: GameObject = {
       type: "event:game.init",
       actions: [
         {
-          // Get deck 1
-          type: "action:find.decks",
+          type: "action:deck.shuffle",
           args: {
-            filter: {
+            deck: {
               type: "filter:deck",
+              filter: {
+                has_tag: "draw",
+              },
               maxAmount: 1,
               minAmount: 1,
-              filter: {
-                has_tag: "deck1",
-              },
             },
-          },
-          returns: {
-            found_one: "$deck1",
           },
         },
         {
@@ -130,12 +64,29 @@ const exampleGame: GameObject = {
               maxAmount: 1,
               minAmount: 1,
               filter: {
-                has_tag: "deck2",
+                has_tag: "discard",
               },
             },
           },
           returns: {
-            found_one: "$deck2",
+            found_one: "$discard",
+          },
+        },
+        {
+          // Get deck 2
+          type: "action:find.decks",
+          args: {
+            filter: {
+              type: "filter:deck",
+              maxAmount: 1,
+              minAmount: 1,
+              filter: {
+                has_tag: "draw",
+              },
+            },
+          },
+          returns: {
+            found_one: "$draw",
           },
         },
         {
@@ -144,11 +95,10 @@ const exampleGame: GameObject = {
           args: {
             filter: {
               type: "filter:card",
-              maxAmount: 8,
+              maxAmount: 1,
               minAmount: 0,
               filter: {
-                inside: "$deck1",
-                has_tag: "card",
+                inside: "$draw",
               },
             },
           },
@@ -160,19 +110,18 @@ const exampleGame: GameObject = {
           // Debug
           type: "action:debug",
           args: {
-            find: "$deck1",
+            find: "$discard",
           },
         },
         {
           // Move cards
           type: "action:cards.move",
-          args: { cards: "$cards_to_move", to: "$deck2" },
-          returns: {},
+          args: { cards: "$cards_to_move", to: "$discard" },
         },
         {
           type: "action:debug",
           args: {
-            find: "$deck1",
+            find: "$draw",
           },
         },
       ],
@@ -205,7 +154,7 @@ const exampleGame: GameObject = {
                 inside: {
                   type: "filter:deck",
                   filter: {
-                    has_tag: "deck2",
+                    has_tag: "draw",
                   },
                   maxAmount: 1,
                   minAmount: 1,
@@ -247,5 +196,141 @@ const exampleGame: GameObject = {
   ],
   players: [],
 };
+
+// const testingGame: GameObject = {
+//   type: "game",
+//   name: "test",
+//   description: "Eyo",
+//   decks: [
+//     {
+//       type: "object:deck",
+//       object: {
+//         cards: [
+//           {
+//             type: "object:card",
+//             object: {
+//               name: "Card 1.1",
+//               description: null,
+//               tags: ["card", "test1"],
+//             },
+//           },
+//           {
+//             type: "object:card",
+//             object: {
+//               name: "Card 1.2",
+//               description: null,
+//               tags: ["card", "test1"],
+//             },
+//           },
+//           {
+//             type: "object:card",
+//             object: {
+//               name: "Card 2",
+//               description: null,
+//               tags: ["card", "test2"],
+//             },
+//           },
+//           {
+//             type: "object:card",
+//             object: {
+//               name: "Filler 1",
+//               description: null,
+//               tags: ["a"],
+//             },
+//           },
+//           {
+//             type: "object:card",
+//             object: {
+//               name: "Filler 2",
+//               description: null,
+//               tags: ["a"],
+//             },
+//           },
+//           {
+//             type: "object:card",
+//             object: {
+//               name: "Filler 3",
+//               description: null,
+//               tags: ["a"],
+//             },
+//           },
+//           {
+//             type: "object:card",
+//             object: {
+//               name: "Filler 4",
+//               description: null,
+//               tags: ["a"],
+//             },
+//           },
+//         ],
+//         type: DeckType.finite,
+//         cardsOpen: false,
+//         tags: ["discard"],
+//         hidden: false,
+//         overflow: null,
+//       },
+//     },
+//     {
+//       type: "object:deck",
+//       object: {
+//         cards: [
+//           {
+//             type: "object:card",
+//             object: {
+//               name: "4H",
+//               description: null,
+//               tags: ["card", "test1"],
+//             },
+//           },
+//         ],
+//         type: DeckType.finite,
+//         cardsOpen: true,
+//         tags: ["draw"],
+//         hidden: false,
+//         overflow: null,
+//       },
+//     },
+//   ],
+//   settings: {
+//     minPlayerCount: 2,
+//     maxPlayerCount: 100,
+//     turnDirection: "clockwise",
+//   },
+
+//   events: [
+//     {
+//       type: "event:game.init",
+//       actions: [
+//         {
+//           // Get deck 1
+//           type: "action:find.decks",
+//           args: {
+//             filter: {
+//               type: "filter:deck",
+//               maxAmount: 1,
+//               minAmount: 1,
+//               filter: {
+//                 has_tag: "discard",
+//               },
+//             },
+//           },
+//           returns: {
+//             found_one: "$discard",
+//           },
+//         },
+//         {
+//           // Get deck 1
+//           type: "action:cards.move",
+//           args: {
+//             cards: "$discard",
+//             to: "$discard",
+//           },
+//         },
+//       ],
+//       returns: {},
+//     },
+//   ],
+//   players: [],
+// };
 
 export default exampleGame;

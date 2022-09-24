@@ -1,4 +1,5 @@
-import { BaseAction, Filters, Variable, VariableMap } from ".";
+import { Filters, Variable, VariableMap } from ".";
+import { BaseAction } from "./BaseAction";
 import {
   CardFilterObject,
   DeckFilterObject,
@@ -34,7 +35,7 @@ export type FindAction =
   | ActionFindDecks
   | ActionFindHands;
 
-export function performFindAction(
+export async function performFindAction(
   action: FindAction,
   variables: VariableMap,
   game: Game
@@ -44,13 +45,13 @@ export function performFindAction(
   const enteredFilter = action.args.filter;
   let result;
   if (filterIsPlayerFilter(enteredFilter))
-    result = performFilter(enteredFilter, variables, game);
+    result = await performFilter(enteredFilter, variables, game);
   else if (filterIsDeckFilter(enteredFilter))
-    result = performFilter(enteredFilter, variables, game);
+    result = await performFilter(enteredFilter, variables, game);
   else if (filterIsCardFilter(enteredFilter))
-    result = performFilter(enteredFilter, variables, game);
+    result = await performFilter(enteredFilter, variables, game);
   else if (filterIsHandFilter(enteredFilter))
-    result = performFilter(enteredFilter, variables, game);
+    result = await performFilter(enteredFilter, variables, game);
   else throw new Error(`Invalid filter type ${action.args?.filter?.type}`);
 
   if (!action.returns) return;

@@ -5,10 +5,12 @@ import { Card } from "./Card";
 export class BaseGameObject {
   private _id: string;
   private _tags: string[];
+  private _data: Record<string, string | number | boolean>;
 
-  constructor(tags: string[]) {
+  constructor(tags: string[], data: Record<string, string>) {
     this._id = nanoid();
     this._tags = tags;
+    this._data = data;
   }
 
   get id() {
@@ -17,6 +19,18 @@ export class BaseGameObject {
 
   get tags() {
     return this._tags as readonly string[];
+  }
+
+  get data() {
+    return this._data as Readonly<Record<string, string>>;
+  }
+
+  setData(key: string, value: string | number | boolean) {
+    this._data[key] = value;
+  }
+
+  getData(key: string) {
+    return this._data[key];
   }
 
   hasTag(tag: string, startsWith?: boolean): boolean {

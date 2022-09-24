@@ -1,11 +1,21 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import Pusher from "pusher";
 
+// const pusher = new Pusher({
+//   appId: process.env.PUSHER_APPID!,
+//   key: process.env.PUSHER_KEY!,
+//   secret: process.env.PUSHER_SECRET!,
+//   cluster: process.env.PUSHER_CLUSTER!,
+// });
+
 const pusher = new Pusher({
   appId: process.env.PUSHER_APPID!,
   key: process.env.PUSHER_KEY!,
   secret: process.env.PUSHER_SECRET!,
   cluster: process.env.PUSHER_CLUSTER!,
+
+  useTLS: false,
+  // useTLS: true,
 });
 
 export default async function handler(

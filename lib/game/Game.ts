@@ -226,9 +226,10 @@ export class Game {
     playerName: string
   ) {
     const user_id = nanoid();
-    const pusher = new Pusher("b84ab7e2e0b525e71529", {
-      cluster: "eu",
+    const pusher = new Pusher(process.env.PUSHER_KEY!, {
+      cluster: process.env.PUSHER_CLUSTER!,
       authEndpoint: "/api/pusher/auth",
+      forceTLS: false,
     });
     const p = pusher;
     assure(p, g);
@@ -292,11 +293,13 @@ export class Game {
     lobbyPassword: string,
     playerName: string
   ) {
+    log("[GAME/init_host]", "Initializing game");
     if (this._state !== GameState.Setup || this._pusher)
       throw new Error("Game already initialized");
-    const pusher = new Pusher("b84ab7e2e0b525e71529", {
-      cluster: "eu",
+    const pusher = new Pusher(process.env.PUSHER_KEY!, {
+      cluster: process.env.PUSHER_CLUSTER!,
       authEndpoint: "/api/pusher/auth",
+      forceTLS: false,
     });
     this._pusher = pusher;
     this.assure();
@@ -343,6 +346,7 @@ export class Game {
                   name: playerName,
                   description: "a",
                   tags: [],
+                  data: {},
                 },
               },
             ],

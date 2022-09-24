@@ -1,71 +1,24 @@
-import { Graphics } from ".";
+import { CanvasContexts, Graphics } from ".";
 import { Game, GameState } from "../game/Game";
 import { Card } from "../game/Objects/Card";
 import { Hand } from "../game/Objects/Player";
-import { ButtonField } from "./buttons";
+import { ButtonField } from "./ui/buttons";
 import config from "./config";
+import { renderHand } from "./hand";
 
-export function renderCanvas(
-  ctx: CanvasRenderingContext2D,
-  graphics: Graphics
-) {
-  const game = graphics.game;
-  if (!game) return;
-  ctx.fillStyle = "#097464";
-  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  renderDecks(ctx, game);
-  renderPlayers(ctx, game);
-  // renderStartButton(ctx, graphics);
-  graphics.buttons.forEach((b) => renderButton(ctx, b));
-  // renderSelector(graphics);
-}
+export function renderCanvas(graphics: Graphics) {}
 
-function renderStartButton(ctx: CanvasRenderingContext2D, graphics: Graphics) {
-  const game = graphics.game;
-  if (game.game_state !== GameState.Setup) return;
-  const buttonHeight = 40;
-  const buttonWidth = 150;
-  const xPos = ctx.canvas.width - buttonWidth + 10;
-  const yPos = ctx.canvas.height - 80;
-
-  ctx.shadowColor = "rgba(0, 0, 0, 0)";
-  ctx.shadowOffsetY = 2;
-  ctx.shadowOffsetX = 2;
-  ctx.shadowBlur = 5;
-  ctx.strokeStyle = "#07d853";
-  ctx.fillStyle = "#07d853";
-  roundRect(ctx, xPos, yPos, buttonWidth, buttonHeight, 5, true);
-  ctx.shadowColor = "transparent";
-  ctx.fillStyle = "black";
-  ctx.font = "30px Arial";
-  ctx.fillText("Start", xPos + 40, yPos + 30);
-}
-function renderButton(ctx: CanvasRenderingContext2D, button: ButtonField) {
-  if (!button.display) return;
-  const buttonHeight = button.height;
-  const buttonWidth = button.width;
-  const xPos = button.x;
-  const yPos = button.y;
-
-  ctx.shadowColor = "transparent";
-  ctx.strokeStyle = button.color ?? "#07d853";
-  ctx.fillStyle = button.color ?? "#07d853";
-  roundRect(ctx, xPos, yPos, buttonWidth, buttonHeight, 5, true);
-  ctx.fillStyle = "black";
-  ctx.font = "30px Arial";
-  if (button.text) ctx.fillText(button.text, xPos + 40, yPos + 30);
-}
-
-function renderDecks(ctx: CanvasRenderingContext2D, game: Game) {
+export function renderDecks(graphics: Graphics, game: Game) {
+  const ctx = graphics.mainCtx;
   const decks = game.getAllDecks();
   const centerX = Math.floor(ctx.canvas.width / 2);
   const centerY = Math.floor(ctx.canvas.height / 2);
 
   ctx.fillStyle = "white";
-  ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
-  ctx.shadowOffsetY = 2;
-  ctx.shadowOffsetX = 2;
-  ctx.shadowBlur = 5;
+  // ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+  // ctx.shadowOffsetY = 2;
+  // ctx.shadowOffsetX = 2;
+  // ctx.shadowBlur = 5;
   // console.timeLog("render", "Did background stuff");
   decks.forEach((deck, index, arr) => {
     let decks = arr.length;
@@ -74,24 +27,41 @@ function renderDecks(ctx: CanvasRenderingContext2D, game: Game) {
     const xOffset = Math.floor(
       config.offsetPerDeck * (decks / 2 - index) - config.cardWidth / 2
     );
-    deck.cards.forEach((card, index, cardsArr) => {
+    // limit the number of card renders to 10
+    const cards = deck.cards.slice(0, 1000).reverse();
+    cards.forEach((card, index, cardsArr) => {
       const yOffset = Math.floor(
-        (config.offsetPerCard * -index) / 2 - config.cardWidth / 2
+        (config.offsetPerCard * index) / 2 - config.cardWidth / 2
       );
-      renderCard(
+      graphics.cardRenderer.renderCard(
         ctx,
         card,
-        deck.cardsOpen,
+        deck.cardsOpen && index === cards.length - 1,
         centerX + xOffset,
         centerY + yOffset
       );
       // ctx.fillRect(centerX + xOffset, centerY + yOffset, config.cardWidth, config.cardHeight);
     });
+    // cards.forEach((card, index, cardsArr) => {
+    //   const yOffset = Math.floor(
+    //     (config.offsetPerCard * -index) / 2 - config.cardWidth / 2
+    //   );
+    //   renderCard(
+    //     ctxs,
+    //     card,
+    //     deck.cardsOpen,
+    //     centerX + xOffset,
+    //     centerY + yOffset
+    //   );
+    //   // ctx.fillRect(centerX + xOffset, centerY + yOffset, config.cardWidth, config.cardHeight);
+    // });
   });
-  ctx.shadowColor = "transparent";
+  // ctx.shadowColor = "transparent";
 }
 
-function renderPlayers(ctx: CanvasRenderingContext2D, game: Game) {
+export function renderPlayers(graphics: Graphics, game: Game) {
+  const ctx = graphics.mainCtx;
+
   const players = game.getAllPlayers();
   const circleCenterX = Math.floor(ctx.canvas.width / 2);
   const circleCenterY = Math.floor(ctx.canvas.height / 2);
@@ -124,52 +94,14 @@ function renderPlayers(ctx: CanvasRenderingContext2D, game: Game) {
       config.cardHeight / 2;
 
     renderHand(
-      ctx,
+      graphics,
+      graphics.mainCtx,
       player.hand,
       true,
       playerX,
       playerY,
       player.isCurrentPlayer(game)
     );
-  });
-}
-
-function renderCard(
-  ctx: CanvasRenderingContext2D,
-  card: Card,
-  open: boolean,
-  x: number,
-  y: number,
-  outlined: boolean = false
-) {
-  ctx.fillStyle = "white";
-  ctx.fillRect(x, y, config.cardWidth, config.cardHeight);
-  ctx.fillStyle = "black";
-  ctx.font = "15px Arial";
-  if (outlined) {
-    ctx.strokeStyle = "red";
-    // set width
-    ctx.lineWidth = 5;
-    ctx.strokeRect(x, y, config.cardWidth, config.cardHeight);
-  }
-  // log("[RENDERER] Rendering card ");
-  if (open) ctx.fillText(card.name, x, y + 50);
-}
-
-function renderHand(
-  ctx: CanvasRenderingContext2D,
-  hand: Hand,
-  open: boolean,
-  x: number,
-  y: number,
-  outlined: boolean = false
-) {
-  const cards = hand.cards;
-  cards.forEach((card, index) => {
-    const xOffset =
-      (cards.length / 2 - index) * config.cardWidth - config.cardWidth / 2;
-    const yOffset = 0;
-    renderCard(ctx, card, open, x + xOffset, y + yOffset, outlined);
   });
 }
 
@@ -191,7 +123,7 @@ function renderHand(
  * @param {Boolean} [fill = false] Whether to fill the rectangle.
  * @param {Boolean} [stroke = true] Whether to stroke the rectangle.
  */
-function roundRect(
+export function roundRect(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
