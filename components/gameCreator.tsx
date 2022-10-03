@@ -35,7 +35,7 @@ declare global {
 export const CANVASSIZE = 10000
 export const HELDCONTAINEROFFSET = 30000
 
-import { Dropdown, Input } from "@nextui-org/react";
+import { Button, Dropdown, FormElement, Input } from "@nextui-org/react";
 import React, { LegacyRef, memo, useContext, useEffect, useId, useMemo, useRef } from "react";
 import useState from 'react-usestateref'
 import { Action, Variable } from "../lib/game/Actions";
@@ -55,6 +55,7 @@ import { ResolveNodeType } from './gameCreator/resolveNodeType';
 import { FilterNode } from './gameCreator/FilterNode';
 import { CardHolderResolvable, CardResolvable, DeckResolvable, HandResolvable, PlayerResolvable, Resolvable } from '../lib/game/Actions/resolvables';
 import { GameObject } from '../lib/game/Resolvers';
+import { MethodObject } from '../lib/game/Method';
 
 
 
@@ -77,7 +78,7 @@ interface GrabbedObjectBase {
 }
 
 
-export type ObjectTypes = (Action | EventObject | Filter | Condition)
+export type ObjectTypes = (Action | EventObject | Filter | Condition | MethodObject)
 export type GrabbedObject = GrabbedObjectBase & { data: ObjectTypes }
 
 
@@ -108,9 +109,26 @@ export const GrabbedObjectContext = React.createContext<GrabbedObject | null>(nu
 export const SetGrabbedObjectContext = React.createContext<React.Dispatch<React.SetStateAction<GrabbedObject | null>>>(() => { });
 export const RefGrabbedObjectContext = React.createContext<React.RefObject<GrabbedObject | null> | null>(null);
 
+//Custom hook_1
+// const useRenderCount = () => {
+// //src: https://medium.com/better-programming/how-to-properly-use-the-react-useref-hook-in-concurrent-mode-38c54543857b
+//   const renderCount = useRef(0);
+//   let renderCountLocal = renderCount.current;
+//   useEffect(() => {
+//     renderCount.current = renderCountLocal;
+//   });
+//   renderCountLocal++;
+//   return renderCount.current;
+// };
 
+// //Custom hook_2 (We just need this, we'll call the other one implicitly).
+// const useStopInfiniteRender = (maxRenders) => {
+//   const renderCount = useRenderCount();
+//   if (renderCount > maxRenders) throw new Error('Infinite Renders limit reached!!');
+// };
 
 export const GameCreator: React.FC = () => {
+  console.log("Rendering GameCreator")
   if (typeof window === "undefined")
     return <></>
 
@@ -130,11 +148,9 @@ export const GameCreator: React.FC = () => {
     detachedCanvasRef,
   });
   const [nodeObjects, setNodeObjects] = useState<NodeObjects>(() => {
-    // let x = CANVASSIZE;
     let x = 0;
-    // let y = CANVASSIZE;
     let y = 0;
-    let seedData = [...gameData.events]
+    let seedData = [...gameData.events, ...(gameData.methods ?? [])]
 
     return seedData.map((data) => {
       x += 100;
@@ -156,7 +172,6 @@ export const GameCreator: React.FC = () => {
   const [grabbedObject, setGrabbedObject, grabbedObjectRef] = useState<GrabbedObject | null>(null);
 
   return (
-
     <NoSSRProvider>
 
       <DraggableContext.Provider value={draggableContext}>
@@ -417,6 +432,7 @@ const ResolveGrabbedNode: React.FC<{ data: ObjectTypes | string, i?: number, obj
     </>
   }
   return (<DraggableObject fillData={data} onGrab={(grabbedObject) => {
+    console.log("grabbedObject", grabbedObject)
     object[$key] = undefined
     setUpdater(current => current + 1)
   }}>
@@ -425,66 +441,222 @@ const ResolveGrabbedNode: React.FC<{ data: ObjectTypes | string, i?: number, obj
   </DraggableObject>)
 }
 
-type AcceptableTypes = "string" | "array" | GrabbedObject["data"]["type"]
+type AcceptableTypes = "string" | "array" | "number" | "variable" | "required" | GrabbedObject["data"]["type"] | `string:${string}`
+  | "action" | "condition"
 
-type AccetableValueTypes = string | number | boolean | Filter | Action | Condition | AccetableValueTypes[]
+
+export type AcceptableTypesArray = AcceptableTypes[] |
+{
+  [key: string]: AcceptableTypesArray
+}
+
+
+type AccetableValueTypes = string | number | boolean | Filter | Action | Condition | AccetableValueTypes[] | { [key: string]: AccetableValueTypes }
 
 export const TypedArgument: React.FC<
   {
     $key: string,
-    value: AccetableValueTypes | (AccetableValueTypes)[] | undefined,
-    object: Action["args"] | Filter["filter"] | Condition,
+    value: AccetableValueTypes | undefined,
+    object: Action["args"] | Action["returns"] | Filter["filter"] | Condition,
     type: (Action | Filter | Condition)["type"],
     held: boolean,
     rootHeld?: boolean,
     setUpdater: React.Dispatch<React.SetStateAction<number>>,
     orientation?: "horizontal" | "vertical",
+    acceptableTypes: AcceptableTypesArray
+    recursiveUpdate?: number
   }>
-  = memo(({ $key: key, value, object, type, held = false, rootHeld = false, setUpdater, orientation }) => {
-    const [errorValue, setErrorValue] = React.useState(value)
-    held = held || rootHeld
-    const acceptableTypes = (
-      TypedNodeProperties[type] as unknown as {
-        [key: string]: AcceptableTypes[] |
-        {
-          [key: string]: AcceptableTypes[] |
-          {
-            [key: string]: AcceptableTypes[] |
-            {
-              [key: string]: AcceptableTypes[]
-            }
-          }
-        }
-      })[key];
+  = memo(({ $key: key, value, object, type, held = false, rootHeld = false, setUpdater, orientation, acceptableTypes, recursiveUpdate }) => {
+    console.log("Rendering Typed node", object)
 
-    let inputAllowed = false;
+    const [updater2, setUpdater2] = useState(0);
+
+    // See if acceptable types is an object and not an array
+    if (typeof acceptableTypes === "object" && !Array.isArray(acceptableTypes) && value) {
+      return (
+        <div className={styles.filterArgument}>
+          <h3>{key}:</h3>
+          <div>
+            {
+              Object.keys(value).map((key) => {
+                return <TypedArgument
+                  key={key + updater2}
+                  $key={key}
+                  value={value![key as keyof typeof value]}
+                  object={value as Action["args"] | Action["returns"] | Filter["filter"] | Condition}
+                  type={type}
+                  held={held}
+                  rootHeld={rootHeld}
+                  setUpdater={setUpdater2}
+                  orientation={orientation}
+                  recursiveUpdate={recursiveUpdate}
+                  acceptableTypes={(acceptableTypes as Record<string, AcceptableTypesArray>)[key]}
+                />
+              })}
+          </div>
+
+
+        </div>
+
+      )
+    }
+    // const [errorValue, setErrorValue] = React.useState(value)
+    held = held || rootHeld
+
     let multipleAllowed = false;
     let stringsAllowed = false;
-    if (!Array.isArray(acceptableTypes)) return <h1>TypedNodeProperties IS MISSING AN ENTRY FOR {type}</h1>;
-    // if (Array.isArray(accetableTypes)) {
-    if (acceptableTypes.includes("string")) {
-      inputAllowed = true;
+    let numbersAllowed = false;
+
+    let variableAllowed = false;
+    let requiredInput = false;
+
+    let nodeAllowed = false;
+
+
+    // return (
+    //   <div className={styles.rowList}>
+    //     <h3>{key}:</h3>
+    //   </div>
+    // )
+    if (key == "minAmount" || key == "maxAmount") {
+      // @ts-ignore
+      acceptableTypes = ["number"]
     }
+    if (!Array.isArray(acceptableTypes)) return (
+      <div>
+        <h1>TypedNodeProperties IS MISSING AN ENTRY FOR {type} Key:{key}</h1>
+        <Button color="error" auto onPress={() => {
+          // @ts-ignore
+          delete object[key]
+          setUpdater(current => current + 1)
+        }} >
+          Delete Key
+        </Button>
+      </div>
+    );
+    // if (Array.isArray(accetableTypes)) {
+
     if (acceptableTypes.includes("array")) {
       multipleAllowed = true;
     }
     if (acceptableTypes.includes("string")) {
       stringsAllowed = true;
     }
-
-    let literalStrings = acceptableTypes.filter((type) => type.startsWith("string:"))
+    if (acceptableTypes.includes("number")) {
+      numbersAllowed = true;
+    }
+    if (acceptableTypes.includes("variable")) {
+      variableAllowed = true;
+    }
+    if (acceptableTypes.includes("required")) {
+      requiredInput = true;
+    }
     // @ts-ignore
-    literalStrings = literalStrings.map((type) => ({ key: type.replace("string:", ""), value: type.replace("string:", "") })) as { key: string, value: string }[]
+    if (acceptableTypes.some((type) => (type.startsWith("filter:") || type.startsWith("action") || type.startsWith("condition")))) {
+      nodeAllowed = true;
+    }
+    let specificStringsAllowed: string[] | null = null;
+    specificStringsAllowed = (acceptableTypes.filter((type) => type.startsWith("string:"))).map((type) => type.replace("string:", ""))
+    if (specificStringsAllowed.length == 0) {
+      specificStringsAllowed = null
+    }
+
+    let error = false;
+    let placeholder = "";
+    let errorText = ""
+    if (requiredInput) {
+      if (!value) {
+        error = true;
+        errorText = "This field is required"
+      }
+      if (value === "{UNDEFINED}") {
+        error = true;
+        errorText = "This field is required"
+      }
+    }
+    if (numbersAllowed) {
+      if (typeof value !== "number") {
+        error = true;
+        errorText = "This field must be a number"
+      }
+    }
+    if (!stringsAllowed && variableAllowed) {
+      if (typeof value === "string" && !value.startsWith("$")) {
+        error = true;
+        errorText = "This field must be a variable"
+      }
+      if (typeof value === "string" && value.startsWith("$") && value.length == 1) {
+        error = true;
+        errorText = "Variables must have more then 1 character"
+      }
+    }
+    if (specificStringsAllowed) {
+      if (typeof value === "string" && !specificStringsAllowed.includes(value)) {
+        error = true;
+        errorText = "This field must following: " + specificStringsAllowed.join(", ")
+      }
+    }
+    if (typeof value === "undefined") {
+      placeholder = "[Undefined]"
+    }
+
+    function setValue(e: React.FocusEvent<FormElement, Element> | React.ChangeEvent<FormElement>) {
+      let typedValue = e.target.value;
+      console.log("setting", typedValue)
+      if (typedValue === "") {
+        // @ts-ignore
+        object[key] = undefined
+        return setUpdater(current => current + 1)
+
+      }
+      if (stringsAllowed) {
+        // @ts-ignore
+        object[key] = typedValue
+
+        return setUpdater(current => current + 1)
+      }
+      if (specificStringsAllowed) {
+        if (typeof typedValue === "string" && specificStringsAllowed.includes(typedValue)) {
+          // @ts-ignore
+
+          object[key] = typedValue
+
+          return setUpdater(current => current + 1)
+        }
+      }
+
+
+      if (variableAllowed) {
+        if (typedValue.startsWith("$")) {
+          console.log("Setting Variable", typedValue)
+
+          // @ts-ignore
+          object[key] = typedValue
+
+          return setUpdater(current => current + 1)
+
+        }
+      }
+      if (numbersAllowed) {
+        if (!isNaN(Number(typedValue))) {
+          // @ts-ignore
+          object[key] = Number(typedValue)
+
+          return setUpdater(current => current + 1)
+        }
+      }
+      // @ts-ignore
+      object[key] = typedValue
+      return setUpdater(current => current + 1)
+
+    }
 
     let actualTypes = acceptableTypes.filter(value => value != "string" && value != "array") as unknown as ObjectTypes["type"]
-    if (!object || !(key in object)) {
+    if (!object) {
       return <h1>GIVEN OBJECT IS MISSING AN ENTRY FOR KEY {key} {JSON.stringify(object)}</h1>;
     }
     // @ts-ignore
     value = object[key] as string | Filter | Filter[] | undefined;
-    if (typeof value === "undefined") {
-      value = "[undefined]"
-    }
 
     if (typeof value === "object" && multipleAllowed && !isArray(value)) {
       // @ts-ignore
@@ -493,7 +665,13 @@ export const TypedArgument: React.FC<
       value = object[key] as string | Filter | (string | Filter)[] | undefined;
     }
 
-    if (isArray(value) && value) {
+    if ((isArray(value) && value) || multipleAllowed) {
+      if (!(isArray(value) && value)) {
+        // @ts-ignore
+        object[key] = []
+        // @ts-ignore
+        value = object[key]
+      }
       value = value as Filter[]
       return (
         <div className={styles.rowList}>
@@ -503,7 +681,10 @@ export const TypedArgument: React.FC<
             <DropPosition config={{ type: actualTypes }} onDrop={(grabbedObject) => {
               // @ts-ignore
               (value as (string | Filter | Action)[]).splice(0, 0, grabbedObject.data);
+              console.log("Dropped", grabbedObject, value)
+
               setUpdater((current: number) => current + 1)
+              setUpdater2((current: number) => current + 1)
               return true;
             }} disable={held} />
 
@@ -517,8 +698,8 @@ export const TypedArgument: React.FC<
                   object={object}
                   $key={key}
                   held={held}
-                  setUpdater={setUpdater}
-                  key={Object.uniqueID(a)}
+                  setUpdater={setUpdater2}
+                  key={Object.uniqueID(a) + updater2}
                 />
               )
               )
@@ -563,17 +744,21 @@ export const TypedArgument: React.FC<
         {/* </DraggableObject> */}
       </div>)
     }
-    if (typeof value === "string") {
+
+    if (value === "{UNDEFINED}") value = undefined;
+    if (stringsAllowed || variableAllowed || specificStringsAllowed) {
 
       return (
         <div className={styles.filterArgument}>
           <h3>{key}:</h3>
-          <DropPosition config={{ type: actualTypes }} onDrop={(grabbedObject) => {
-            // @ts-ignore
-            object[key] = grabbedObject.data;
-            setUpdater(current => current + 1)
-            return true;
-          }} disable={held} key={value} >
+          <DropPosition config={{ type: actualTypes }}
+
+            onDrop={(grabbedObject) => {
+              // @ts-ignore
+              object[key] = grabbedObject.data;
+              setUpdater(current => current + 1)
+              return true;
+            }} disable={held} key={value} >
             <div onClick={(e) => {
               e.stopPropagation();
               // e.preventDefault();
@@ -583,22 +768,19 @@ export const TypedArgument: React.FC<
             }}  >
             </div>
           </DropPosition>
-          <Input initialValue={value} onClick={(e) => {
-            e.stopPropagation();
-          }}
+          <Input
+            initialValue={value}
+            status={error ? "error" : "default"}
+            helperText={errorText}
+            onClick={(e) => {
+              e.stopPropagation();
+            }
+            }
             onMouseDown={(e) => {
               e.stopPropagation();
             }}
-            onBlur={(e) => {
-              // @ts-ignore
-              object[key] = e.target.value;
-              setUpdater(current => current + 1)
-            }}
-            onChange={(e) => {
-              // @ts-ignore
-              object[key] = e.target.value;
-              setUpdater(current => current + 1)
-            }}
+            onBlur={setValue}
+            onChange={setValue}
             aria-label={"Argument input"}
 
           />
@@ -606,7 +788,50 @@ export const TypedArgument: React.FC<
         </div>
       )
     }
-    if (typeof value === "number") {
+
+    if (nodeAllowed) {
+      return (
+
+        <div className={styles.filterArgument}>
+          <h3>{key}:</h3>
+          <DropPosition config={{ type: actualTypes }}
+
+            onDrop={(grabbedObject) => {
+              // @ts-ignore
+              object[key] = grabbedObject.data;
+              setUpdater(current => current + 1)
+              return true;
+            }} disable={held} key={value} >
+            <div onClick={(e) => {
+              e.stopPropagation();
+              // e.preventDefault();
+            }} onMouseDown={(e) => {
+              e.stopPropagation();
+              // e.preventDefault();
+            }}  >
+            </div>
+          </DropPosition>
+          {/* <Input initialValue={value}
+          status={error ? "error" : "default"}
+
+          onClick={(e) => {
+            e.stopPropagation();
+          }
+          }
+          onMouseDown={(e) => {
+            e.stopPropagation();
+          }}
+          onBlur={setValue}
+          onChange={setValue}
+          aria-label={"Argument input"}
+
+        /> */}
+
+        </div>
+      )
+
+    }
+    if (numbersAllowed) {
 
       return (
         <div className={styles.filterArgument}>
@@ -626,41 +851,20 @@ export const TypedArgument: React.FC<
             }}  >
             </div>
           </DropPosition>
-          <Input initialValue={errorValue?.toString()} onClick={(e) => {
+          <Input initialValue={value?.toString()} onClick={(e) => {
             e.stopPropagation();
           }}
             type="number"
+            helperText={errorText}
+            helperColor={error ? "error" : "default"}
             // @ts-ignore
-            status={isNaN(parseInt(errorValue ?? "n")) ? "error" : "default"}
+            placeholder={placeholder}
+            status={error ? "error" : "default"}
             onMouseDown={(e) => {
               e.stopPropagation();
             }}
-            onBlur={(e) => {
-              let num = parseInt(e.target.value);
-              if (isNaN(num)) {
-                setErrorValue(e.target.value)
-                console.log("Inputed a NON NUMBER")
-              }
-              else {
-                // @ts-ignore
-                object[key] = num;
-                setErrorValue(e.target.value)
-                setUpdater(current => current + 1)
-              }
-            }}
-            onChange={(e) => {
-              let num = parseInt(e.target.value);
-              if (isNaN(num)) {
-                setErrorValue(e.target.value)
-                console.log("Inputed a NON NUMBER")
-              }
-              else {
-                // @ts-ignore
-                object[key] = num;
-                setErrorValue(e.target.value)
-                setUpdater(current => current + 1)
-              }
-            }}
+            onBlur={setValue}
+            onChange={setValue}
             aria-label={"Argument input"}
 
           />
@@ -669,126 +873,7 @@ export const TypedArgument: React.FC<
       )
     }
 
-    return <h1>ERROR typeof value: {typeof value}</h1>
-
-
-
-
-
-
-
-
-    // return (
-    //   <div className={styles.filterArgument}>
-    //     <h3>{key}:</h3>
-    //     <Input
-    //       value={cardValue || typeof cardValue}
-    //       aria-label={"Argument input"}
-    //     />
-    //   </div>
-    // )
-
-
-
-    // if (!(key in filter.filter)) return null
-
-    // switch (filter.type) {
-    //   case "filter:card":
-    //     let cardValue = filter.filter[key as keyof CardFilterObject["filter"]];
-    //     if (typeof cardValue === "string") {
-    //       return (
-    //         <div className={styles.filterArgument}>
-    //           <h3>{key}:</h3>
-    //           <Input
-    //             value={cardValue || typeof cardValue}
-    //             aria-label={"Argument input"}
-    //           />
-    //         </div>
-    //       )
-
-    //     }
-    //     if (key == "inside") {
-    //       if (typeof filter.filter["inside"] === "object") {
-    //         return (
-    //           <>
-    //             <div className={styles.filterArgument}>
-    //               <h3>{key}:</h3>
-    //               <DraggableObject fillProps={{ type: 'filter:cardHolder', data: filter.filter["inside"] }}
-    //                 onGrab={
-    //                   () => {
-    //                     filter.filter["inside"] = undefined;
-    //                     setUpdater(current => current + 1)
-    //                   }}>
-    //                 <FilterNode filter={filter.filter["inside"]} />
-    //               </DraggableObject>
-    //             </div>
-    //           </>
-    //         )
-    //       } else {
-    //         return (
-    //           <div className={styles.filterArgument}>
-    //             <h3>{key}:</h3>
-    //             <DropPosition config={{ type: "filter:cardHolder" }} onDrop={(grabbedObject) => {
-    //               // if (grabbedObject.type !== "filter:cardHolder") return false;
-    //               filter.filter["inside"] = grabbedObject.data;
-    //               setUpdater(current => current + 1)
-    //               return true;
-    //             }} >
-
-    //               <Input
-    //                 value={cardValue || typeof cardValue}
-    //                 aria-label={"Argument input"}
-    //               />
-    //             </DropPosition>
-    //           </div>
-    //         )
-    //       }
-    //     }
-
-
-
-
-    //     return (
-    //       <div className={styles.filterArgument}>
-    //         <h3>{key}:</h3>
-    //         <h3>{JSON.stringify(cardValue)}</h3>
-    //       </div>
-    //     )
-    //     break
-    //   case "filter:deck":
-    //     let deckValue = filter.filter[key as keyof DeckFilterObject["filter"]];
-    //     if (typeof deckValue === "string") {
-    //       return (
-    //         <div className={styles.filterArgument}>
-    //           <h3>{key}:</h3>
-    //           <Input
-    //             value={deckValue || typeof deckValue}
-    //             aria-label={"Argument input"}
-    //           />
-    //         </div>
-    //       )
-
-    //     }
-    //     return (
-    //       <div className={styles.filterArgument}>
-    //         <h3>{key}:</h3>
-    //         <h3>{JSON.stringify(deckValue)}</h3>
-    //       </div>
-    //     )
-
-
-    //     break
-    //   default:
-    //     break
-    // }
-
-
-    // return (
-    //   <h2>
-    //     {key}: {JSON.stringify(filter.filter)}
-    //   </h2>
-    // );
-
+    return <h1>ERROR typeof value: {typeof value}, acceptableTypes: {JSON.stringify(acceptableTypes)}</h1>
   });
 TypedArgument.displayName = "FilterArgument";
 
@@ -821,11 +906,19 @@ type ConditionsByType = {
   [K in Condition["type"]]: Extract<Condition, { type: K }>
 }
 
+type ActionReturnsByType = {
+  [K in Action["type"]]: Exclude<Extract<Action, { type: K }>["returns"], undefined>
+}
+
 
 type EverythingByType = FiltersByType & ActionsByType & ConditionsByType
 
-type FilterTypedObject<K extends keyof EverythingByType> = {
-  [K2 in keyof EverythingByType[K]]-?:
+
+// **DISCLAMER**: THIS IS THE BIGGEST FUCKING HACK. I'M SORRY.
+// This is a hack to get around the fact that the type system doesn't allow for runtime shit.
+// If you see an error make sure to do exactly what it says.
+type FilterTypedObject<K extends keyof BT, BT> = {
+  [K2 in keyof BT[K]]-?:
   // EverythingByType[K][K2] extends CardHolderResolvable ? ["required", "variable", "filter:card", "filter:deck"] :
   // EverythingByType[K][K2] extends CardResolvable ? ["required", "variable", "filter:card"] :
   //   EverythingByType[K][K2] extends PlayerResolvable ? ["required", "variable", "filter:player"] :
@@ -833,73 +926,65 @@ type FilterTypedObject<K extends keyof EverythingByType> = {
   //       EverythingByType[K][K2] extends DeckResolvable ? ["required", "variable", "filter:deck"] :
 
   // EverythingByType[K][K2] extends Resolvable ? ["required", "variable", EverythingByType[K][K2]] :
-  EverythingByType[K][K2] extends Resolvable ? ["required", "variable", ...TuplifyUnion<Exclude<EverythingByType[K][K2], string | undefined>["type"]>] :
+
+  // BT[K][K2] extends Resolvable | string ? ["required", "variable", "string"] :
+  BT[K][K2] extends Resolvable ? ["required", "variable", ...TuplifyUnion<Exclude<BT[K][K2], string | undefined>["type"]>] :
+
+
+
+
   // EverythingByType[K][K2] extends `$${string}` ? ["required", "variable"] :
-  EverythingByType[K][K2] extends string ? ["required", "string"] | ["required", ...TuplifyUnion<`string:${Exclude<EverythingByType[K][K2], undefined>}`>] :
-  EverythingByType[K][K2] extends Action[] ? ["required", "array", "action"] :
-  EverythingByType[K][K2] extends number ? ["required", "number"] :
-  EverythingByType[K][K2] extends number | string ? ["required", "number", "string"] :
+  BT[K][K2] extends string ? ["required", "string"] | ["required", ...TuplifyUnion<`string:${Exclude<BT[K][K2], undefined>}`>] :
+  BT[K][K2] extends Action[] ? ["required", "array", "action"] :
+  BT[K][K2] extends number ? ["required", "number"] :
+  BT[K][K2] extends number | Variable ? ["required", "number", "variable"] :
+  BT[K][K2] extends number | string ? ["required", "number", "string"] :
 
-  EverythingByType[K][K2] extends Condition[] ? ["required", "array", "condition"] :
-  EverythingByType[K][K2] extends Condition ? ["required", "condition"] :
-  EverythingByType[K][K2] extends boolean ? ["required", "boolean"] :
+  BT[K][K2] extends Condition[] ? ["required", "array", "condition"] :
+  BT[K][K2] extends Condition ? ["required", "condition"] :
+  BT[K][K2] extends boolean ? ["required", "boolean"] :
 
-  EverythingByType[K][K2] extends boolean | string | number ? ["required", "string", "number", "boolean"] :
+  BT[K][K2] extends boolean | string | number ? ["required", "string", "number", "boolean"] :
 
-  EverythingByType[K][K2] extends Action[] | undefined ? ["array", "action"] :
-  EverythingByType[K][K2] extends Filter | undefined ? TuplifyUnion<Exclude<EverythingByType[K][K2], undefined>["type"]> :
-  EverythingByType[K][K2] extends Filter[] | undefined ? ["array", ...TuplifyUnion<Exclude<EverythingByType[K][K2], undefined>[number]["type"]>] :
-  EverythingByType[K][K2] extends string[] | undefined ? ["array", "string"] :
-  EverythingByType[K][K2] extends `$${string}` | undefined ? ["variable"] :
-  EverythingByType[K][K2] extends string | undefined ? ["string"] | TuplifyUnion<`string:${Exclude<EverythingByType[K][K2], undefined>}`> :
-  EverythingByType[K][K2] extends Resolvable | undefined ? ["variable", ...TuplifyUnion<Exclude<EverythingByType[K][K2], string | undefined>["type"]>] :
-  EverythingByType[K][K2] extends number | undefined ? ["number"] :
-  EverythingByType[K][K2] extends number | string | undefined ? ["number", "string"] :
-  EverythingByType[K][K2] extends boolean | undefined ? ["boolean"] :
+  BT[K][K2] extends Action[] | undefined ? ["array", "action"] :
+  BT[K][K2] extends Filter | undefined ? TuplifyUnion<Exclude<BT[K][K2], undefined>["type"]> :
+  BT[K][K2] extends Filter[] | undefined ? ["array", ...TuplifyUnion<Exclude<BT[K][K2], undefined>[number]["type"]>] :
+  BT[K][K2] extends string[] | undefined ? ["array", "string"] :
+  BT[K][K2] extends `$${string}` | undefined ? ["variable"] :
+  BT[K][K2] extends string | undefined ? ["string"] | TuplifyUnion<`string:${Exclude<BT[K][K2], undefined>}`> :
+  BT[K][K2] extends Resolvable | undefined ? ["variable", ...TuplifyUnion<Exclude<BT[K][K2], string | undefined>["type"]>] :
+  BT[K][K2] extends number | undefined ? ["number"] :
+  BT[K][K2] extends number | string | undefined ? ["number", "string"] :
+  BT[K][K2] extends boolean | undefined ? ["boolean"] :
 
-  EverythingByType[K][K2] extends Condition | undefined ? ["condition"] :
-  EverythingByType[K][K2] extends Object | undefined ? {
-    [K3 in keyof Exclude<EverythingByType[K][K2], undefined>]-?:
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends `$${string}` ? ["required", "variable"] :
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends string ? ["required", "string"] | ["required", ...TuplifyUnion<`string:${Exclude<Exclude<EverythingByType[K][K2], undefined>[K3], undefined>}`>] :
+  BT[K][K2] extends Condition | undefined ? ["condition"] :
+  BT[K][K2] extends Object | undefined ? {
+    [K3 in keyof Exclude<BT[K][K2], undefined>]-?:
+    Exclude<BT[K][K2], undefined>[K3] extends `$${string}` ? ["required", "variable"] :
+    Exclude<BT[K][K2], undefined>[K3] extends string ? ["required", "string"] | ["required", ...TuplifyUnion<`string:${Exclude<Exclude<BT[K][K2], undefined>[K3], undefined>}`>] :
 
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends Action[] ? ["required", "array", "action"] :
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends number ? ["required", "number"] :
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends number | string ? ["required", "number", "string"] :
+    Exclude<BT[K][K2], undefined>[K3] extends Action[] ? ["required", "array", "action"] :
+    Exclude<BT[K][K2], undefined>[K3] extends number ? ["required", "number"] :
+    Exclude<BT[K][K2], undefined>[K3] extends number | string ? ["required", "number", "string"] :
 
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends Condition[] ? ["required", "array", "condition"] :
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends Condition ? ["required", "condition"] :
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends boolean ? ["required", "boolean"] :
+    Exclude<BT[K][K2], undefined>[K3] extends Condition[] ? ["required", "array", "condition"] :
+    Exclude<BT[K][K2], undefined>[K3] extends Condition ? ["required", "condition"] :
+    Exclude<BT[K][K2], undefined>[K3] extends boolean ? ["required", "boolean"] :
 
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends boolean | string | number ? ["required", "string", "number", "boolean"] :
+    Exclude<BT[K][K2], undefined>[K3] extends boolean | string | number ? ["required", "string", "number", "boolean"] :
 
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends Action[] | undefined ? ["array", "action"] :
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends Filter | undefined ? TuplifyUnion<Exclude<Exclude<EverythingByType[K][K2], undefined>[K3], undefined>["type"]> :
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends Filter[] | undefined ? ["array", ...TuplifyUnion<Exclude<Exclude<EverythingByType[K][K2], undefined>[K3], undefined>[number]["type"]>] :
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends string[] | undefined ? ["array", "string"] :
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends `$${string}` | undefined ? ["variable"] :
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends string | undefined ? ["string"] | TuplifyUnion<`string:${Exclude<Exclude<EverythingByType[K][K2], undefined>[K3], undefined>}`> :
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends Resolvable | undefined ? ["variable", ...TuplifyUnion<Exclude<Exclude<EverythingByType[K][K2], undefined>[K3], string | undefined>["type"]>] :
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends number | undefined ? ["number"] :
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends number | string | undefined ? ["number", "string"] :
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends boolean | undefined ? ["boolean"] :
+    Exclude<BT[K][K2], undefined>[K3] extends Action[] | undefined ? ["array", "action"] :
+    Exclude<BT[K][K2], undefined>[K3] extends Filter | undefined ? TuplifyUnion<Exclude<Exclude<BT[K][K2], undefined>[K3], undefined>["type"]> :
+    Exclude<BT[K][K2], undefined>[K3] extends Filter[] | undefined ? ["array", ...TuplifyUnion<Exclude<Exclude<BT[K][K2], undefined>[K3], undefined>[number]["type"]>] :
+    Exclude<BT[K][K2], undefined>[K3] extends string[] | undefined ? ["array", "string"] :
+    Exclude<BT[K][K2], undefined>[K3] extends `$${string}` | undefined ? ["variable"] :
+    Exclude<BT[K][K2], undefined>[K3] extends string | undefined ? ["string"] | TuplifyUnion<`string:${Exclude<Exclude<BT[K][K2], undefined>[K3], undefined>}`> :
+    Exclude<BT[K][K2], undefined>[K3] extends Resolvable | undefined ? ["variable", ...TuplifyUnion<Exclude<Exclude<BT[K][K2], undefined>[K3], string | undefined>["type"]>] :
+    Exclude<BT[K][K2], undefined>[K3] extends number | undefined ? ["number"] :
+    Exclude<BT[K][K2], undefined>[K3] extends number | string | undefined ? ["number", "string"] :
+    Exclude<BT[K][K2], undefined>[K3] extends boolean | undefined ? ["boolean"] :
 
-    Exclude<EverythingByType[K][K2], undefined>[K3] extends Condition | undefined ? ["condition"] : unknown
-    // EverythingByType[K][K2][K3] extends Object ? {
-    //   [K4 in keyof EverythingByType[K][K2][K3]]-?:
-    //   EverythingByType[K][K2][K3][K4] extends Filter ? TuplifyUnion<EverythingByType[K][K2][K3][K4]["type"]> :
-    //   EverythingByType[K][K2][K3][K4] extends Filter[] ? ["array", ...TuplifyUnion<EverythingByType[K][K2][K3][K4][number]["type"]>] :
-    //   EverythingByType[K][K2][K3][K4] extends string[] ? ["array", "string"] :
-    //   EverythingByType[K][K2][K3][K4] extends `$${string}` ? ["variable"] :
-    //   EverythingByType[K][K2][K3][K4] extends string ? TuplifyUnion<EverythingByType[K][K2][K3][K4]> :
-    //   EverythingByType[K][K2][K3][K4] extends Resolvable ? ["variable", ...TuplifyUnion<Exclude<EverythingByType[K][K2][K3][K4], string>["type"]>] :
-    //   EverythingByType[K][K2][K3][K4] extends number ? ["number"] :
-    //   EverythingByType[K][K2][K3][K4] extends number | string ? ["number", "string"] :
-    //   EverythingByType[K][K2][K3][K4] extends boolean ? ["boolean"] :
-    //   EverythingByType[K][K2][K3][K4] extends Action[] ? ["array", "action"] :
-    //   EverythingByType[K][K2][K3][K4] extends Condition ? ["condition"] :
-    //   EverythingByType[K][K2][K3][K4] extends Condition[] ? ["array", "condition"] : "Is 3 layers of recursion still not enough for your needy ass?"
-
+    Exclude<BT[K][K2], undefined>[K3] extends Condition | undefined ? ["condition"] : unknown
   } :
   never
   // EverythingByType[K][K2]
@@ -921,14 +1006,9 @@ type FilterTypedObject<K extends keyof EverythingByType> = {
 //   [K2 in keyof EverythingByType[K]]-?:
 //   EverythingByType[K][K2] }
 
-export type FilterNodePropertiesVerifier = {
-  [K in keyof EverythingByType]: FilterTypedObject<K>
-}
-
-// **DISCLAMER**: THIS IS THE BIGGEST FUCKING HACK. I'M SORRY.
-// This is a hack to get around the fact that the type system doesn't allow for runtime shit.
-// If you see an error make sure to do exactly what it says.
-export let TypedNodeProperties: FilterNodePropertiesVerifier = {
+export let TypedNodeProperties: {
+  [K in keyof EverythingByType]: FilterTypedObject<K, EverythingByType>
+} = {
   "filter:card": {
     $and: ["array", "filter:card"],
     $or: ["array", 'filter:card'],
@@ -937,8 +1017,15 @@ export let TypedNodeProperties: FilterNodePropertiesVerifier = {
     has_one_of_tags: ["array", "string"],
     has_tag: ["string"],
     inside: ["variable", "filter:deck", "filter:hand"],
-    actions: ["array", "action"],
-    iterator_parameter: ["variable"],
+    iterator: {
+      actions: ["array", "action"],
+      parameter: ["variable"],
+      condition: ["condition"],
+    },
+    has_property: {
+      property: ['required', "string"],
+      value: ['required', "string"]
+    }
   },
   "filter:deck": {
     $and: ["array", "filter:deck"],
@@ -952,8 +1039,17 @@ export let TypedNodeProperties: FilterNodePropertiesVerifier = {
       amount: ["required", 'number'],
       cards: ['filter:card']
     },
-    actions: ["array", "action"],
-    iterator_parameter: ["variable"],
+
+    iterator: {
+      actions: ["array", "action"],
+      parameter: ["variable"],
+      condition: ["condition"],
+    },
+
+    has_property: {
+      property: ['required', "string"],
+      value: ['required', "string"]
+    }
   },
   "filter:hand": {
     $and: ["array", "filter:hand"],
@@ -968,8 +1064,16 @@ export let TypedNodeProperties: FilterNodePropertiesVerifier = {
       cards: ['filter:card']
     },
     has_card: ['filter:card'],
-    actions: ["array", "action"],
-    iterator_parameter: ["variable"],
+    iterator: {
+      actions: ["array", "action"],
+      parameter: ["variable"],
+      condition: ["condition"],
+    },
+
+    has_property: {
+      property: ['required', "string"],
+      value: ['required', "string"]
+    }
   },
   "filter:player": {
     $and: ["array", "filter:player"],
@@ -979,28 +1083,36 @@ export let TypedNodeProperties: FilterNodePropertiesVerifier = {
     has_one_of_tags: ["array", "string"],
     has_tag: ['string'],
     has_hand: ['filter:hand'],
-    actions: ["array", "action"],
-    iterator_parameter: ["variable"],
+    iterator: {
+      actions: ["array", "action"],
+      parameter: ["variable"],
+      condition: ["condition"],
+    },
+
+    has_property: {
+      property: ['required', "string"],
+      value: ['required', "string"]
+    }
   },
   "action:cards.move": {
     cards: ["required", "variable", "filter:card"],
     to: ["required", "variable", "filter:deck", "filter:hand"],
-    where: ["string:top", "string:bottom", "string:random"]
+    where: ["string:top", "string:bottom", "string:random"],
   },
   "action:debug": {
-    find: ["required", "variable", 'filter:card', "filter:deck", "filter:hand", "filter:player"]
+    find: ["required", "variable", 'filter:card', "filter:deck", "filter:hand", "filter:player"],
   },
   "action:find.cards": {
-    filter: ["required", "variable", "filter:card"]
+    filter: ["required", "variable", "filter:card"],
   },
   "action:find.decks": {
-    filter: ["required", "variable", "filter:deck"]
+    filter: ["required", "variable", "filter:deck"],
   },
   "action:find.hands": {
-    filter: ["required", "variable", "filter:hand"]
+    filter: ["required", "variable", "filter:hand"],
   },
   "action:find.players": {
-    filter: ["required", "variable", "filter:player"]
+    filter: ["required", "variable", "filter:player"],
   },
   "action:logic.if": {
     condition: ["required", "condition"],
@@ -1018,7 +1130,7 @@ export let TypedNodeProperties: FilterNodePropertiesVerifier = {
   },
   "action:data.get": {
     key: ["required", "string"],
-    object: ["required", "variable", "filter:card", "filter:deck", "filter:hand", "filter:player"]
+    object: ["required", "variable", "filter:card", "filter:deck", "filter:hand", "filter:player"],
   },
   "action:data.set": {
     key: ["required", "string"],
@@ -1041,7 +1153,7 @@ export let TypedNodeProperties: FilterNodePropertiesVerifier = {
   },
   "condition:amount": {
     a: ["required", "variable"],
-    b: ["required", "number", "string"],
+    b: ["required", 'number', "variable"],
     operator: ["required", "string:=", "string:>", "string:<"],
     type: ["required", "string"],
     not: ["boolean"]
@@ -1080,10 +1192,34 @@ export let TypedNodeProperties: FilterNodePropertiesVerifier = {
     operator: ["required", "string:is_type", "string:contains_type"],
     type: ["required", "string"]
   },
+  "condition:data.single": {
+    type: ["required", "string"],
+    a: ["required", "variable"],
+    b: ["required", "string"],
+    key: ["required", "string"],
+    not: ["boolean"],
+    operator: ["required", "string:=", "string:>", "string:<", "string:contains", "string:!=", "string:starts_with", "string:ends_with"]
+  },
+  "condition:data.compare": {
+    type: ["required", "string"],
+    a: ["required", "variable"],
+    b: ["required", "variable"],
+    key: ["required", "string"],
+    not: ["boolean"],
+    operator: ["required", "string:=", "string:>", "string:<", "string:contains", "string:!=", "string:starts_with", "string:ends_with"]
+  },
+
+
   "action:logic.return": {
     value: ["required", "boolean"]
   },
   "action:logic.break": {},
+
+  "action:logic.method": {
+    methodName: ["required", 'string']
+  },
+
+
   "action:deck.shuffle": {
     deck: ["required", "variable", "filter:deck"]
   },
@@ -1093,6 +1229,66 @@ export let TypedNodeProperties: FilterNodePropertiesVerifier = {
     to: ["required", "variable", "filter:deck", "filter:hand"]
   }
 
+}
+// export let DescriptionForAllTheTypes:
+//   {
+//     [key in keyof EverythingByType[keyof EverythingByType]]: string
+//   } =
+//   deck:
+
+// }
+
+
+
+export let TypedActionReturns: {
+  [K in keyof ActionReturnsByType]: FilterTypedObject<K, ActionReturnsByType>
+} = {
+  "action:cards.move": {
+    destination: ["variable"],
+    moved_cards: ["variable"],
+  },
+  "action:data.get": {
+    value: ["required", "variable"]
+  },
+  "action:data.set": {
+
+  },
+  "action:debug": {},
+  "action:deck.draw": {
+    deck: ["variable"],
+  },
+  "action:deck.shuffle": {
+    deck: ["variable"]
+  },
+  "action:find.cards": {
+    found_many: ["variable"],
+    found_one: ["variable"],
+  },
+  "action:find.decks": {
+    found_many: ["variable"],
+    found_one: ["variable"],
+  },
+  "action:find.hands": {
+    found_many: ["variable"],
+    found_one: ["variable"],
+  },
+  "action:find.players": {
+    found_many: ["variable"],
+    found_one: ["variable"],
+  },
+  "action:logic.break": {
+  },
+  "action:logic.for_each": {},
+  "action:logic.if": {},
+  "action:logic.loop": {},
+  "action:logic.return": {},
+  "action:logic.method": {},
+  "action:user_input.select_cards": {
+    selected: ["required", "variable"]
+  },
+  "action:user_input.select_players": {
+    selected: ["variable"]
+  },
 }
 
 

@@ -1,5 +1,4 @@
 import { UI } from ".";
-import { Graphics } from "..";
 import { Player } from "../../game/Objects/Player";
 
 export interface ButtonField {

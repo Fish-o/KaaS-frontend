@@ -102,6 +102,7 @@ export class Deck extends BaseGameObject {
       }
       if (card) grabbedCards.push(card);
     }
+    this.issueUpdate(this);
     return grabbedCards;
   }
 
@@ -139,14 +140,17 @@ export class Deck extends BaseGameObject {
       if (to === "bottom") this._cards.shift();
       else this._cards.pop();
     }
+    this.issueUpdate(this);
   }
 
   removeCard(card: Card) {
     this._cards = this._cards.filter((c) => c !== card);
+    this.issueUpdate(this);
   }
 
   shuffleDeck(seed: string) {
     this._cards = shuffle(this._cards, seed);
+    this.issueUpdate(this);
   }
 
   makeGameObject(): DeckObject {

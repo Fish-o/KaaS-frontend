@@ -26,7 +26,7 @@ async function performActionLogicIf(
   game: Game
 ): Promise<void | null | boolean> {
   const { condition, true_actions, false_actions } = action.args;
-  const result = performCondition(condition, variables);
+  const result = await performCondition(condition, variables, game);
   if (result) {
     return performActions(true_actions, variables, game);
   } else {
@@ -82,9 +82,11 @@ async function performActionLogicForEach(
   let iterable = await resolveBaseObject(collection, variables, game);
   if (!(iterable instanceof Array))
     throw new Error(`Collection is not an array`);
-
+  console.log("iterable", iterable);
   for (const item of iterable) {
+    console.log(variables);
     variables.set(as, item);
+    console.log(variables);
     let value = await performActions(actions, variables, game);
     if (value !== undefined) return value;
   }
@@ -105,12 +107,37 @@ export class ActionLogicReturn extends BaseLogicAction {
 export class ActionLogicBreak extends BaseLogicAction {
   type: "action:logic.break";
 }
+
+export class ActionLogicMethod extends BaseLogicAction {
+  type: "action:logic.method";
+  args: {
+    methodName: string;
+  };
+}
+
+export async function preformMethodAction(
+  action: ActionLogicMethod,
+  variables: VariableMap,
+  game: Game
+): Promise<void | null | boolean> {
+  const { methodName } = action.args;
+  const method = game.getMethodFromName(
+    ("method:" + methodName) as `method:${string}`
+  );
+  if (!method) {
+    throw new Error(`Method "${methodName}" Does not exist`);
+  }
+
+  let value = await performActions(method.actions, variables, game);
+}
+
 export type LogicAction =
   | ActionLogicIf
   | ActionLogicLoop
   | ActionLogicForEach
   | ActionLogicReturn
-  | ActionLogicBreak;
+  | ActionLogicBreak
+  | ActionLogicMethod;
 export function performLogicAction(
   action: LogicAction,
   variables: VariableMap,
@@ -127,6 +154,8 @@ export function performLogicAction(
       return action.args.value ? Promise.resolve(true) : Promise.resolve(false);
     case "action:logic.break":
       return Promise.resolve(null);
+    case "action:logic.method":
+      return preformMethodAction(action, variables, game);
   }
 }
 

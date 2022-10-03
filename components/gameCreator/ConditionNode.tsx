@@ -1,9 +1,8 @@
 import { useContext, useEffect, useId, useMemo, useState } from "react";
 import { Condition } from "../../lib/game/Conditions";
-import { DraggableNodeObjects, SetDraggableNodeObjects, TypedArgument } from "../gameCreator";
-import { ActionNode } from "./ActionNode";
-import DraggableObject from "./draggableObject";
+import { SetDraggableNodeObjects, TypedArgument, TypedNodeProperties } from "../gameCreator";
 import styles from "../../styles/gameCreator.module.scss";
+import { recurseResovlve } from "./FilterNode";
 
 
 export const ConditionNode: React.FC<{ condition: Condition, held: boolean }> = ({ condition, held = false }) => {
@@ -11,27 +10,36 @@ export const ConditionNode: React.FC<{ condition: Condition, held: boolean }> = 
   const id = useId();
   const setNodeObjects = useContext(SetDraggableNodeObjects)
 
-
+  const preferedOrder = ["key", "a", "operator", "b", "not", "conditions"]
   return useMemo(() => {
+    recurseResovlve(TypedNodeProperties[condition.type], condition, null, held)
     return (
-      <div className={styles.conditionNode}>
+      <div className={styles.conditionNode} style={held ? { border: "2px solid red" } : {}}>
         <h1>Condition: {condition.type}</h1>
+        {
+          JSON.stringify(condition)
+        }
         <div>
           {
-            "a" in condition && condition.a && (
-              <TypedArgument value={condition.a} $key={"a"} object={condition} type={condition.type} held={held} setUpdater={setUpdater} />
-            )
+            preferedOrder.map((key) => {
+              if (key in condition) {
+                return (
+                  <TypedArgument
+                    value={condition[key]}
+                    $key={key}
+                    object={condition}
+                    type={condition.type}
+                    held={held}
+                    setUpdater={setUpdater}
+                    acceptableTypes={TypedNodeProperties[condition.type][key]}
+                    orientation={"vertical"}
+                  />
+                )
+              }
+              return null
+            })
           }
 
-          <TypedArgument value={condition.operator} $key={"operator"} object={condition} type={condition.type} held={held} setUpdater={setUpdater} />
-
-
-          {
-            "b" in condition && condition.b && (
-              <TypedArgument value={condition.b} $key={"b"} object={condition} type={condition.type} held={held} setUpdater={setUpdater} />
-
-            )
-          }
         </div>
 
 
@@ -61,5 +69,5 @@ export const ConditionNode: React.FC<{ condition: Condition, held: boolean }> = 
         )) */}
         {/* } */}
       </div >)
-  }, [condition, held])
+  }, [condition, held, updater])
 }

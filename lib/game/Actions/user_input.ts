@@ -51,8 +51,8 @@ class ActionUserInputSelectCards extends BaseUserInputAction {
     message: string;
     from?: CardResolvable;
   };
-  returns?: {
-    selected?: Variable;
+  returns: {
+    selected: Variable;
     // options?: Variable;
   };
 }
@@ -81,7 +81,7 @@ async function performActionUserInputSelectPlayers(
 
   let results: Player[] = [];
   if (playerSelecting.user_id === game.user_id) {
-    const player = await game.graphics.UI.promptPlayerSelection(
+    const player = await game.ui.promptPlayerSelection(
       Array.isArray(players) ? players : [players]
     );
     await broadcastGameEvent(game, {
@@ -122,8 +122,10 @@ async function preformActionUserInputSelectCards(
 
   let results: Card[] = [];
   if (playerSelecting.user_id === game.user_id) {
-    const selectedCards = await game.graphics.UI.promptCardSelection(
-      Array.isArray(cards) ? cards : [cards]
+    const selectedCards = await game.ui.promptCardSelection(
+      Array.isArray(cards) ? cards : [cards],
+      min,
+      max
     );
 
     await broadcastGameEvent(game, {

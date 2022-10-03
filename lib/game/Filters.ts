@@ -1,5 +1,10 @@
 import { Action, performActions, Variable, VariableMap } from "./Actions";
-import { CardHolderResolvable, PlayerResolvable } from "./Actions/resolvables";
+import {
+  CardHolderResolvable,
+  PlayerResolvable,
+  resolveCardHolderResolvable,
+} from "./Actions/resolvables";
+import { Condition, performCondition } from "./Conditions";
 import { Game, isValidVariableName } from "./Game";
 import { BaseGameObject } from "./Objects";
 import { Card } from "./Objects/Card";
@@ -30,8 +35,15 @@ export interface DeckFilterObject extends FilterObject {
     $and: DeckFilterObject[];
     $or: DeckFilterObject[];
 
-    iterator_parameter: Variable;
-    actions: Action[];
+    has_property: {
+      property: string;
+      value: string;
+    };
+    iterator: {
+      parameter?: Variable;
+      actions?: Action[];
+      condition?: Condition;
+    };
   }>;
 }
 
@@ -48,8 +60,15 @@ export interface PlayerFilterObject extends FilterObject {
     $and: PlayerFilterObject[];
     $or: PlayerFilterObject[];
 
-    iterator_parameter: Variable;
-    actions: Action[];
+    has_property: {
+      property: string;
+      value: string;
+    };
+    iterator: {
+      parameter?: Variable;
+      actions?: Action[];
+      condition?: Condition;
+    };
   }>;
 }
 
@@ -71,8 +90,15 @@ export interface HandFilterObject extends FilterObject {
     $and: HandFilterObject[];
     $or: HandFilterObject[];
 
-    iterator_parameter: Variable;
-    actions: Action[];
+    has_property: {
+      property: string;
+      value: string;
+    };
+    iterator: {
+      parameter?: Variable;
+      actions?: Action[];
+      condition?: Condition;
+    };
   }>;
 }
 
@@ -89,8 +115,15 @@ export interface CardFilterObject extends FilterObject {
     $and: CardFilterObject[];
     $or: CardFilterObject[];
 
-    iterator_parameter: Variable;
-    actions: Action[];
+    has_property: {
+      property: string;
+      value: string;
+    };
+    iterator: {
+      parameter?: Variable;
+      actions?: Action[];
+      condition?: Condition;
+    };
   }>;
 }
 export type CardHolderFilterObject = HandFilterObject | DeckFilterObject;
@@ -142,14 +175,60 @@ export async function performFilter(
   }
 }
 
+async function asyncFilter<T>(
+  arr: readonly T[],
+  predicate: (arg0: T) => Promise<boolean | void | null>
+) {
+  const results = await Promise.all(arr.map(predicate));
+
+  return arr.filter((_v, index) => results[index]);
+}
+async function handleIterator<T extends BaseGameObject>(
+  ands: T[][],
+  objects: readonly T[],
+  variables: VariableMap,
+  game: Game,
+  iterator: Filter["filter"]["iterator"]
+) {
+  console.log("Handling iterator", iterator, variables);
+  if (iterator) {
+    const { actions, parameter, condition } = iterator;
+    if (actions) {
+      ands.push(
+        await asyncFilter<T>(objects, async (object) => {
+          if (parameter) {
+            variables.set(parameter, object);
+          }
+          let result = await performActions(actions, variables, game);
+          if (parameter) {
+            variables.delete(parameter);
+          }
+          return result;
+        })
+      );
+    }
+
+    if (condition) {
+      ands.push(
+        await asyncFilter<T>(objects, async (object) => {
+          let newVars = new Map(variables);
+          if (parameter) {
+            newVars.set(parameter, object);
+          }
+          let result = await performCondition(condition, newVars, game);
+          return result;
+        })
+      );
+    }
+  }
+}
+
 async function filterPlayers(
   {
     minAmount,
     maxAmount,
     filter: {
-      actions,
-      iterator_parameter,
-
+      iterator,
       $and,
       $not,
       $or,
@@ -166,18 +245,7 @@ async function filterPlayers(
   const ands: Player[][] = [];
   const not: Player[] = [];
 
-  // Filters
-  if (actions) {
-    ands.push(
-      players.filter(async (player) => {
-        if (iterator_parameter) {
-          variables = { ...variables, [iterator_parameter]: player };
-          return await performActions(actions, variables, game);
-        }
-        return false;
-      })
-    );
-  }
+  await handleIterator(ands, players, variables, game, iterator);
 
   if (has_all_of_tags)
     ands.push(players.filter((p) => p.hasAllTags(has_all_of_tags)));
@@ -227,9 +295,7 @@ async function filterPlayers(
     );
   console.log("filteredPlayers", filteredPlayers);
   console.log({
-    actions,
-    iterator_parameter,
-
+    iterator,
     $and,
     $not,
     $or,
@@ -247,9 +313,7 @@ async function filterHands(
     minAmount,
     maxAmount,
     filter: {
-      actions,
-      iterator_parameter,
-
+      iterator,
       $and,
       $not,
       $or,
@@ -268,18 +332,7 @@ async function filterHands(
   const ands: Hand[][] = [];
   const not: Hand[] = [];
 
-  // Filters
-  if (actions) {
-    ands.push(
-      hands.filter(async (hands) => {
-        if (iterator_parameter) {
-          variables = { ...variables, [iterator_parameter]: hands };
-          return await performActions(actions, variables, game);
-        }
-        return false;
-      })
-    );
-  }
+  await handleIterator(ands, hands, variables, game, iterator);
 
   if ($and)
     ands.push(
@@ -358,8 +411,7 @@ async function filterCards(
     maxAmount,
     minAmount,
     filter: {
-      actions,
-      iterator_parameter,
+      iterator,
       $and,
       $not,
       $or,
@@ -379,8 +431,7 @@ async function filterCards(
     maxAmount,
     minAmount,
     filter: {
-      actions,
-      iterator_parameter,
+      iterator,
       $and,
       $not,
       $or,
@@ -390,18 +441,8 @@ async function filterCards(
       inside,
     },
   });
-  // Filters
-  if (actions) {
-    ands.push(
-      cards.filter(async (cards) => {
-        if (iterator_parameter) {
-          variables = { ...variables, [iterator_parameter]: cards };
-          return await performActions(actions, variables, game);
-        }
-        return false;
-      })
-    );
-  }
+
+  await handleIterator(ands, cards, variables, game, iterator);
 
   if ($and)
     ands.push(
@@ -426,26 +467,13 @@ async function filterCards(
   if (has_tag) ands.push(cards.filter((c) => c.hasTag(has_tag)));
 
   if (inside) {
-    if (typeof inside === "string") {
-      const result = variables.get(inside);
-      if (result instanceof Deck || result instanceof Hand)
-        ands.push(cards.filter((card) => result.hasCard(card)));
-      else if (result instanceof Array && result.length === 1) {
-        const el = result.shift();
-        if (el instanceof Deck || el instanceof Hand)
-          ands.push(cards.filter((card) => el.hasCard(card)));
-        else throw new Error("'inside' variable invalid type");
-      } else throw new Error("'inside' variable invalid");
-    } else {
-      if (inside.minAmount !== 1 || inside.maxAmount !== 1)
-        throw new Error("inside can only have minAmount and maxAmount of 1");
-      const container = (
-        await filterCardHolders(inside, variables, game)
-      ).shift()!;
-      ands.push(cards.filter((card) => container.hasCard(card)));
-    }
+    console.log("inside", inside);
+    const results = await resolveCardHolderResolvable(inside, variables, game);
+    results.forEach((result) => {
+      ands.push(cards.filter((card) => result.hasCard(card)));
+    });
   }
-
+  console.log("Final ands", ands);
   // Combine the ands and remove the nots
   let filteredCards = [...cards];
   ands.forEach((and) => {
@@ -470,8 +498,7 @@ async function filterDecks(
     minAmount,
     maxAmount,
     filter: {
-      actions,
-      iterator_parameter,
+      iterator,
 
       $and,
       $not,
@@ -490,18 +517,7 @@ async function filterDecks(
   const ands: Deck[][] = [];
   const not: Deck[] = [];
 
-  // Filters
-  if (actions) {
-    ands.push(
-      decks.filter(async (decks) => {
-        if (iterator_parameter) {
-          variables = { ...variables, [iterator_parameter]: decks };
-          return await performActions(actions, variables, game);
-        }
-        return false;
-      })
-    );
-  }
+  await handleIterator(ands, decks, variables, game, iterator);
 
   if ($and)
     ands.push(

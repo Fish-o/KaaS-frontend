@@ -12,7 +12,7 @@ import {
 } from "../crypto";
 import { hostConnectHandler } from "./host/connect";
 import { handleEvent, verifyGameEvent } from "./events";
-import { log } from "../graphics";
+import { log } from "../graphics/ui";
 
 export type AliveRequest = {
   type: "request";
@@ -91,9 +91,9 @@ export function bindEvents(game: Game, lobby: Channel) {
         sender_id: game.user_id,
       };
       lobby.trigger("client-alive", res);
-      log("game/pusher", "->", "<alive>", `Yes! From: ${res.from}`);
+      log("game/pusher", "->", "<alive>", `Yes! From: ${res}`);
     } else if (data.type === "response" && data.sender_id !== game.user_id) {
-      log("game/pusher", "<-", "<alive>", `Yes! From: ${data.from}`);
+      log("game/pusher", "<-", "<alive>", `Yes! From: ${data}`);
     }
   });
 
@@ -123,7 +123,7 @@ export function checkAlive(
     let game_state: GameState | null = null;
     let host_alive = false;
     lobby.bind("client-alive", (data: AliveResponse) => {
-      log("game/pusher", "<-", "<alive>", `Yes! From: ${data.from}`);
+      log("game/pusher", "<-", "<alive>", `Yes! From: ${JSON.stringify(data)}`);
       if (data.nonce === nonce) {
         game_state = data.game_state;
         if (data.from === "host") {

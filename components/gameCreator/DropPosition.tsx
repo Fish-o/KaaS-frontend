@@ -1,6 +1,6 @@
 import { DraggableContext, DraggableScale, GrabbedObject, GrabbedObjectContext, SetDraggableContext } from "../gameCreator"
 import styles from "../../styles/gameCreator.module.scss";
-import { useContext, useId, useMemo, useRef } from "react";
+import { useContext, useId, useMemo, useRef, useState } from "react";
 
 type ValidElementTypes = GrabbedObject["data"]["type"] | "action"
 export interface DropPositionObject {
@@ -161,3 +161,68 @@ export default function DropPosition<T extends ValidElementTypes>(
   }, [active, disabledByDistance])
 
 }
+export const IdleHoverChecker:
+  React.FC<{
+    onHoverExit: () => void,
+    onHoverEnter: () => void,
+    disable: boolean,
+    children?: JSX.Element[] | JSX.Element
+  }> = ({ onHoverExit, onHoverEnter, disable, children }) => {
+    const setDraggableContext = useContext(SetDraggableContext)
+    const draggableContext = useContext(DraggableContext)
+    const grabbedObject = useContext(GrabbedObjectContext)
+    const scale = useContext(DraggableScale)
+    const { data: grabbedData, } = grabbedObject || {}
+    // const [position, setPosition] = useState({
+    const ref = useRef<HTMLDivElement>(null);
+
+    let active = false;
+    const currentBounds = ref.current?.getBoundingClientRect()
+
+    const [isHovered, setIsHovered] = useState(false)
+
+    if (grabbedObject && grabbedData && currentBounds && !disable) {
+      // console.log("[DropPosition]", grabbedObject, type)
+      active =
+        ((grabbedObject.clientX) < (currentBounds.x + 100)) &&
+        ((grabbedObject.clientX + 100) > (currentBounds.x)) &&
+        ((grabbedObject.clientY) < (currentBounds.y + window.scrollY + 100)) &&
+        ((grabbedObject.clientY + 100) > (currentBounds.y + window.scrollY))
+
+      let squaredDistance =
+        (
+          ((grabbedObject.clientX) + ((grabbedObject?.width ?? 100) / 2)) -
+          (currentBounds.x + ((grabbedObject?.width ?? 100) / 2))
+        ) ** 2
+        +
+        (
+          ((grabbedObject.clientY) + ((grabbedObject?.height ?? 100) / 2)) -
+          (currentBounds.y + ((grabbedObject?.height ?? 100) / 2))
+        ) ** 2
+
+    }
+    if (active) {
+      if (!isHovered) {
+        setIsHovered(true)
+        onHoverEnter()
+      }
+    } else {
+      if (isHovered) {
+        setIsHovered(false)
+        onHoverExit()
+      }
+    }
+
+
+    //Make sure our drop position has the smallest distance to the grabbed object
+
+    return (
+      <div
+        ref={ref}
+      >
+        {children}
+      </div>
+    )
+  }
+
+

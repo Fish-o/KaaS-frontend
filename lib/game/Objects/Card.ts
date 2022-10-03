@@ -7,10 +7,12 @@ export class Card extends BaseGameObject {
   private _description: string | undefined;
   private _loadedImage: HTMLImageElement | undefined;
   private _imageLoaded: boolean = false;
-  public selectable: boolean = true;
+  public selectable: boolean = false;
+  public selected: boolean = false;
   public onSelect: (arg0: Card) => void = () => {};
+  public onDeselect: (arg0: Card) => void = () => {};
   public renderedPosition: { x: number; y: number } = { x: 0, y: 0 };
-
+  public imageName: string;
   constructor(opts: {
     name: string;
     description?: string;
@@ -19,12 +21,15 @@ export class Card extends BaseGameObject {
     data: Record<string, string>;
   }) {
     const img = new Image(config.cardWidth, config.cardHeight);
+
     img.src = "card_images/" + (opts.image_name ?? "back");
     img.onload = () => {
       this._loadedImage = img;
       this._imageLoaded = true;
     };
     super(opts.tags, opts.data);
+
+    this.imageName = opts.image_name ?? "back.jpg";
     this._name = opts.name;
     this._description = opts.description ?? undefined;
   }
@@ -56,5 +61,15 @@ export class Card extends BaseGameObject {
 
   setRenderedPosition(x: number, y: number) {
     this.renderedPosition = { x, y };
+  }
+
+  setSelectable(selectable: boolean) {
+    this.selectable = selectable;
+    this.issueUpdate(this);
+  }
+
+  setSelected(selected: boolean) {
+    this.selected = selected;
+    this.issueUpdate(this);
   }
 }

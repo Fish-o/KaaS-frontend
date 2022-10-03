@@ -1,4 +1,6 @@
 import { Variable, VariableMap } from "../Actions";
+import { Resolvable, resolveBaseObject } from "../Actions/resolvables";
+import { Game } from "../Game";
 import { BaseGameObject } from "../Objects";
 import { Card } from "../Objects/Card";
 import { Deck } from "../Objects/Deck";
@@ -72,36 +74,56 @@ export interface TypeCondition extends BaseCondition {
   b: ObjectTypes | Variable;
 }
 
+export interface DataSingleCondition extends BaseCondition {
+  type: "condition:data.single";
+  key: string;
+  a: Variable;
+  operator: "=" | "!=" | ">" | "<" | "contains" | "starts_with" | "ends_with";
+  b: string;
+}
+export interface DataCompareCondition extends BaseCondition {
+  type: "condition:data.compare";
+  key: string;
+  a: Variable;
+  operator: "=" | "!=" | ">" | "<" | "contains" | "starts_with" | "ends_with";
+  b: Variable;
+}
+
 export type Condition =
   | MetaCondition
   | TagCondition
   | ObjectCondition
   | ArrayCondition
   | AmountCondition
-  | TypeCondition;
+  | TypeCondition
+  | DataSingleCondition
+  | DataCompareCondition;
 
 /*
   Performer
 */
 
 // TODO: Make sure this still works, even with all types being arrays
-export function performCondition(
+export async function performCondition(
   condition: Condition,
-  variables: VariableMap
-): boolean {
+  variables: VariableMap,
+  game: Game
+): Promise<boolean> {
   let result: boolean | undefined = undefined;
-
+  console.log("Performing condition", condition, variables);
   switch (condition.type) {
     case "condition:meta":
-      if (condition.operator === "and")
-        result = condition.conditions.every((c) =>
-          performCondition(c, variables)
-        );
-      else if (condition.operator === "or")
-        result = condition.conditions.some((c) =>
-          performCondition(c, variables)
-        );
-      else throw new Error(`Unknown operator: ${condition.operator}`);
+      if (condition.operator === "and") {
+        for (const c of condition.conditions) {
+          result = await performCondition(c, variables, game);
+          if (!result) break;
+        }
+      } else if (condition.operator === "or") {
+        for (const c of condition.conditions) {
+          result = await performCondition(c, variables, game);
+          if (result) break;
+        }
+      } else throw new Error(`Unknown operator: ${condition.operator}`);
       if (typeof result !== "number")
         throw new Error("Invalid condition:base, must contain sub condition's");
       break;
@@ -183,9 +205,10 @@ export function performCondition(
       const variable = variables.get(condition.a);
       if (!variable) throw new Error(`Variable ${condition.a} not found`);
 
-      const amountToCheck = condition.b;
-      if (typeof amountToCheck !== "number")
+      const amountToCheck = Number(condition.b);
+      if (isNaN(amountToCheck)) {
         throw new Error(`Invalid condition:amount, b must be a number`);
+      }
       let actualAmount: number;
       if (variable instanceof Deck) actualAmount = variable.cards.length;
       else if (variable instanceof Hand) actualAmount = variable.cards.length;
@@ -195,13 +218,14 @@ export function performCondition(
         throw new Error(
           `Invalid condition:amount, variable ${condition.b} isn't a card container or array`
         );
+      console.log("Amount to check", amountToCheck, actualAmount);
 
       switch (condition.operator) {
         case "=":
           result = actualAmount === amountToCheck;
           break;
         case ">":
-          result = actualAmount < amountToCheck;
+          result = actualAmount > amountToCheck;
           break;
         case "<":
           result = actualAmount < amountToCheck;
@@ -271,10 +295,121 @@ export function performCondition(
             );
           break;
       }
+      break;
+    }
+
+    case "condition:data.single": {
+      const key = condition.key;
+      const a = (
+        await resolveBaseObject(condition.a, variables, game, 1, 1)
+      )[0];
+
+      const aKey = a.data[key];
+
+      let bKey = condition.b;
+
+      switch (condition.operator) {
+        case "=":
+          result = aKey === bKey;
+          break;
+        case "!=":
+          result = aKey !== bKey;
+          break;
+        case ">":
+          let aNum = Number(aKey);
+          let bNum = Number(bKey);
+          if (isNaN(aNum) || isNaN(bNum))
+            throw new Error(
+              `Invalid condition:data, key ${key} is not a number`
+            );
+          result = aNum > bNum;
+          break;
+        case "<":
+          aNum = Number(aKey);
+          bNum = Number(bKey);
+          if (isNaN(aNum) || isNaN(bNum))
+            throw new Error(
+              `Invalid condition:data, key ${key} is not a number`
+            );
+          result = aNum < bNum;
+          break;
+        case "contains":
+          result = aKey.includes(bKey);
+          break;
+
+        case "starts_with":
+          result = aKey.startsWith(bKey);
+          break;
+
+        case "ends_with":
+          result = aKey.endsWith(bKey);
+          break;
+      }
+      break;
+    }
+    case "condition:data.compare": {
+      const key = condition.key;
+      const a = (
+        await resolveBaseObject(condition.a, variables, game, 1, 1)
+      )[0];
+
+      const aKey = a.data[key];
+
+      const b = (
+        await resolveBaseObject(
+          condition.b as Resolvable,
+          variables,
+          game,
+          1,
+          1
+        )
+      )[0];
+      const bKey = b.data[key];
+
+      switch (condition.operator) {
+        case "=":
+          result = aKey === bKey;
+          break;
+        case "!=":
+          result = aKey !== bKey;
+          break;
+        case ">":
+          let aNum = Number(aKey);
+          let bNum = Number(bKey);
+          if (isNaN(aNum) || isNaN(bNum))
+            throw new Error(
+              `Invalid condition:data, key ${key} is not a number`
+            );
+          result = aNum > bNum;
+          break;
+        case "<":
+          aNum = Number(aKey);
+          bNum = Number(bKey);
+          if (isNaN(aNum) || isNaN(bNum))
+            throw new Error(
+              `Invalid condition:data, key ${key} is not a number`
+            );
+          result = aNum < bNum;
+          break;
+        case "contains":
+          result = aKey.includes(bKey);
+          break;
+
+        case "starts_with":
+          result = aKey.startsWith(bKey);
+          break;
+
+        case "ends_with":
+          result = aKey.endsWith(bKey);
+          break;
+      }
     }
   }
-
-  if (typeof result !== "number") throw new Error("Invalid condition");
+  console.log(
+    `Condition ${JSON.stringify(condition)} resolved to ${result}`,
+    variables
+  );
+  if (typeof result !== "boolean") throw new Error("Invalid condition");
   else if (condition.not) result = !result;
   return result;
 }

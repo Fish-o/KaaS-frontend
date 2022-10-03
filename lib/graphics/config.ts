@@ -3,6 +3,10 @@ const config = {
   offsetPerCard: -5,
   cardWidth: 70,
   cardHeight: 100,
+
+  deck: {
+    maxDisplay: 100,
+  },
 } as const;
 
 export default config;

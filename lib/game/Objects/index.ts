@@ -5,7 +5,18 @@ import { Card } from "./Card";
 export class BaseGameObject {
   private _id: string;
   private _tags: string[];
-  private _data: Record<string, string | number | boolean>;
+  private _data: Record<string, string>;
+
+  private _onUpdate: ((object: BaseGameObject) => void)[] = [];
+  subscribeUpdate(callback: (object: BaseGameObject) => void) {
+    this._onUpdate.push(callback);
+  }
+  unSubscribeUpdate(callback: (object: BaseGameObject) => void) {
+    this._onUpdate = this._onUpdate.filter((c) => c !== callback);
+  }
+  issueUpdate(object: BaseGameObject) {
+    this._onUpdate.forEach((c) => c(object));
+  }
 
   constructor(tags: string[], data: Record<string, string>) {
     this._id = nanoid();
@@ -25,7 +36,7 @@ export class BaseGameObject {
     return this._data as Readonly<Record<string, string>>;
   }
 
-  setData(key: string, value: string | number | boolean) {
+  setData(key: string, value: string) {
     this._data[key] = value;
   }
 

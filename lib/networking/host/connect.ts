@@ -18,7 +18,7 @@ import {
 } from "../../crypto";
 import { Game, GameState } from "../../game/Game";
 import { PlayerObject } from "../../game/Resolvers";
-import { log } from "../../graphics";
+import { log } from "../../graphics/ui";
 import { broadcastGameEvent } from "../events";
 
 export async function hostConnectHandler(game: Game, lobby: Channel) {

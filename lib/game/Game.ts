@@ -20,7 +20,9 @@ import {
 import _ from "lodash";
 import { generateKeyPair, generateSymmetricKey } from "../crypto";
 import { join_lobby } from "../networking/client/connect";
-import { Graphics, log } from "../graphics";
+import { log, UI } from "../graphics/ui";
+import exampleGame from "../games/example";
+import { MethodObject } from "./Method";
 
 export enum GameState {
   Setup = "setup",
@@ -36,6 +38,92 @@ export function isValidVariableName(varName?: any): varName is Variable {
 }
 
 type user_id = string;
+export async function init_game(): Promise<Game> {
+  let queryParams = new URLSearchParams(window.location.search);
+  const lobby = queryParams.get("lobby");
+  const password = queryParams.get("password");
+  const playerName = queryParams.get("name");
+  if (!lobby || !password || !playerName) {
+    console.error("Missing parameters");
+    throw new Error("Missing parameters");
+  }
+  let game: Game;
+  log("game", "init");
+
+  if (!queryParams.get("host")) {
+    log("game", "initClient");
+    game = await Game.init_client(lobby, password, playerName);
+    return game;
+  }
+
+  log("game", " Generating hostKeys");
+  const hostKeys = await generateKeyPair();
+  //Get the game from localStorage
+  let gameData;
+  let gameDataString = localStorage.getItem("gameSettings");
+  if (gameDataString) {
+    gameData = JSON.parse(gameDataString) as GameObject;
+  }
+  if (!gameData) {
+    gameData = exampleGame;
+  }
+  game = new Game(gameData, hostKeys);
+  log("game", "initHost");
+  await game.init_host(lobby, password, playerName);
+  return game;
+}
+
+export class GameManager {
+  public _id = nanoid(3);
+
+  public game!: Game;
+  private abort = false;
+  private _lastTime: number = Date.now();
+  private _initializing: boolean = false;
+
+  constructor() {}
+  public async init() {
+    if (this._initializing) throw new Error("Already initializing");
+    else if (this.game) throw new Error("Already initialized");
+    this._initializing = true;
+    try {
+      const game = await init_game();
+      this.game = game;
+      if (this.abort) {
+        log(this._id + " gameManager", " <init> Stopped, cleaning up");
+        return this.cleanup();
+      }
+      this._initializing = false;
+      log(this._id + " gameManager", " <init>", "Init'd");
+    } catch (e) {
+      log(this._id + " gameManager", " <init>", "ERROR", e);
+      console.error(e);
+      this._initializing = false;
+      this.abort = true;
+    }
+  }
+  private cleanup() {
+    this.game.abort();
+  }
+  public stop() {
+    if (this.abort)
+      return log(this._id + " graphics", " <stop> Redundant stop call");
+    this.abort = true;
+    if (this._initializing)
+      return log(
+        this._id + " graphics",
+        " <stop> Initializing, it can handle it"
+      );
+    else if (!this.game)
+      return log(
+        this._id + " graphics",
+        " <stop> Not initialized, nothing to do"
+      );
+    this.cleanup();
+    log(this._id + " graphics", " <stop> Cleaned up!");
+  }
+}
+
 export class Game {
   private _user_id: string;
   private _private_key: CryptoKey;
@@ -63,8 +151,9 @@ export class Game {
   public currentPlayer: Player | undefined;
   public nextPlayer: Player | undefined;
 
+  public ui: UI;
+  private _methods: Map<`method:${string}`, MethodObject>;
   constructor(
-    public graphics: Graphics,
     private gameObject: GameObject,
     auth: { privateKey: CryptoKey; publicKey: CryptoKey },
     lobbyInfo?: LobbyInfo
@@ -96,6 +185,9 @@ export class Game {
     }
 
     this.storeEvents(gameObject.events);
+
+    this.storeMethods(gameObject.methods);
+    this.ui = new UI(this);
   }
   abort(): void {
     this._pusher?.disconnect();
@@ -204,6 +296,7 @@ export class Game {
   //   }
   // }
   // Events
+
   private storeEvents(events: EventObject[]) {
     const eventsMaps: Map<EventObject["type"], EventObject[]> = new Map();
     for (let event of events)
@@ -211,34 +304,39 @@ export class Game {
       else eventsMaps.set(event.type, [event]);
     this._events = eventsMaps;
   }
+  private storeMethods(methods: MethodObject[]): void {
+    const methodsMap: Map<MethodObject["type"], MethodObject> = new Map();
+    for (let method of methods) methodsMap.set(method.type, method);
+    this._methods = methodsMap;
+  }
+
   getEventsFromType<T extends EventObject>(
     type: EventObject["type"]
   ): T[] | undefined {
     return this._events.get(type) as T[];
   }
 
+  getMethodFromName(name: MethodObject["type"]): MethodObject | undefined {
+    return this._methods.get(name);
+  }
+
   // Game lifecycle
 
   static async init_client(
-    g: Graphics,
     lobbyName: string,
     lobbyPassword: string,
     playerName: string
   ) {
     const user_id = nanoid();
-    const pusher = new Pusher(process.env.PUSHER_KEY!, {
-      cluster: process.env.PUSHER_CLUSTER!,
+    const pusher = new Pusher("b84ab7e2e0b525e71529", {
+      cluster: "eu",
       authEndpoint: "/api/pusher/auth",
       forceTLS: false,
     });
     const p = pusher;
-    assure(p, g);
     const lobby = pusher.subscribe(`private-lobby-${lobbyName}`);
-    assure(p, g);
     await bindDefaults(lobby);
-    assure(p, g);
     const gameState = await checkAlive(user_id, lobby);
-    assure(p, g);
     if (gameState === GameState.InGame || gameState === GameState.End) {
       log("[GAME/init_client]", "Lobby is alive, and has already started!!!!");
       throw new Error("Lobby has already started");
@@ -251,7 +349,6 @@ export class Game {
     // this._lobbyPassword = lobbyPassword;
     // this._lobbyHost = false;
     const { privateKey, publicKey } = await generateKeyPair();
-    assure(p, g);
 
     const { lobby_key, gameObj } = await join_lobby(
       user_id,
@@ -261,10 +358,8 @@ export class Game {
       lobbyPassword,
       playerName
     );
-    assure(p, g);
 
     const game = new Game(
-      g,
       gameObj,
       { privateKey, publicKey },
       {
@@ -276,18 +371,11 @@ export class Game {
         lobby,
       }
     );
-    assure(p, g);
     pusher.unbind();
     pusher.unbind_all();
-    assure(p, g);
     return game;
   }
-  assure() {
-    if (this.graphics.abort) {
-      this.disconnect();
-      throw new Error("Graphics aborted");
-    }
-  }
+
   async init_host(
     lobbyName: string,
     lobbyPassword: string,
@@ -296,21 +384,20 @@ export class Game {
     log("[GAME/init_host]", "Initializing game");
     if (this._state !== GameState.Setup || this._pusher)
       throw new Error("Game already initialized");
-    const pusher = new Pusher(process.env.PUSHER_KEY!, {
-      cluster: process.env.PUSHER_CLUSTER!,
+    console.log(process.env);
+    console.log("Pusher");
+    const pusher = new Pusher("b84ab7e2e0b525e71529", {
+      cluster: "eu",
       authEndpoint: "/api/pusher/auth",
       forceTLS: false,
     });
     this._pusher = pusher;
-    this.assure();
-    log(this.graphics._id + " GAME/init_host", "Creating lobby");
+    log("GAME/init_host", "Creating lobby");
     const lobby = pusher.subscribe(`private-lobby-${lobbyName}`);
-    log(this.graphics._id + " GAME/init_host", "Created lobby", lobby.name);
+    log("GAME/init_host", "Created lobby", lobby.name);
     await bindDefaults(lobby);
-    this.assure();
 
     const gameState = await checkAlive(this.user_id, lobby);
-    this.assure();
 
     if (gameState === GameState.InGame || gameState === GameState.End) {
       log("GAME/init_host", "Lobby is alive, and has already started!!!!");
@@ -326,7 +413,6 @@ export class Game {
     this._lobbyChannel = lobby;
     this._lobbyHost = true;
     this._lobbyKey = await generateSymmetricKey();
-    this.assure();
     this._lobbyPassword = lobbyPassword;
     this._lobbyName = lobbyName;
     this.addPlayer({
@@ -359,11 +445,10 @@ export class Game {
     bindEvents(this, lobby);
     log("GAME/init_host", "Created lobby", lobby.name, ", binding host events");
     bindHostEvents(this, lobby);
-    this.assure();
   }
 
   private disconnect() {
-    log(this.graphics._id + " GAME/pusher", "Disconnecting from Pusher...");
+    log("GAME/pusher", "Disconnecting from Pusher...");
     if (this._pusher) this._pusher.disconnect();
   }
 
@@ -389,7 +474,7 @@ export class Game {
         this
       );
       let previous: Player | null = null;
-      this.graphics.game_tick();
+      this.ui?.game_tick();
     }, 500);
   }
 
@@ -471,11 +556,4 @@ function bindDefaults(channel: Channel): Promise<void> {
         log("GAME/init_host", "Member updated", member);
       });
   });
-}
-
-function assure(p: Pusher, graphics: Graphics) {
-  if (graphics.abort) {
-    p.disconnect();
-    throw new Error("Aborting");
-  }
 }

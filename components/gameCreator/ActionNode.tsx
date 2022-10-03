@@ -1,13 +1,14 @@
 import { Input } from "@nextui-org/react";
-import { useContext, useState, useMemo } from "react";
+import { useContext, useState, useMemo, Dispatch, SetStateAction, useRef, useEffect } from "react";
 import { Action } from "../../lib/game/Actions";
 import { Filter } from "../../lib/game/Filters";
-import { GrabbedObjectContext, SetDraggableNodeObjects, TypedArgument, TypedNodeProperties } from "../gameCreator";
+import { AcceptableTypesArray, GrabbedObjectContext, SetDraggableNodeObjects, TypedActionReturns, TypedArgument, TypedNodeProperties } from "../gameCreator";
 import styles from "../../styles/gameCreator.module.scss";
 import { ActionLogicIf, LogicAction } from "../../lib/game/Actions/logic";
+import { recurseResovlve as recursivelyResolveParameters } from "./FilterNode";
 
 
-type InitializeType<T> = {} & {
+type InitializeType<T> = {
   [K in keyof T]-?: string extends T[K]
   ? ""
   : number extends T[K]
@@ -20,59 +21,23 @@ type InitializeType<T> = {} & {
   ? {}
   : T[K];
 };
+
 function getPrototype<T>(t: T): InitializeType<T> {
   return t as InitializeType<T>;
 }
 
 export const ActionNode: React.FC<{ action: Action, rootHeld?: boolean, held?: boolean }> = ({ action, rootHeld = false, held = false }) => {
   held = held || rootHeld
-  const { type, args, returns } = getPrototype(action);
-  const { name, description } = getActionInfo(type);
-  const setDraggableNodeObjects = useContext(SetDraggableNodeObjects)
+  const { name, description } = getActionInfo(action.type);
   const grabbedObject = useContext(GrabbedObjectContext);
 
   const [updater, setUpdater] = useState(0)
-  // const [draggableContext, setDraggableContext] = useContext(DraggableContext)
 
   return useMemo(() => {
-
     if (!action.args) {
       action.args = {}
     }
-
-    Object.entries(TypedNodeProperties[action.type]).forEach(([key,]) => {
-      //@ts-ignore
-      let possibleTypes = TypedNodeProperties[action.type][key] as string[];
-
-      if (Array.isArray(possibleTypes)) {
-        if (grabbedObject && !held) {
-          if (possibleTypes.some((possibleType) => grabbedObject.data.type.startsWith(possibleType))) {
-            //@ts-ignore
-            if (!action.args[key]) {
-              //@ts-ignore
-              action.args[key] = "<Placeholder>"
-            }
-          }
-        }
-        if (possibleTypes.includes("variable")) {
-          //@ts-ignore
-          if (!action.args[key]) {
-            //@ts-ignore
-            action.args[key] = undefined
-          }
-        }
-      }
-    })
-    if (!grabbedObject) {
-      Object.entries(action.args).forEach(([key, value]) => {
-        if (value === "<Placeholder>") {
-          //@ts-ignore
-          delete action.args[key]
-        }
-      })
-    }
-
-
+    recursivelyResolveParameters(TypedNodeProperties[action.type], action.args, grabbedObject, held)
 
 
 
@@ -82,7 +47,8 @@ export const ActionNode: React.FC<{ action: Action, rootHeld?: boolean, held?: b
     }
 
     return (
-      <div className={styles.actionNode}>
+      <div className={styles.actionNode} style={held ? { border: "2px solid red" } : {}}>
+
         <div>
           <h1
             style={{
@@ -97,29 +63,36 @@ export const ActionNode: React.FC<{ action: Action, rootHeld?: boolean, held?: b
           <p>{description}</p>
         </div>
         <div className={styles.rowList}>
-          {Object.entries(args).map(([key, value], index) => {
-            return <TypedArgument value={value} $key={key} object={args} type={action.type} held={held} setUpdater={setUpdater} key={key + updater} />
+          {Object.entries(action.args).map(([key, value], index) => {
+            return <TypedArgument
+              value={value}
+              $key={key}
+              object={action.args}
+              type={action.type}
+              held={held}
+              setUpdater={setUpdater}
+              key={key}
+              acceptableTypes={TypedNodeProperties[action.type][key as (keyof typeof action.args)]}
+            />
           })
           }
         </div>
-        <VariablePart data={action.returns} />
+        <VariablePart data={action} type={action.type} held={held} setUpdater={setUpdater} />
       </div >
     )
 
-  }, [updater, action, args, description, grabbedObject?.data.type, held, name, rootHeld])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [updater, action, action.args, description, grabbedObject?.data.type, held, name, rootHeld])
 
 };
 const IfNode: React.FC<{ action: ActionLogicIf, rootHeld?: boolean, held?: boolean }> = ({ action, rootHeld = false, held = false }) => {
   held = held || rootHeld
-  const { type, args, returns } = getPrototype(action);
+  const { type, args } = getPrototype(action);
   const { name, description } = getActionInfo(type);
-  const setDraggableNodeObjects = useContext(SetDraggableNodeObjects)
   const [, setUpdater] = useState(0)
-  // const [draggableContext, setDraggableContext] = useContext(DraggableContext)
-
 
   return (
-    <div className={styles.actionNode}>
+    <div className={styles.actionNode} style={held ? { border: "2px solid red" } : {}}>
       <div className={styles.columnList}>
         <div className={styles.rowList}>
           <div>
@@ -136,18 +109,41 @@ const IfNode: React.FC<{ action: ActionLogicIf, rootHeld?: boolean, held?: boole
             <p>{description}</p>
 
           </div>
-          <TypedArgument value={action.args.condition} $key={"condition"} object={args} type={action.type} held={held} setUpdater={setUpdater} key={"condition"} />
+          <TypedArgument
+            value={action.args.condition}
+            $key={"condition"} object={args}
+            type={action.type} held={held}
+            setUpdater={setUpdater} key={"condition"}
+            acceptableTypes={TypedNodeProperties[action.type]["condition"]}
+          />
 
         </div>
 
         <div className={styles.rowList}>
           <div className={styles.actionNode}>
 
-            <TypedArgument value={action.args.true_actions} $key={"true_actions"} object={args} type={action.type} held={held} setUpdater={setUpdater} key={"condition"} />
+            <TypedArgument
+              value={action.args.true_actions}
+              $key={"true_actions"} object={args}
+              type={action.type}
+              held={held}
+              setUpdater={setUpdater}
+              key={"condition"}
+              acceptableTypes={TypedNodeProperties[action.type]["true_actions"]}
+            />
           </div>
           <div className={styles.actionNode}>
 
-            <TypedArgument value={action.args.false_actions} $key={"false_actions"} object={args} type={action.type} held={held} setUpdater={setUpdater} key={"condition"} />
+            <TypedArgument
+              value={action.args.false_actions}
+              $key={"false_actions"}
+              object={args}
+              type={action.type}
+              held={held}
+              setUpdater={setUpdater}
+              key={"condition"}
+              acceptableTypes={TypedNodeProperties[action.type]["false_actions"]}
+            />
           </div>
         </div>
       </div>
@@ -156,36 +152,65 @@ const IfNode: React.FC<{ action: ActionLogicIf, rootHeld?: boolean, held?: boole
   )
 };
 
-const VariablePart: React.FC<{ data: Action["returns"] }> = ({ data }) => {
-  if (!data) {
-    return null
+const VariablePart: React.FC<{ data: Action, type: Action["type"], held: boolean, setUpdater: Dispatch<SetStateAction<number>> }> = ({ data, type, held, setUpdater }) => {
+  const [updater2, setUpdater2] = useState(0)
+  useEffect(() => {
+    setUpdater((updater) => updater + 1)
+  }, [updater2])
+
+  let dataRef = useRef(data.returns)
+  // useEffect(() => {
+  //   if (dataRef.current === undefined) {
+  //     dataRef.current = {}
+  //   }
+  // }, [])
+  if (!dataRef.current) {
+    dataRef.current = {}
   }
+  if (!Object.values(dataRef.current).some((value) => value !== undefined)) {
+    // If there is no useful information in the returns object, don't save it
+    delete data.returns
+
+    // if (Object.keys(data.returns).length === 0) {
+    //   console.log("deleting returns", data.returns)
+    //   delete data.returns
+    // }
+  } else {
+    if (data.returns === undefined) {
+      data.returns = dataRef.current
+    }
+  }
+
+
+  Object.entries(TypedActionReturns[type]).forEach(([key,]) => {
+    //@ts-ignore
+    let possibleTypes = TypedActionReturns[type][key] as string[];
+
+    if (Array.isArray(possibleTypes)) {
+      if (possibleTypes.includes("variable")) {
+        //@ts-ignore
+        if (!dataRef.current[key]) {
+          //@ts-ignore
+          dataRef.current[key] = undefined
+        }
+      }
+    }
+  })
   return (
     <>
       <h2>Variable</h2>
-      {
-        Object.entries(data).map(([key, value]: any, index: any) => {
-          return (
-            <div
-              key={`node-arg-${key}-${index}`}
-              className={styles.actionArgument}
-            >
-
-
-              <>
-                <p>
-                  <b>{key}</b>:{" "}
-                </p>
-                <Input
-                  value={value || typeof value}
-                  aria-label={"Argument input"}
-                />
-              </>
-              {/* </p> */}
-              <p></p>
-            </div>
-          );
-        })
+      {Object.entries(dataRef.current).map(([key, value], index) => {
+        return <TypedArgument
+          value={value}
+          $key={key}
+          object={dataRef.current}
+          type={type}
+          held={held}
+          setUpdater={setUpdater2}
+          key={key}
+          acceptableTypes={TypedActionReturns[type][key as keyof typeof dataRef.current] as AcceptableTypesArray}
+        />
+      })
       }
     </>
   )
@@ -201,6 +226,10 @@ function getActionInfo(type: Action["type"]): {
         name: "Move cards",
         description: "Move cards from one card holder to another",
       };
+
+
+
+
     case "action:logic.for_each":
       return {
         name: "For each",
@@ -211,6 +240,23 @@ function getActionInfo(type: Action["type"]): {
         name: "If",
         description: "Run a set of actions if the condition is true",
       };
+    case "action:logic.return":
+      return {
+        name: "Return",
+        description: "Stop execution and return a value",
+      };
+    case "action:logic.break":
+      return {
+        name: "Break",
+        description: "Stop execution",
+      };
+    case "action:logic.loop":
+      return {
+        name: "Loop",
+        description: "Run a set of actions in a loop",
+      }
+
+
     case "action:find.cards":
       return {
         name: "Find cards",
@@ -231,42 +277,68 @@ function getActionInfo(type: Action["type"]): {
         name: "Find hands",
         description: "Find hands of players in the game",
       };
+
+
     case "action:debug":
       return {
         name: "Debug",
         description: "Debug",
       };
+
+
+
     case "action:user_input.select_players":
       return {
         name: "Select players",
         description: "Prompt a user to select players",
       };
-    case "action:logic.return":
+    case "action:user_input.select_cards":
       return {
-        name: "Return",
-        description: "Stop execution and return a value",
+        name: "Select cards",
+        description: "Prompt a user to select cards",
       };
-    case "action:logic.break":
-      return {
-        name: "Break",
-        description: "Stop execution",
-      };
-    case "action:logic.loop":
-      return {
-        name: "Loop",
-        description: "Run a set of actions in a loop",
-      }
+
+
+
+
+
+
     case "action:deck.shuffle":
       return {
         name: "Shuffle deck",
         description: "Shuffle a deck",
       }
-    default:
-      // @ts-
+    case "action:deck.draw":
       return {
-        // @ts-ignore
+        name: "Draw cards",
+        description: "Draw cards from a deck",
+      }
+
+
+
+
+
+
+    case "action:data.get":
+      return {
+        name: "Get data",
+        description: "Get data from any game object",
+      }
+    case "action:data.set":
+      return {
+        name: "Set data",
+        description: "Set data on any game object",
+      }
+    case "action:logic.method":
+      return {
+        name: "Method",
+        description: "Invoke Method"
+      }
+
+    default:
+      return {
         name: type,
         description: "{description}",
-      };
+      } as never;
   }
 }

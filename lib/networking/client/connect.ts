@@ -14,7 +14,7 @@ import {
   importKey,
   importSymmetricKey,
 } from "../../crypto";
-import { log } from "../../graphics";
+import { log } from "../../graphics/ui";
 
 export async function join_lobby(
   user_id: string,

@@ -12,22 +12,24 @@ export class PlayerSelectionUI {
   ) {
     this.playersSelecting = players;
     const buttonWidth = 100;
-    const buttonHeight = 40;
+    const buttonHeight = 50;
     this.onSelection = onSelection;
     this._UI = _UI;
     players.forEach((player, index, players) => {
       console.log("Adding button", player);
       const x =
-        _UI.canvas.width / 2 -
+        500 -
         (players.length * (buttonWidth + 10)) / 2 +
         index * (buttonWidth + 10);
-      const y = _UI.canvas.height / 2 - buttonHeight / 2;
+
+      const y = 500 - buttonHeight / 2;
 
       _UI.addButton(
         new Button({
           key: `select-player-${player.id}`,
           x,
           y,
+          fontSize: 20,
           width: buttonWidth,
           height: buttonHeight,
           onClick: () => {
@@ -35,7 +37,6 @@ export class PlayerSelectionUI {
           },
           text: player.name,
           display: true,
-          ctx: _UI.ctx,
         })
       );
     });

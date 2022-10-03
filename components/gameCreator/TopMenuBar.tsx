@@ -1,16 +1,19 @@
 import { Button } from "@nextui-org/react";
-import React, { Dispatch, SetStateAction, memo } from "react";
+import React, { Dispatch, SetStateAction, memo, useContext } from "react";
 import useState from 'react-usestateref';
 import { Action } from "../../lib/game/Actions";
 import { EventObject } from "../../lib/game/Events";
 import { Filter } from "../../lib/game/Filters";
 import exampleGame from "../../lib/games/example";
-import { FilterNodePropertiesVerifier, ObjectTypes, TypedNodeProperties } from "../gameCreator";
+import { ObjectTypes, SetDraggableContext, SetDraggableNodeObjects, TypedNodeProperties } from "../gameCreator";
 import styles from "../../styles/gameCreator.module.scss";
 import DraggableObject from "./draggableObject";
 import { ResolveNodeType } from "./resolveNodeType";
 import { Condition } from "../../lib/game/Conditions";
 import { GameObject } from "../../lib/game/Resolvers";
+import { MethodObject } from "../../lib/game/Method";
+
+import { GrabbedObject } from "../gameCreator"
 
 function startsWith<Prefix extends string>(prefix: Prefix, val: string): val is `${Prefix}${string}` {
   return val.startsWith(prefix);
@@ -38,7 +41,7 @@ function GetValidDraggableObject<T extends (Action | Filter | Condition)["type"]
       if (Array.isArray(value)) {
         if (value.includes("required")) {
           if (value.includes("array")) {
-            defaultObject[key] = []
+            defaultObject[key] = new Array()
             return
           }
           if (value.includes("number")) {
@@ -51,12 +54,12 @@ function GetValidDraggableObject<T extends (Action | Filter | Condition)["type"]
             return
           }
           if (value.includes("variable")) {
-            defaultObject[key] = "{UNSET}"
+            defaultObject[key] = undefined
             return
 
           }
           if (value.includes("string")) {
-            defaultObject[key] = "{BLANK}"
+            defaultObject[key] = undefined
             return
           }
           defaultObject[key] = "{UNKNOWN}"
@@ -106,11 +109,11 @@ function GetValidDraggableObject<T extends (Action | Filter | Condition)["type"]
 const GrabNewObject: React.FC<{ setGrabNewObject: Dispatch<SetStateAction<boolean>> }> = ({ setGrabNewObject }) => {
   return (
 
-    <div className={styles.pickNewNode}>
+    <div className={styles.pickNewNode + " " + styles.rowList}>
 
       {
         // @ts-ignore
-        Object.entries(TypedNodeProperties).map(([key, _]: [keyof FilterNodePropertiesVerifier, unknown]) => {
+        Object.entries(TypedNodeProperties).map(([key, _]: [keyof typeof TypedNodeProperties, unknown]) => {
 
           return (
             <div key={key}>
@@ -134,6 +137,8 @@ const GrabNewObject: React.FC<{ setGrabNewObject: Dispatch<SetStateAction<boolea
 const TopMenuBar: React.FC<{ gameSettings: GameObject }> = ({ gameSettings }) => {
 
   const [grabNewObject, setGrabNewObject] = useState(false);
+  const setDraggableNodeObjects = useContext(SetDraggableNodeObjects)
+
 
   return (
     <div className={styles.topBar}>
@@ -174,6 +179,28 @@ const TopMenuBar: React.FC<{ gameSettings: GameObject }> = ({ gameSettings }) =>
         setGrabNewObject(value => !value);
       }}>Click to add a new node!</Button>
       {grabNewObject ? <GrabNewObject setGrabNewObject={setGrabNewObject} /> : null}
+      <Button onClick={() => {
+        let methodName = prompt("What is the name of this method?");
+        let method: MethodObject
+        if (methodName) {
+          if (!gameSettings.methods) gameSettings.methods = []
+          method = {
+            type: "method:" + methodName as `method:${string}`,
+            actions: []
+          }
+          gameSettings.methods.push(method)
+        }
+        setDraggableNodeObjects?.((current: GrabbedObject[]) => ([...current, {
+          clientX: 0,
+          clientY: 0,
+          data: method,
+          height: 0,
+          width: 0,
+          dontGrabImmediately: true,
+          zindex: 0
+        }]))
+      }
+      }>Click to add a new method</Button>
     </div>
   );
 };

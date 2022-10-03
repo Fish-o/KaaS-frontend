@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { log } from "../graphics";
+import { log } from "../graphics/ui";
 
 export async function generateKeyPair() {
   let keyPair = await window.crypto.subtle.generateKey(

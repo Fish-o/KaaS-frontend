@@ -88,7 +88,7 @@ async function preformDeckDrawAction(
   )[0];
 
   const cards = resolved_deck.grabCardsFromDeck(count);
-
+  console.log("drawing", cards, "to", holder, "from", resolved_deck);
   if (cards.length !== count) throw new Error("Not enough cards in deck");
   for (const card of cards) {
     resolved_deck.removeCard(card);

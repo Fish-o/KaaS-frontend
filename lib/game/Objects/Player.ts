@@ -104,6 +104,7 @@ export class Hand extends BaseGameObject {
 
   // Actions
   addCard(card: Card, to: "top" | "bottom" | "random" = "top"): void {
+    console.log("Adding card to hand", card);
     if (to === "top") this._cards.unshift(card);
     else if (to === "bottom") this._cards.push(card);
     else if (to === "random")
@@ -112,9 +113,11 @@ export class Hand extends BaseGameObject {
         0,
         card
       );
+    this.issueUpdate(this);
   }
   removeCard(card: Card) {
     this._cards = this._cards.filter((c) => c !== card);
+    this.issueUpdate(this);
   }
 
   makeGameObject(): HandObject {

@@ -1,5 +1,3 @@
-import { roundRect } from "../../render";
-
 export interface ButtonField {
   key: string;
   x: number;
@@ -10,6 +8,7 @@ export interface ButtonField {
   color?: string;
   text?: string;
   hideOnClick?: boolean;
+  fontSize?: number;
   onActive?: (active: boolean, button?: ButtonField) => void | Promise<void>;
   onClick: (
     x?: number,
@@ -28,6 +27,8 @@ export class Button {
   public color?: string;
   public text?: string;
   public hideOnClick?: boolean;
+  public fontSize: number;
+
   public onActive?: (
     active: boolean,
     button?: ButtonField
@@ -38,7 +39,6 @@ export class Button {
     button?: ButtonField
   ) => void | Promise<void>;
 
-  public ctx: CanvasRenderingContext2D;
   constructor({
     key,
     x,
@@ -46,10 +46,10 @@ export class Button {
     width,
     height,
     onClick,
-    ctx,
     display,
     color,
     text,
+    fontSize = 30,
     hideOnClick,
     onActive,
   }: {
@@ -63,10 +63,11 @@ export class Button {
       y?: number,
       button?: ButtonField
     ) => void | Promise<void>;
-    ctx: CanvasRenderingContext2D;
     display?: boolean;
     color?: string;
     text?: string;
+    fontSize?: number;
+
     hideOnClick?: boolean;
     onActive?: (active: boolean, button?: ButtonField) => void | Promise<void>;
   }) {
@@ -78,25 +79,9 @@ export class Button {
     this.display = display;
     this.color = color;
     this.text = text;
+    this.fontSize = fontSize;
     this.hideOnClick = hideOnClick;
     this.onActive = onActive;
     this.onClick = onClick;
-
-    this.ctx = ctx;
-  }
-  render() {
-    if (!this.display) return;
-    const buttonHeight = this.height;
-    const buttonWidth = this.width;
-    const xPos = this.x;
-    const yPos = this.y;
-
-    this.ctx.shadowColor = "transparent";
-    this.ctx.strokeStyle = this.color ?? "#07d853";
-    this.ctx.fillStyle = this.color ?? "#07d853";
-    roundRect(this.ctx, xPos, yPos, buttonWidth, buttonHeight, 5, true);
-    this.ctx.fillStyle = "black";
-    this.ctx.font = "30px Arial";
-    if (this.text) this.ctx.fillText(this.text, xPos + 40, yPos + 30);
   }
 }

@@ -4,6 +4,7 @@ import { ResolveBundles } from "./Objects/CardBundle";
 import { Deck, DeckType } from "./Objects/Deck";
 import { Hand, Player } from "./Objects/Player";
 import { BundleType } from "./Objects/CardBundle";
+import { MethodObject } from "./Method";
 export interface CardObject {
   type: "object:card";
   object: {
@@ -34,6 +35,7 @@ export interface GameObject {
   description: string;
   decks: DeckObject[];
   events: EventObject[];
+  methods: MethodObject[];
   players: PlayerObject[];
   settings: {
     maxPlayerCount: number;
