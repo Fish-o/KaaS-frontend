@@ -4,7 +4,7 @@ import { GameObject } from "../lib/game/Resolvers";
 
 const FileUploadButton: React.FC<{ onUpload: (file: File) => void }> = ({ onUpload }) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [uploadedFile, setUploadedFile] = useState<File>()
+  const [_, setUploadedFile] = useState<File>()
   const [uploadedGameSettings, setUploadedGameSettings] = useState<GameObject>()
   return (
     <label>

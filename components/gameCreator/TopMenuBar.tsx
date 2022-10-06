@@ -20,56 +20,48 @@ function startsWith<Prefix extends string>(prefix: Prefix, val: string): val is 
 }
 
 
+type ValueOf<T> = T[keyof T];
 
-// GetValidDraggableObject("action:find.cards")
-
-function GetValidDraggableObject<T extends (Action | Filter | Condition)["type"]>(type: T): Extract<(Action | Filter | Condition), { type: T }> {
-  // if (startsWith("filter:", type)) {
-  //   return {
-  //     type: type,
-  //     filter: {
-
-  //     }
-  //   }
+function GetValidObject(type: ValueOf<typeof TypedNodeProperties>) {
   let defaultObject = {} as { [key: string]: any }
 
+  Object.entries(type).forEach(([key, value]) => {
+    if (!Array.isArray(value)) return
+    if (!value.includes("required")) return
 
-  if (TypedNodeProperties[type]) {
-    let TypeInfo = TypedNodeProperties[type]
-    // @ts-ignore
-    Object.entries(TypeInfo).forEach(([key, value]: [string, string[]]) => {
-      if (Array.isArray(value)) {
-        if (value.includes("required")) {
-          if (value.includes("array")) {
-            defaultObject[key] = new Array()
-            return
-          }
-          if (value.includes("number")) {
-            defaultObject[key] = 0
-            return
-          }
-          let literalStrings = value.filter((val) => val.startsWith('string:'))
-          if (literalStrings.length > 0) {
-            defaultObject[key] = literalStrings[0].replace('string:', '')
-            return
-          }
-          if (value.includes("variable")) {
-            defaultObject[key] = undefined
-            return
-
-          }
-          if (value.includes("string")) {
-            defaultObject[key] = undefined
-            return
-          }
-          defaultObject[key] = "{UNKNOWN}"
-
-
-        }
-      }
+    if (value.includes("array")) {
+      defaultObject[key] = new Array()
+      return
     }
-    )
+    if (value.includes("number")) {
+      defaultObject[key] = 0
+      return
+    }
+    let literalStrings = value.filter((val) => val.startsWith('string:'))
+    if (literalStrings.length > 0) {
+      defaultObject[key] = literalStrings[0].replace('string:', '')
+      return
+    }
+    if (value.includes("variable")) {
+      defaultObject[key] = undefined
+      return
+
+    }
+    if (value.includes("string")) {
+      defaultObject[key] = undefined
+      return
+    }
+    defaultObject[key] = "{UNKNOWN}"
   }
+  )
+  return defaultObject
+}
+
+function MakeValidDraggableObject<T extends (Action | Filter | Condition)["type"]>(type: T): Extract<(Action | Filter | Condition), { type: T }> {
+  if (!TypedNodeProperties[type]) throw new Error(`Invalid type ${type}`)
+
+  let defaultObject = GetValidObject(TypedNodeProperties[type])
+
   if (startsWith("action:", type)) {
     return {
       type: type,
@@ -117,10 +109,10 @@ const GrabNewObject: React.FC<{ setGrabNewObject: Dispatch<SetStateAction<boolea
 
           return (
             <div key={key}>
-              <DraggableObject fillData={GetValidDraggableObject(key)} onGrab={() => {
+              <DraggableObject fillData={MakeValidDraggableObject(key)} onGrab={() => {
                 setGrabNewObject(false)
               }}>
-                <ResolveNodeType objectData={GetValidDraggableObject(key)} />
+                <ResolveNodeType objectData={MakeValidDraggableObject(key)} />
 
               </DraggableObject>
             </div>
@@ -147,9 +139,7 @@ const TopMenuBar: React.FC<{ gameSettings: GameObject }> = ({ gameSettings }) =>
 
 
         let text = JSON.stringify(gameSettings, null, 2);
-        // //save the JSON file to the users computer
-        // var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-        // saveAs(blob, "game.json");
+
         const name = prompt("What is the name of this gamemode?");
         if (name) {
           const element = document.createElement("a");
@@ -167,9 +157,7 @@ const TopMenuBar: React.FC<{ gameSettings: GameObject }> = ({ gameSettings }) =>
 
 
         let text = JSON.stringify(gameSettings);
-        // //save the JSON file to the users computer
-        // var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-        // saveAs(blob, "game.json");
+        // save the JSON file to the users computer
         localStorage.setItem("gameSettings", text);
 
         console.log("Saved to local storage", gameSettings)

@@ -1,9 +1,10 @@
 import { throttle } from "lodash";
 import { useContext, useRef, useState, useMemo, useEffect } from "react";
-import { DraggableContextRef, DraggableScale, GrabbedObject, HELDCONTAINEROFFSET, ObjectTypes, RefGrabbedObjectContext, SetDraggableContext, SetDraggableNodeObjects, SetGrabbedObjectContext } from "../gameCreator";
+import { DraggableContextRef, DraggableScale, GrabbedObject, HELDCONTAINEROFFSET, ObjectIsGrabbedContext, ObjectTypes, RefGrabbedObjectContext, SetDraggableContext, SetDraggableNodeObjects, SetGrabbedObjectContext } from "../gameCreator";
 import { DropPositionObject } from "./DropPosition";
 import styles from "../../styles/gameCreator.module.scss";
 import React from "react";
+
 
 const DraggableObject: React.FC<
   {
@@ -13,7 +14,7 @@ const DraggableObject: React.FC<
     onGrab?:
     (draggableObject: GrabbedObject) => void,
     onDelete?: () => void,
-    fillData?: undefined | ObjectTypes
+    fillData?: ObjectTypes
   } & ({
     draggableObject: GrabbedObject
   } | {
@@ -21,8 +22,6 @@ const DraggableObject: React.FC<
     draggableObject?: undefined
   })> = ({
     children,
-    // data = null,
-    // type = null,
     detached,
     onGrab,
     onDelete,
@@ -51,7 +50,6 @@ const DraggableObject: React.FC<
     const grabbedObjectRef = useContext(RefGrabbedObjectContext)
     const setDraggableContext = useContext(SetDraggableContext)
     const setDraggableNodeObjects = useContext(SetDraggableNodeObjects)
-    // const setDraggableNodeObjects = useContext(SetDraggableNodeObjects)
     const scale = useContext(DraggableScale)
     const [pickupImmediate, setPickupImmediate] = useState(detached && !draggableObject.dontGrabImmediately)
 
@@ -60,7 +58,7 @@ const DraggableObject: React.FC<
         if (!current) return null
         return draggableObject
       }
-    ), 0)
+    ), 200)
     )
 
     const currentTarget = useRef<HTMLDivElement>(null)
@@ -156,13 +154,13 @@ const DraggableObject: React.FC<
 
       //Limit this function from being called to 5 times per second
 
-
-      setGrabbedObject(
-        (current) => {
-          if (!current) return null
-          return { ...draggableObject }
-        }
-      )
+      throttledSetGrabObject.current?.({ ...draggableObject })
+      // setGrabbedObject(
+      //   (current) => {
+      //     if (!current) return null
+      //     return { ...draggableObject }
+      //   }
+      // )
     }
     const dragEnd = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
       let selectedDropPoint: DropPositionObject | null = null;
@@ -195,18 +193,12 @@ const DraggableObject: React.FC<
 
     }
     const memoedChildren = useMemo(() => {
-      return React.Children.map(children, child => {
-        if (React.isValidElement(child)) {
-          //@ts-ignore
-          return React.cloneElement(child, { rootHeld: held })
-        }
-      })
-    }, [children, held])
+      return children
+    }, [children])
 
 
 
 
-    // const Wrapper = held ? HeldWrapper : DetachedWrapper
 
     // if (detached) {
     //   return (
@@ -228,6 +220,34 @@ const DraggableObject: React.FC<
     // //   )
     // // // }
     //height: draggableObject.height ?? undefined, width: draggableObject.width ?? undefined 
+
+    if (held) {
+      return (
+        <ObjectIsGrabbedContext.Provider value={true}>
+          <div
+            className={styles.heldContainer}
+            onMouseMoveCapture={(e) => {
+              dragging(e);
+            }}
+            onMouseUpCapture={(e) => {
+              dragEnd(e);
+            }}
+          >
+            <div className={styles.held} style={{ ...position }}>
+              <div className={styles.heldBorder}
+                style={{ transform: `scale(${scale})`, transformOrigin: "top left" }}
+                ref={currentTarget}
+
+              >
+                {children}
+              </div>
+            </div>
+          </div >
+        </ObjectIsGrabbedContext.Provider>
+      );
+    }
+
+
     if (detached) {
       return (
         <div
@@ -240,12 +260,14 @@ const DraggableObject: React.FC<
             <div className={held ? styles.heldBorder : styles.detachedBorder} style={{ transform: `scale(${scale})`, transformOrigin: "top left" }} ref={currentTarget}
               onMouseDown={(e) => { if (!held) dragStart(e) }}
             >
-              {memoedChildren}
+              {children}
             </div>
           </div>
         </div >
       )
     }
+
+
 
     return (
       <div onMouseDown={(e) => dragStart(e)} ref={currentTarget}>

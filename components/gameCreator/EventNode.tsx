@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState, useMemo, useId } from "react";
 import { EventObject } from "../../lib/game/Events";
-import { DraggableNodeObjects, SetDraggableNodeObjects } from "../gameCreator";
+import { DraggableNodeObjects, ObjectIsGrabbedContext, SetDraggableNodeObjects } from "../gameCreator";
 import styles from "../../styles/gameCreator.module.scss";
 import { Action } from "../../lib/game/Actions";
 import DropPosition from "./DropPosition";
@@ -51,9 +51,11 @@ const EventDropPosition: React.FC<{ event: EventObject, id: string, i: number, s
 }
 
 
-export const EventNode: React.FC<{ event: EventObject, held: boolean }> = ({ event, held = false }) => {
+export const EventNode: React.FC<{ event: EventObject }> = ({ event }) => {
+  let held = useContext(ObjectIsGrabbedContext)
+
   const [updater, setUpdater] = useState(Date.now())
-  const { name, description } = getEventInfo(event.type)
+  const { name } = getEventInfo(event.type)
   const id = useId();
   return useMemo(() => {
     return (
@@ -71,7 +73,7 @@ export const EventNode: React.FC<{ event: EventObject, held: boolean }> = ({ eve
               }}
               fillData={a}
             >
-              <ActionNode action={a} key={`${id}-${Object.uniqueID(a)}`} held={held} />
+              <ActionNode action={a} key={`${id}-${Object.uniqueID(a)}`} />
             </DraggableObject>
 
             <EventDropPosition event={event} id={id} i={i} key={`dp_${id}-${Object.uniqueID(a)}`} setUpdater={setUpdater} held={held} />

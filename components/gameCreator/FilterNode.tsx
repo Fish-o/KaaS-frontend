@@ -3,9 +3,10 @@ import { isArray } from "lodash";
 import { useContext, useEffect, useState, useMemo, useRef } from "react";
 import { Filter } from "../../lib/game/Filters";
 import styles from "../../styles/gameCreator.module.scss";
-import { GrabbedObjectContext, TypedArgument, TypedNodeProperties } from "../gameCreator";
+import { GrabbedObjectContext, ObjectIsGrabbedContext, TypedNodeProperties } from "../gameCreator";
 
 import { IdleHoverChecker } from "./DropPosition";
+import { TypedArgument } from "./typedNode";
 
 
 function resolveValue(possibleTypes: any, filterObj: any, key: string, grabbedObject: any, held: boolean) {
@@ -16,28 +17,21 @@ function resolveValue(possibleTypes: any, filterObj: any, key: string, grabbedOb
       delete filterObj[key]
     }
   }
+  if (filterObj[key]) return
+
   if (grabbedObject && !held) {
     if (possibleTypes.some((possibleType: any) => grabbedObject.data.type.startsWith(possibleType))) {
       //@ts-ignore
-      if (!filterObj[key]) {
-        //@ts-ignore
-        filterObj[key] = "<Placeholder>"
-      }
+      filterObj[key] = "<Placeholder>"
     }
   }
   if (possibleTypes?.includes("string") || possibleTypes?.includes("variable") || possibleTypes?.includes("condition")) {
     //@ts-ignore
-    if (!filterObj[key]) {
-      //@ts-ignore
-      filterObj[key] = undefined
-    }
+    filterObj[key] = undefined
   }
   if (possibleTypes?.includes("array")) {
     //@ts-ignore
-    if (!filterObj[key]) {
-      //@ts-ignore
-      filterObj[key] = new Array()
-    }
+    filterObj[key] = new Array()
   }
 }
 export function recurseResovlve(possibleTypesObj: any, filterObj: any, grabbedObject: any, held: boolean) {
@@ -49,9 +43,7 @@ export function recurseResovlve(possibleTypesObj: any, filterObj: any, grabbedOb
 
     } else {
       filterObj[key] = filterObj[key] || {}
-      // if (filterObj[key]) {
       recurseResovlve(possibleTypes, filterObj[key], grabbedObject, held)
-      // }
     }
   })
 }
@@ -77,14 +69,11 @@ function recurseCleanup(filterObj: any) {
 }
 
 
-export const FilterNode: React.FC<{ filter: Filter, rootHeld?: boolean, held?: boolean }> = ({ filter, rootHeld = false, held = false }) => {
-  console.log("Rendering filter node", filter)
+export const FilterNode: React.FC<{ filter: Filter }> = ({ filter }) => {
+  let held = useContext(ObjectIsGrabbedContext)
 
-  // filter.filter.$and
-  // switch (filter.type) {
-  //   case "filter:card":
-  //     filter.filter.$and
-  held = rootHeld || held
+
+
   const maximizeTimeout = useRef<NodeJS.Timeout | null>(null)
   const [updater, setUpdater] = useState(0);
   const [maximized, setMaximized] = useState(false);
@@ -94,7 +83,7 @@ export const FilterNode: React.FC<{ filter: Filter, rootHeld?: boolean, held?: b
 
 
 
-  function startMaxminizeTimeout() {
+  function startMaximizeTimeout() {
     if (maximizeTimeout.current) {
       clearTimeout(maximizeTimeout.current)
     }
@@ -104,11 +93,14 @@ export const FilterNode: React.FC<{ filter: Filter, rootHeld?: boolean, held?: b
       maximizeTimeout.current = null
     }, 500)
   }
+  useEffect(() => {
+    if (!grabbedObject && maximizedDueToHover) {
+      setMaximized(false)
+      setMaximizedDueToHover(false)
+    }
+  }, [grabbedObject, maximizedDueToHover])
 
-  if (!grabbedObject && maximizedDueToHover) {
-    setMaximized(false)
-    setMaximizedDueToHover(false)
-  }
+
 
   return (useMemo(() => {
 
@@ -169,7 +161,7 @@ export const FilterNode: React.FC<{ filter: Filter, rootHeld?: boolean, held?: b
             maximizeTimeout.current = null
           }
         }}
-        onHoverEnter={() => { startMaxminizeTimeout() }}
+        onHoverEnter={() => { startMaximizeTimeout() }}
         disable={held}
       >
 
@@ -213,6 +205,19 @@ export const FilterNode: React.FC<{ filter: Filter, rootHeld?: boolean, held?: b
       </IdleHoverChecker>
 
     )
-  }, [grabbedObject?.data.type, held, filter.type, filter.filter, updater, maximized, maximizeTimeout, maximizeTimeout.current]))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    grabbedObject,
+    maximizedDueToHover,
+    held,
+    filter.type,
+    filter,
+    filter.filter,
+    updater,
+    maximized,
+    maximizeTimeout,
+    maximizeTimeout.current
+  ]))
+
 
 };

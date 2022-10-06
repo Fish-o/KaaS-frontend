@@ -2,10 +2,11 @@ import { Input } from "@nextui-org/react";
 import { useContext, useState, useMemo, Dispatch, SetStateAction, useRef, useEffect } from "react";
 import { Action } from "../../lib/game/Actions";
 import { Filter } from "../../lib/game/Filters";
-import { AcceptableTypesArray, GrabbedObjectContext, SetDraggableNodeObjects, TypedActionReturns, TypedArgument, TypedNodeProperties } from "../gameCreator";
+import { GrabbedObjectContext, ObjectIsGrabbedContext, SetDraggableNodeObjects, TypedActionReturns, TypedNodeProperties } from "../gameCreator";
 import styles from "../../styles/gameCreator.module.scss";
 import { ActionLogicIf, LogicAction } from "../../lib/game/Actions/logic";
 import { recurseResovlve as recursivelyResolveParameters } from "./FilterNode";
+import { TypedArgument, AcceptableTypesArray } from "./typedNode";
 
 
 type InitializeType<T> = {
@@ -26,8 +27,9 @@ function getPrototype<T>(t: T): InitializeType<T> {
   return t as InitializeType<T>;
 }
 
-export const ActionNode: React.FC<{ action: Action, rootHeld?: boolean, held?: boolean }> = ({ action, rootHeld = false, held = false }) => {
-  held = held || rootHeld
+export const ActionNode: React.FC<{ action: Action }> = ({ action }) => {
+  let held = useContext(ObjectIsGrabbedContext)
+
   const { name, description } = getActionInfo(action.type);
   const grabbedObject = useContext(GrabbedObjectContext);
 
@@ -38,14 +40,9 @@ export const ActionNode: React.FC<{ action: Action, rootHeld?: boolean, held?: b
       action.args = {}
     }
     recursivelyResolveParameters(TypedNodeProperties[action.type], action.args, grabbedObject, held)
-
-
-
     if (action.type === "action:logic.if") {
-      const logicIf = action as ActionLogicIf
-      return <IfNode action={logicIf} rootHeld={rootHeld} held={held} />
+      return <IfNode action={action} />
     }
-
     return (
       <div className={styles.actionNode} style={held ? { border: "2px solid red" } : {}}>
 
@@ -69,7 +66,6 @@ export const ActionNode: React.FC<{ action: Action, rootHeld?: boolean, held?: b
               $key={key}
               object={action.args}
               type={action.type}
-              held={held}
               setUpdater={setUpdater}
               key={key}
               acceptableTypes={TypedNodeProperties[action.type][key as (keyof typeof action.args)]}
@@ -82,12 +78,15 @@ export const ActionNode: React.FC<{ action: Action, rootHeld?: boolean, held?: b
     )
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [updater, action, action.args, description, grabbedObject?.data.type, held, name, rootHeld])
+  }, [updater, action, action.args, description, grabbedObject?.data.type, held, name])
 
 };
-const IfNode: React.FC<{ action: ActionLogicIf, rootHeld?: boolean, held?: boolean }> = ({ action, rootHeld = false, held = false }) => {
-  held = held || rootHeld
-  const { type, args } = getPrototype(action);
+const IfNode: React.FC<{ action: ActionLogicIf }> = ({ action }) => {
+  const { type, args } = action
+
+
+
+  let held = useContext(ObjectIsGrabbedContext)
   const { name, description } = getActionInfo(type);
   const [, setUpdater] = useState(0)
 
@@ -110,9 +109,10 @@ const IfNode: React.FC<{ action: ActionLogicIf, rootHeld?: boolean, held?: boole
 
           </div>
           <TypedArgument
-            value={action.args.condition}
-            $key={"condition"} object={args}
-            type={action.type} held={held}
+            value={args.condition}
+            $key={"condition"}
+            object={args}
+            type={action.type}
             setUpdater={setUpdater} key={"condition"}
             acceptableTypes={TypedNodeProperties[action.type]["condition"]}
           />
@@ -123,10 +123,10 @@ const IfNode: React.FC<{ action: ActionLogicIf, rootHeld?: boolean, held?: boole
           <div className={styles.actionNode}>
 
             <TypedArgument
-              value={action.args.true_actions}
+              value={args.true_actions}
               $key={"true_actions"} object={args}
               type={action.type}
-              held={held}
+
               setUpdater={setUpdater}
               key={"condition"}
               acceptableTypes={TypedNodeProperties[action.type]["true_actions"]}
@@ -135,11 +135,11 @@ const IfNode: React.FC<{ action: ActionLogicIf, rootHeld?: boolean, held?: boole
           <div className={styles.actionNode}>
 
             <TypedArgument
-              value={action.args.false_actions}
+              value={args.false_actions}
               $key={"false_actions"}
               object={args}
               type={action.type}
-              held={held}
+
               setUpdater={setUpdater}
               key={"condition"}
               acceptableTypes={TypedNodeProperties[action.type]["false_actions"]}
@@ -156,7 +156,7 @@ const VariablePart: React.FC<{ data: Action, type: Action["type"], held: boolean
   const [updater2, setUpdater2] = useState(0)
   useEffect(() => {
     setUpdater((updater) => updater + 1)
-  }, [updater2])
+  }, [updater2, setUpdater])
 
   let dataRef = useRef(data.returns)
   // useEffect(() => {
@@ -171,10 +171,6 @@ const VariablePart: React.FC<{ data: Action, type: Action["type"], held: boolean
     // If there is no useful information in the returns object, don't save it
     delete data.returns
 
-    // if (Object.keys(data.returns).length === 0) {
-    //   console.log("deleting returns", data.returns)
-    //   delete data.returns
-    // }
   } else {
     if (data.returns === undefined) {
       data.returns = dataRef.current

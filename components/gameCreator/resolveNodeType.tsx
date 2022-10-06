@@ -2,11 +2,11 @@ import { Input } from "@nextui-org/react"
 import { Action } from "../../lib/game/Actions"
 import { EventObject } from "../../lib/game/Events"
 import { Filter } from "../../lib/game/Filters"
-import { ObjectTypes } from "../gameCreator"
+import { ObjectIsGrabbedContext, ObjectTypes } from "../gameCreator"
 import { EventNode } from "./EventNode"
 import { FilterNode } from "./FilterNode"
 
-import React, { memo } from "react";
+import React, { memo, useContext } from "react";
 import { ActionNode } from "./ActionNode"
 import { ConditionNode } from "./ConditionNode"
 import { Condition } from "../../lib/game/Conditions"
@@ -53,8 +53,10 @@ import { MethodNode } from "./MethodNode"
 //     return this.props.children;
 //   }
 // }
-export const ResolveNodeType: React.FC<{ objectData: ObjectTypes | string, held?: boolean, rootHeld?: boolean }> = memo(({ objectData, rootHeld = false, held = false }) => {
-  held = held || rootHeld
+export const ResolveNodeType: React.FC<{ objectData: ObjectTypes | string }> = memo(({ objectData }) => {
+  // held = held || rootHeld
+
+  let held = useContext(ObjectIsGrabbedContext)
   if (typeof objectData === "string") {
     return (
       <Input
@@ -67,22 +69,22 @@ export const ResolveNodeType: React.FC<{ objectData: ObjectTypes | string, held?
 
     return (
       // <ErrorBoundary action={objectData}>
-      <ActionNode action={objectData as Action} held={held} />
+      <ActionNode action={objectData as Action} />
       // </ErrorBoundary>
     )
   }
   if (objectData.type.startsWith("event:")) {
-    return <EventNode event={objectData as EventObject} held={held} />
+    return <EventNode event={objectData as EventObject} />
   }
   if (objectData.type.startsWith('filter:')) {
-    return <FilterNode filter={objectData as Filter} held={held} />
+    return <FilterNode filter={objectData as Filter} />
   }
   if (objectData.type.startsWith('condition:')) {
-    return <ConditionNode condition={objectData as Condition} held={held} />
+    return <ConditionNode condition={objectData as Condition} />
   }
 
   if (objectData.type.startsWith('method:')) {
-    return <MethodNode method={objectData as MethodObject} held={held} />
+    return <MethodNode method={objectData as MethodObject} />
   }
 
   return <p>

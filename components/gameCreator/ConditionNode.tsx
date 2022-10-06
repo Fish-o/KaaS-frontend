@@ -1,17 +1,19 @@
 import { useContext, useEffect, useId, useMemo, useState } from "react";
 import { Condition } from "../../lib/game/Conditions";
-import { SetDraggableNodeObjects, TypedArgument, TypedNodeProperties } from "../gameCreator";
+import { ObjectIsGrabbedContext, SetDraggableNodeObjects, TypedNodeProperties } from "../gameCreator";
 import styles from "../../styles/gameCreator.module.scss";
 import { recurseResovlve } from "./FilterNode";
+import { TypedArgument } from "./typedNode";
 
 
-export const ConditionNode: React.FC<{ condition: Condition, held: boolean }> = ({ condition, held = false }) => {
+export const ConditionNode: React.FC<{ condition: Condition }> = ({ condition }) => {
+  let held = useContext(ObjectIsGrabbedContext)
+
   const [updater, setUpdater] = useState(Date.now())
-  const id = useId();
-  const setNodeObjects = useContext(SetDraggableNodeObjects)
 
-  const preferedOrder = ["key", "a", "operator", "b", "not", "conditions"]
   return useMemo(() => {
+    const preferedOrder = ["key", "a", "operator", "b", "not", "conditions"]
+
     recurseResovlve(TypedNodeProperties[condition.type], condition, null, held)
     return (
       <div className={styles.conditionNode} style={held ? { border: "2px solid red" } : {}}>
@@ -47,27 +49,6 @@ export const ConditionNode: React.FC<{ condition: Condition, held: boolean }> = 
 
 
 
-        {/* <EventDropPosition event={event} id={id} i={0} setUpdater={setUpdater} held={held} />
-        {event.actions.map((a, i) => (
-          // <div key={`tl-${id}-${Object.uniqueID(a)}`} style={{ border: "solid 2px black" }}>
-          <div key={`${id}-${Object.uniqueID(a)}`}>
-
-            <DraggableObject
-              onGrab={(draggableObject) => {
-                
-                event.actions.splice(i, 1);
-                setUpdater(current => current + 1)
-              }}
-              fillData={a}
-            >
-              <ActionNode action={a} key={`${id}-${Object.uniqueID(a)}`} />
-            </DraggableObject>
-
-            <EventDropPosition event={event} id={id} i={i} key={`dp_${id}-${Object.uniqueID(a)}`} setUpdater={setUpdater} held={held} />
-          </div >
-          // </div>
-        )) */}
-        {/* } */}
       </div >)
   }, [condition, held, updater])
 }

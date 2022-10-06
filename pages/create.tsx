@@ -3,6 +3,8 @@ import { useRef } from "react";
 import { GameCreator } from "../components/gameCreator";
 
 const CreateGame: NextPage = () => {
+  if (typeof window === "undefined")
+    return <></>
   return (
     <div style={{}}>
       <GameCreator />

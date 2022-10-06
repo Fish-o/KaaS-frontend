@@ -1,6 +1,6 @@
-import { DraggableContext, DraggableScale, GrabbedObject, GrabbedObjectContext, SetDraggableContext } from "../gameCreator"
+import { DraggableContext, DraggableScale, GrabbedObject, GrabbedObjectContext, ObjectIsGrabbedContext, SetDraggableContext } from "../gameCreator"
 import styles from "../../styles/gameCreator.module.scss";
-import { useContext, useId, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 
 type ValidElementTypes = GrabbedObject["data"]["type"] | "action"
 export interface DropPositionObject {
@@ -24,6 +24,70 @@ function checkDropPositionCompatibility(dropType: string | string[], objectType:
 }
 
 
+function DropPositionObject(
+  {
+    children,
+    active,
+    disabledByDistance,
+    dropDivRef,
+    width,
+    height,
+    config: {
+      overHeight = 100,
+      overWidth = 100,
+      activeStyle = {},
+      inactiveStyle = {},
+      type,
+    }
+  }: {
+    children: React.ReactNode,
+    active: boolean,
+    disabledByDistance: boolean,
+    dropDivRef: React.RefObject<HTMLDivElement>
+    width: number,
+    height: number,
+    config: {
+      overHeight?: number,
+      overWidth?: number
+      activeStyle?: React.CSSProperties,
+      inactiveStyle?: React.CSSProperties
+      type: T | T[]
+    }
+  }
+) {
+  return useMemo(() => {
+    let style = styles.dropPosition
+    if (disabledByDistance) style = styles.disabledDropPosition
+    else if (active) style = styles.activeDropPosition
+
+
+
+    if (!active && typeof children === "object") {
+      return (
+        <div ref={dropDivRef}>
+          {children}
+        </div>
+      )
+    }
+    return (
+      <div className={style}
+        ref={dropDivRef}
+        style={active ? { width: width ?? undefined, height: height ?? undefined, ...activeStyle } : { ...inactiveStyle }}>
+        A
+      </div>
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    active,
+    disabledByDistance,
+    // activeStyle,
+    // children
+
+  ])
+
+}
+
+// TODO Refactor this to use A new Check Active Node and try to fix preformance icc
 export default function DropPosition<T extends ValidElementTypes>(
   {
     onDrop,
@@ -51,6 +115,9 @@ export default function DropPosition<T extends ValidElementTypes>(
       }
     }
 ) {
+
+  disable = useContext(ObjectIsGrabbedContext)
+
   const setDraggableContext = useContext(SetDraggableContext)
   const draggableContext = useContext(DraggableContext)
   const grabbedObject = useContext(GrabbedObjectContext)
@@ -69,7 +136,7 @@ export default function DropPosition<T extends ValidElementTypes>(
   ), [id, onDrop])
   let active = false;
   const currentBounds = ref.current?.getBoundingClientRect()
-
+  let squaredDistance
   if (grabbedObject && grabbedData && currentBounds && !disable) {
     // console.log("[DropPosition]", grabbedObject, type)
     active =
@@ -83,9 +150,8 @@ export default function DropPosition<T extends ValidElementTypes>(
       ((grabbedObject.clientX + 100) > (currentBounds.x)) &&
       ((grabbedObject.clientY) < (currentBounds.y + window.scrollY + 100)) &&
       ((grabbedObject.clientY + 100) > (currentBounds.y + window.scrollY))
-    // if (active) console.log("[DropPosition]", currentBounds, grabbedObject)
 
-    let squaredDistance =
+    squaredDistance =
       (
         ((grabbedObject.clientX) + ((grabbedObject?.width ?? 100) / 2)) -
         (currentBounds.x + ((grabbedObject?.width ?? 100) / 2))
@@ -98,27 +164,19 @@ export default function DropPosition<T extends ValidElementTypes>(
     dropPosition.distance = squaredDistance
   }
   let disabledByDistance = false
-  // X
-  if (active) {
-    // console.log("[DropPosition]", draggableContext.activeDropPoints, dropPosition);
 
-    // let currentDistance = draggableContext.activeDropPoints[id]
-    // if (currentDistance) {
+  if (active) {
     Object.values(draggableContext.activeDropPoints).forEach(element => {
       if (element.distance < dropPosition.distance) {
         disabledByDistance = true
       }
     });
-    // }
-    // else {
-    //   active = false
-    // }
   }
 
-  //Make sure our drop position has the smallest distance to the grabbed object
 
-  return useMemo(() => {
 
+
+  useEffect(() => {
     setDraggableContext?.((current) => {
       if (active && grabbedObject && currentBounds) {
         // @ts-ignore
@@ -128,7 +186,6 @@ export default function DropPosition<T extends ValidElementTypes>(
         delete current.activeDropPoints[id]
       }
 
-      // console.log("[SetDropPosition]", current.activeDropPoints, dropPosition, active);
 
       return (
         {
@@ -137,30 +194,54 @@ export default function DropPosition<T extends ValidElementTypes>(
         }
       )
     })
-
-    // if (disabledByDistance) active = false;
-
-    if (!active && typeof children === "object") {
-      return (
-        <div ref={ref}>
-          {children}
-        </div>
-      )
-    }
-    let width = (grabbedObject?.width ?? 100) * scale
-    if (width > 100) width = 100
-    let height = (grabbedObject?.height ?? 100) * scale
-    if (height > 100) height = 100
-    return (
-      <div className={
-        disabledByDistance ? styles.disabledDropPosition :
-          active ? styles.activeDropPosition :
-            styles.dropPosition
-      } ref={ref} style={active ? { width: width ?? undefined, height: height ?? undefined, ...activeStyle } : { ...inactiveStyle }} />
-    )
   }, [active, disabledByDistance])
+  let width = (grabbedObject?.width ?? 100) * scale
+  if (width > 100) width = 100
+  let height = (grabbedObject?.height ?? 100) * scale
+  if (height > 100) height = 100
+  return (
+    <DropPositionObject
+      active={active}
+      disabledByDistance={disabledByDistance}
+      dropDivRef={ref}
+      height={height}
+      width={width}
+      config={{
+        overHeight,
+        overWidth,
+        activeStyle,
+        inactiveStyle,
+        type
+      }}
+    >
+      {children}
+    </DropPositionObject>
+
+  )
+  // //Make sure our drop position has the smallest distance to the grabbed object
+  // return useMemo(() => {
+  //   let style = styles.dropPosition
+  //   if (disabledByDistance) style = styles.disabledDropPosition
+  //   else if (active) style = styles.activeDropPosition
+
+
+  //   return (
+  //     <div className={style}
+  //       ref={ref}
+  //       style={active ? { width: width ?? undefined, height: height ?? undefined, ...activeStyle } : { ...inactiveStyle }}>
+  //       A
+  //     </div>
+  //   )
+  // }, [
+  //   active,
+  //   disabledByDistance,
+  //   // activeStyle,
+  //   // children
+
+  // ])
 
 }
+
 export const IdleHoverChecker:
   React.FC<{
     onHoverExit: () => void,
@@ -168,10 +249,7 @@ export const IdleHoverChecker:
     disable: boolean,
     children?: JSX.Element[] | JSX.Element
   }> = ({ onHoverExit, onHoverEnter, disable, children }) => {
-    const setDraggableContext = useContext(SetDraggableContext)
-    const draggableContext = useContext(DraggableContext)
     const grabbedObject = useContext(GrabbedObjectContext)
-    const scale = useContext(DraggableScale)
     const { data: grabbedData, } = grabbedObject || {}
     // const [position, setPosition] = useState({
     const ref = useRef<HTMLDivElement>(null);
@@ -189,29 +267,24 @@ export const IdleHoverChecker:
         ((grabbedObject.clientY) < (currentBounds.y + window.scrollY + 100)) &&
         ((grabbedObject.clientY + 100) > (currentBounds.y + window.scrollY))
 
-      let squaredDistance =
-        (
-          ((grabbedObject.clientX) + ((grabbedObject?.width ?? 100) / 2)) -
-          (currentBounds.x + ((grabbedObject?.width ?? 100) / 2))
-        ) ** 2
-        +
-        (
-          ((grabbedObject.clientY) + ((grabbedObject?.height ?? 100) / 2)) -
-          (currentBounds.y + ((grabbedObject?.height ?? 100) / 2))
-        ) ** 2
 
     }
-    if (active) {
-      if (!isHovered) {
-        setIsHovered(true)
-        onHoverEnter()
+    useEffect(() => {
+      if (active) {
+        if (!isHovered) {
+          setIsHovered(true)
+          onHoverEnter()
+        }
+      } else {
+        if (isHovered) {
+          setIsHovered(false)
+          onHoverExit()
+        }
       }
-    } else {
-      if (isHovered) {
-        setIsHovered(false)
-        onHoverExit()
-      }
-    }
+
+    }, [active, isHovered, onHoverEnter, onHoverExit])
+
+
 
 
     //Make sure our drop position has the smallest distance to the grabbed object

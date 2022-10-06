@@ -1,6 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks */
-import { useAutoAnimate } from '@formkit/auto-animate/react'
-// import NoSSR from 'react-no-ssr';
 import { drop, isArray, isNumber, throttle } from 'lodash';
 
 declare global {
@@ -12,7 +9,7 @@ declare global {
 (function () {
   //@ts-ignore
   if (typeof Object.uniqueID == "undefined") {
-    var id = 0;
+    let id = 0;
     // @ts-ignore
     Object.uniqueID = function (o) {
       if (typeof o.__uniqueid == "undefined") {
@@ -109,30 +106,13 @@ export const GrabbedObjectContext = React.createContext<GrabbedObject | null>(nu
 export const SetGrabbedObjectContext = React.createContext<React.Dispatch<React.SetStateAction<GrabbedObject | null>>>(() => { });
 export const RefGrabbedObjectContext = React.createContext<React.RefObject<GrabbedObject | null> | null>(null);
 
-//Custom hook_1
-// const useRenderCount = () => {
-// //src: https://medium.com/better-programming/how-to-properly-use-the-react-useref-hook-in-concurrent-mode-38c54543857b
-//   const renderCount = useRef(0);
-//   let renderCountLocal = renderCount.current;
-//   useEffect(() => {
-//     renderCount.current = renderCountLocal;
-//   });
-//   renderCountLocal++;
-//   return renderCount.current;
-// };
 
-// //Custom hook_2 (We just need this, we'll call the other one implicitly).
-// const useStopInfiniteRender = (maxRenders) => {
-//   const renderCount = useRenderCount();
-//   if (renderCount > maxRenders) throw new Error('Infinite Renders limit reached!!');
-// };
+
+
+export const ObjectIsGrabbedContext = React.createContext<boolean>(false);
+
 
 export const GameCreator: React.FC = () => {
-  console.log("Rendering GameCreator")
-  if (typeof window === "undefined")
-    return <></>
-
-
   const gameData = useMemo<GameObject>(() => {
     let gameDataString = window.localStorage.getItem("gameSettings");
     if (gameDataString) {
@@ -213,7 +193,7 @@ export const GameCreator: React.FC = () => {
 
 
 
-type InitializeType<T> = {} & {
+type InitializeType<T> = {
   [K in keyof T]-?: string extends T[K]
   ? ""
   : number extends T[K]
@@ -333,7 +313,6 @@ const DraggableCanvas: React.FC<{ detachedCanvasRef: React.RefObject<HTMLDivElem
         left: current.left + diffX,
         top: current.top + diffY,
       }))
-      let scaleChange = newScale / scale;
       return newScale
     })
   }
@@ -351,7 +330,6 @@ const DraggableCanvas: React.FC<{ detachedCanvasRef: React.RefObject<HTMLDivElem
 }
 // DraggableCanvas.whyDidYouRender = true
 
-// declare function getPrototype<T>(): InitializeType<T>;
 
 function getPrototype<T>(t: T): InitializeType<T> {
   return t as InitializeType<T>;
@@ -374,508 +352,7 @@ type PartialRecord<K extends keyof any, T> = {
 
 
 
-const ResolveGrabbedNode: React.FC<{ data: ObjectTypes | string, i?: number, object: any, $key: string, held: boolean, allowedDropTypes: ObjectTypes["type"], setUpdater: React.Dispatch<React.SetStateAction<number>> }> = ({ data, i, object, $key, held, allowedDropTypes, setUpdater }) => {
-  if (typeof data === "string") {
-    return (
-      <DropPosition config={{ type: allowedDropTypes }} onDrop={(grabbedObject) => {
-        if (i) {
-          object[$key].splice(i, 0, grabbedObject)
-          setUpdater(current => current + 1)
-        }
 
-        return true;
-      }} disable={held}>
-        <Input
-          value={data || typeof data}
-          aria-label={"Argument input"}
-        />
-      </DropPosition >
-    )
-  }
-  if (isNumber(i)) {
-    return <>
-
-      <DraggableObject fillData={data} onGrab={(grabbedObject) => {
-        if (isNumber(i)) {
-          object[$key].splice(i, 1)
-          setUpdater(current => current + 1)
-        }
-      }}>
-        <ResolveNodeType objectData={data} held={held} />
-
-      </DraggableObject>
-      <DropPosition onDrop={(grabbedObject) => {
-        if (isNumber(i)) {
-          object[$key].splice(i + 1, 0, grabbedObject.data)
-          setUpdater(current => current + 1)
-          return true;
-        }
-        return false
-      }} disable={held}
-        config={{
-          overHeight: 0,
-          overWidth: 0,
-          activeStyle: {
-            marginTop: "10px",
-            marginBottom: "10px",
-          },
-          inactiveStyle: {
-            marginTop: "5px",
-            marginBottom: "5px",
-            width: "100%",
-          },
-          type: allowedDropTypes
-        }}
-
-
-      />
-    </>
-  }
-  return (<DraggableObject fillData={data} onGrab={(grabbedObject) => {
-    console.log("grabbedObject", grabbedObject)
-    object[$key] = undefined
-    setUpdater(current => current + 1)
-  }}>
-    <ResolveNodeType objectData={data} held={held} />
-
-  </DraggableObject>)
-}
-
-type AcceptableTypes = "string" | "array" | "number" | "variable" | "required" | GrabbedObject["data"]["type"] | `string:${string}`
-  | "action" | "condition"
-
-
-export type AcceptableTypesArray = AcceptableTypes[] |
-{
-  [key: string]: AcceptableTypesArray
-}
-
-
-type AccetableValueTypes = string | number | boolean | Filter | Action | Condition | AccetableValueTypes[] | { [key: string]: AccetableValueTypes }
-
-export const TypedArgument: React.FC<
-  {
-    $key: string,
-    value: AccetableValueTypes | undefined,
-    object: Action["args"] | Action["returns"] | Filter["filter"] | Condition,
-    type: (Action | Filter | Condition)["type"],
-    held: boolean,
-    rootHeld?: boolean,
-    setUpdater: React.Dispatch<React.SetStateAction<number>>,
-    orientation?: "horizontal" | "vertical",
-    acceptableTypes: AcceptableTypesArray
-    recursiveUpdate?: number
-  }>
-  = memo(({ $key: key, value, object, type, held = false, rootHeld = false, setUpdater, orientation, acceptableTypes, recursiveUpdate }) => {
-    console.log("Rendering Typed node", object)
-
-    const [updater2, setUpdater2] = useState(0);
-
-    // See if acceptable types is an object and not an array
-    if (typeof acceptableTypes === "object" && !Array.isArray(acceptableTypes) && value) {
-      return (
-        <div className={styles.filterArgument}>
-          <h3>{key}:</h3>
-          <div>
-            {
-              Object.keys(value).map((key) => {
-                return <TypedArgument
-                  key={key + updater2}
-                  $key={key}
-                  value={value![key as keyof typeof value]}
-                  object={value as Action["args"] | Action["returns"] | Filter["filter"] | Condition}
-                  type={type}
-                  held={held}
-                  rootHeld={rootHeld}
-                  setUpdater={setUpdater2}
-                  orientation={orientation}
-                  recursiveUpdate={recursiveUpdate}
-                  acceptableTypes={(acceptableTypes as Record<string, AcceptableTypesArray>)[key]}
-                />
-              })}
-          </div>
-
-
-        </div>
-
-      )
-    }
-    // const [errorValue, setErrorValue] = React.useState(value)
-    held = held || rootHeld
-
-    let multipleAllowed = false;
-    let stringsAllowed = false;
-    let numbersAllowed = false;
-
-    let variableAllowed = false;
-    let requiredInput = false;
-
-    let nodeAllowed = false;
-
-
-    // return (
-    //   <div className={styles.rowList}>
-    //     <h3>{key}:</h3>
-    //   </div>
-    // )
-    if (key == "minAmount" || key == "maxAmount") {
-      // @ts-ignore
-      acceptableTypes = ["number"]
-    }
-    if (!Array.isArray(acceptableTypes)) return (
-      <div>
-        <h1>TypedNodeProperties IS MISSING AN ENTRY FOR {type} Key:{key}</h1>
-        <Button color="error" auto onPress={() => {
-          // @ts-ignore
-          delete object[key]
-          setUpdater(current => current + 1)
-        }} >
-          Delete Key
-        </Button>
-      </div>
-    );
-    // if (Array.isArray(accetableTypes)) {
-
-    if (acceptableTypes.includes("array")) {
-      multipleAllowed = true;
-    }
-    if (acceptableTypes.includes("string")) {
-      stringsAllowed = true;
-    }
-    if (acceptableTypes.includes("number")) {
-      numbersAllowed = true;
-    }
-    if (acceptableTypes.includes("variable")) {
-      variableAllowed = true;
-    }
-    if (acceptableTypes.includes("required")) {
-      requiredInput = true;
-    }
-    // @ts-ignore
-    if (acceptableTypes.some((type) => (type.startsWith("filter:") || type.startsWith("action") || type.startsWith("condition")))) {
-      nodeAllowed = true;
-    }
-    let specificStringsAllowed: string[] | null = null;
-    specificStringsAllowed = (acceptableTypes.filter((type) => type.startsWith("string:"))).map((type) => type.replace("string:", ""))
-    if (specificStringsAllowed.length == 0) {
-      specificStringsAllowed = null
-    }
-
-    let error = false;
-    let placeholder = "";
-    let errorText = ""
-    if (requiredInput) {
-      if (!value) {
-        error = true;
-        errorText = "This field is required"
-      }
-      if (value === "{UNDEFINED}") {
-        error = true;
-        errorText = "This field is required"
-      }
-    }
-    if (numbersAllowed) {
-      if (typeof value !== "number") {
-        error = true;
-        errorText = "This field must be a number"
-      }
-    }
-    if (!stringsAllowed && variableAllowed) {
-      if (typeof value === "string" && !value.startsWith("$")) {
-        error = true;
-        errorText = "This field must be a variable"
-      }
-      if (typeof value === "string" && value.startsWith("$") && value.length == 1) {
-        error = true;
-        errorText = "Variables must have more then 1 character"
-      }
-    }
-    if (specificStringsAllowed) {
-      if (typeof value === "string" && !specificStringsAllowed.includes(value)) {
-        error = true;
-        errorText = "This field must following: " + specificStringsAllowed.join(", ")
-      }
-    }
-    if (typeof value === "undefined") {
-      placeholder = "[Undefined]"
-    }
-
-    function setValue(e: React.FocusEvent<FormElement, Element> | React.ChangeEvent<FormElement>) {
-      let typedValue = e.target.value;
-      console.log("setting", typedValue)
-      if (typedValue === "") {
-        // @ts-ignore
-        object[key] = undefined
-        return setUpdater(current => current + 1)
-
-      }
-      if (stringsAllowed) {
-        // @ts-ignore
-        object[key] = typedValue
-
-        return setUpdater(current => current + 1)
-      }
-      if (specificStringsAllowed) {
-        if (typeof typedValue === "string" && specificStringsAllowed.includes(typedValue)) {
-          // @ts-ignore
-
-          object[key] = typedValue
-
-          return setUpdater(current => current + 1)
-        }
-      }
-
-
-      if (variableAllowed) {
-        if (typedValue.startsWith("$")) {
-          console.log("Setting Variable", typedValue)
-
-          // @ts-ignore
-          object[key] = typedValue
-
-          return setUpdater(current => current + 1)
-
-        }
-      }
-      if (numbersAllowed) {
-        if (!isNaN(Number(typedValue))) {
-          // @ts-ignore
-          object[key] = Number(typedValue)
-
-          return setUpdater(current => current + 1)
-        }
-      }
-      // @ts-ignore
-      object[key] = typedValue
-      return setUpdater(current => current + 1)
-
-    }
-
-    let actualTypes = acceptableTypes.filter(value => value != "string" && value != "array") as unknown as ObjectTypes["type"]
-    if (!object) {
-      return <h1>GIVEN OBJECT IS MISSING AN ENTRY FOR KEY {key} {JSON.stringify(object)}</h1>;
-    }
-    // @ts-ignore
-    value = object[key] as string | Filter | Filter[] | undefined;
-
-    if (typeof value === "object" && multipleAllowed && !isArray(value)) {
-      // @ts-ignore
-      object[key] = [value]
-      // @ts-ignore
-      value = object[key] as string | Filter | (string | Filter)[] | undefined;
-    }
-
-    if ((isArray(value) && value) || multipleAllowed) {
-      if (!(isArray(value) && value)) {
-        // @ts-ignore
-        object[key] = []
-        // @ts-ignore
-        value = object[key]
-      }
-      value = value as Filter[]
-      return (
-        <div className={styles.rowList}>
-          <h3>{key}:</h3>
-          <div className={orientation == "horizontal" ? styles.rowList : styles.columnList}>
-
-            <DropPosition config={{ type: actualTypes }} onDrop={(grabbedObject) => {
-              // @ts-ignore
-              (value as (string | Filter | Action)[]).splice(0, 0, grabbedObject.data);
-              console.log("Dropped", grabbedObject, value)
-
-              setUpdater((current: number) => current + 1)
-              setUpdater2((current: number) => current + 1)
-              return true;
-            }} disable={held} />
-
-            {
-              value.map((a, i) => (
-                <ResolveGrabbedNode
-                  allowedDropTypes={actualTypes}
-                  // @ts-ignore
-                  data={a}
-                  i={i}
-                  object={object}
-                  $key={key}
-                  held={held}
-                  setUpdater={setUpdater2}
-                  key={Object.uniqueID(a) + updater2}
-                />
-              )
-              )
-
-
-            }
-
-          </div>
-
-
-
-        </div>
-
-      )
-
-    }
-
-    if (typeof value === "object") {
-      return (<div className={styles.filterArgument}>
-        <h3>{key}:</h3>
-        {/* @ts-ignore */}
-        {/* <DraggableObject fillData={value}
-          onGrab={
-            () => {
-              // @ts-ignore
-              object[key] = undefined;
-              setUpdater(current => current + 1);
-
-            }}>
-          <> */}
-        <ResolveGrabbedNode
-          allowedDropTypes={actualTypes}
-          // @ts-ignore
-          data={value}
-          object={object}
-          $key={key}
-          held={held}
-          setUpdater={setUpdater}
-          key={Object.uniqueID(value)}
-        />
-        {/* </> */}
-        {/* </DraggableObject> */}
-      </div>)
-    }
-
-    if (value === "{UNDEFINED}") value = undefined;
-    if (stringsAllowed || variableAllowed || specificStringsAllowed) {
-
-      return (
-        <div className={styles.filterArgument}>
-          <h3>{key}:</h3>
-          <DropPosition config={{ type: actualTypes }}
-
-            onDrop={(grabbedObject) => {
-              // @ts-ignore
-              object[key] = grabbedObject.data;
-              setUpdater(current => current + 1)
-              return true;
-            }} disable={held} key={value} >
-            <div onClick={(e) => {
-              e.stopPropagation();
-              // e.preventDefault();
-            }} onMouseDown={(e) => {
-              e.stopPropagation();
-              // e.preventDefault();
-            }}  >
-            </div>
-          </DropPosition>
-          <Input
-            initialValue={value}
-            status={error ? "error" : "default"}
-            helperText={errorText}
-            onClick={(e) => {
-              e.stopPropagation();
-            }
-            }
-            onMouseDown={(e) => {
-              e.stopPropagation();
-            }}
-            onBlur={setValue}
-            onChange={setValue}
-            aria-label={"Argument input"}
-
-          />
-
-        </div>
-      )
-    }
-
-    if (nodeAllowed) {
-      return (
-
-        <div className={styles.filterArgument}>
-          <h3>{key}:</h3>
-          <DropPosition config={{ type: actualTypes }}
-
-            onDrop={(grabbedObject) => {
-              // @ts-ignore
-              object[key] = grabbedObject.data;
-              setUpdater(current => current + 1)
-              return true;
-            }} disable={held} key={value} >
-            <div onClick={(e) => {
-              e.stopPropagation();
-              // e.preventDefault();
-            }} onMouseDown={(e) => {
-              e.stopPropagation();
-              // e.preventDefault();
-            }}  >
-            </div>
-          </DropPosition>
-          {/* <Input initialValue={value}
-          status={error ? "error" : "default"}
-
-          onClick={(e) => {
-            e.stopPropagation();
-          }
-          }
-          onMouseDown={(e) => {
-            e.stopPropagation();
-          }}
-          onBlur={setValue}
-          onChange={setValue}
-          aria-label={"Argument input"}
-
-        /> */}
-
-        </div>
-      )
-
-    }
-    if (numbersAllowed) {
-
-      return (
-        <div className={styles.filterArgument}>
-          <h3>{key}:</h3>
-          <DropPosition config={{ type: actualTypes }} onDrop={(grabbedObject) => {
-            // @ts-ignore
-            object[key] = grabbedObject.data;
-            setUpdater(current => current + 1)
-            return true;
-          }} disable={held} key={value} >
-            <div onClick={(e) => {
-              e.stopPropagation();
-              // e.preventDefault();
-            }} onMouseDown={(e) => {
-              e.stopPropagation();
-              // e.preventDefault();
-            }}  >
-            </div>
-          </DropPosition>
-          <Input initialValue={value?.toString()} onClick={(e) => {
-            e.stopPropagation();
-          }}
-            type="number"
-            helperText={errorText}
-            helperColor={error ? "error" : "default"}
-            // @ts-ignore
-            placeholder={placeholder}
-            status={error ? "error" : "default"}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-            }}
-            onBlur={setValue}
-            onChange={setValue}
-            aria-label={"Argument input"}
-
-          />
-
-        </div>
-      )
-    }
-
-    return <h1>ERROR typeof value: {typeof value}, acceptableTypes: {JSON.stringify(acceptableTypes)}</h1>
-  });
-TypedArgument.displayName = "FilterArgument";
 
 
 
@@ -1198,7 +675,7 @@ export let TypedNodeProperties: {
     b: ["required", "string"],
     key: ["required", "string"],
     not: ["boolean"],
-    operator: ["required", "string:=", "string:>", "string:<", "string:contains", "string:!=", "string:starts_with", "string:ends_with"]
+    operator: ["required", "string:contains", "string:=", "string:>", "string:<", "string:!=", "string:starts_with", "string:ends_with"]
   },
   "condition:data.compare": {
     type: ["required", "string"],
@@ -1206,7 +683,7 @@ export let TypedNodeProperties: {
     b: ["required", "variable"],
     key: ["required", "string"],
     not: ["boolean"],
-    operator: ["required", "string:=", "string:>", "string:<", "string:contains", "string:!=", "string:starts_with", "string:ends_with"]
+    operator: ["required", "string:contains", "string:=", "string:>", "string:<", "string:!=", "string:starts_with", "string:ends_with"]
   },
 
 
@@ -1306,7 +783,7 @@ export const VariableNode: React.FC<{
   }> | {
     [key: string]: `$${string}`;
   } | {
-    selected?: `$${string}` | undefined;
+    selected?: `$${string}`;
   }
 }> = ({ returns }) => {
   let filterName = "{BLANK}"
