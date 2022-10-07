@@ -173,7 +173,9 @@ export const TypedInput: React.FC<{ initialValue: string | number | undefined, n
         }}
         aria-label={"Argument input"}
 
-
+        onFocus={(e) => {
+          e.target.select()
+        }}
       />
     )
   }
