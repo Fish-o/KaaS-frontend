@@ -36,7 +36,7 @@ export class BaseGameObject {
     return this._data as Readonly<Record<string, string>>;
   }
 
-  setData(key: string, value: string | number | boolean) {
+  setData(key: string, value: string) {
     this._data[key] = value;
   }
 

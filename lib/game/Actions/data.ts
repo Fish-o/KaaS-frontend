@@ -16,7 +16,7 @@ class ActionSetData extends BaseDataAction {
   args: {
     object: Resolvable;
     key: string;
-    value: string | number | boolean;
+    value: string;
   };
 }
 
