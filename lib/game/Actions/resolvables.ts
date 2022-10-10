@@ -1,5 +1,6 @@
 import { min } from "lodash";
 import { Variable, VariableMap } from ".";
+import { DebugContext } from "..";
 import {
   CardHolderFilterObject,
   CardFilterObject,
@@ -29,14 +30,23 @@ export async function resolvePlayerResolvable(
   resolvable: PlayerResolvable | undefined,
   variables: VariableMap,
   game: Game,
+  debugContext: DebugContext,
   min: number = 0,
   max: number = Infinity
 ) {
-  console.log("resolvePlayerResolvable", resolvable, variables, game, min, max);
+  console.log(
+    "resolvePlayerResolvable",
+    resolvable,
+    variables,
+    game,
+    debugContext,
+    min,
+    max
+  );
   let players: any[] | any = resolvable
     ? typeof resolvable === "string"
       ? variables.get(resolvable)
-      : await performFilter(resolvable, variables, game)
+      : await performFilter(resolvable, variables, game, debugContext)
     : [...game.getAllPlayers()];
   if (typeof players !== "object") throw new Error("Invalid players");
   else if (Array.isArray(players)) {
@@ -56,13 +66,14 @@ export async function resolveCardResolvable(
   resolvable: CardResolvable | undefined,
   variables: VariableMap,
   game: Game,
+  debugContext: DebugContext,
   max: number = Infinity,
   min: number = 0
 ) {
   let cards: any[] | any = resolvable
     ? typeof resolvable === "string"
       ? variables.get(resolvable)
-      : await performFilter(resolvable, variables, game)
+      : await performFilter(resolvable, variables, game, debugContext)
     : [...game.getAllCards()];
   if (typeof cards !== "object") throw new Error("Invalid cards");
   else if (Array.isArray(cards)) {
@@ -82,13 +93,14 @@ export async function resolveDeckResolvable(
   resolvable: DeckResolvable,
   variables: VariableMap,
   game: Game,
+  debugContext: DebugContext,
   max: number = Infinity,
   min: number = 0
 ) {
   let decks: any[] | any = resolvable
     ? typeof resolvable === "string"
       ? variables.get(resolvable)
-      : await performFilter(resolvable, variables, game)
+      : await performFilter(resolvable, variables, game, debugContext)
     : [...game.getAllDecks()];
   if (typeof decks !== "object") throw new Error("Invalid decks");
   else if (Array.isArray(decks)) {
@@ -108,13 +120,14 @@ export async function resolveHandResolvable(
   resolvable: HandResolvable,
   variables: VariableMap,
   game: Game,
+  debugContext: DebugContext,
   max: number = Infinity,
   min: number = 0
 ) {
   let hands: any[] | any = resolvable
     ? typeof resolvable === "string"
       ? variables.get(resolvable)
-      : await performFilter(resolvable, variables, game)
+      : await performFilter(resolvable, variables, game, debugContext)
     : [...game.getAllHands()];
   if (typeof hands !== "object") throw new Error("Invalid hands");
   else if (Array.isArray(hands)) {
@@ -134,13 +147,14 @@ export async function resolveCardHolderResolvable(
   resolvable: CardHolderResolvable,
   variables: VariableMap,
   game: Game,
+  debugContext: DebugContext,
   max: number = Infinity,
   min: number = 0
 ) {
   let cardHolders: any[] | any = resolvable
     ? typeof resolvable === "string"
       ? variables.get(resolvable)
-      : await performFilter(resolvable, variables, game)
+      : await performFilter(resolvable, variables, game, debugContext)
     : [...game.getAllHands(), ...game.getAllDecks()];
   if (typeof cardHolders !== "object") throw new Error("Invalid card holders");
   else if (Array.isArray(cardHolders)) {
@@ -160,13 +174,14 @@ export async function resolveBaseObject(
   resolvable: Resolvable,
   variables: VariableMap,
   game: Game,
+  debugContext: DebugContext,
   max: number = Infinity,
   min: number = 0
 ) {
   let objects: any[] | any = resolvable
     ? typeof resolvable === "string"
       ? variables.get(resolvable)
-      : await performFilter(resolvable, variables, game)
+      : await performFilter(resolvable, variables, game, debugContext)
     : [];
 
   if (typeof objects !== "object") throw new Error("Invalid BaseObject");

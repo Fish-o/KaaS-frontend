@@ -47,10 +47,9 @@ const unoGame: GameObject = {
               type: "filter:deck",
               filter: {
                 has_tag: "draw",
-                iterator_parameter: "$element",
+                minAmount: 1,
+                maxAmount: 1,
               },
-              maxAmount: 1,
-              minAmount: 1,
             },
           },
         },
@@ -59,11 +58,10 @@ const unoGame: GameObject = {
           args: {
             filter: {
               type: "filter:deck",
-              maxAmount: 1,
-              minAmount: 1,
               filter: {
+                maxAmount: 1,
+                minAmount: 1,
                 has_tag: "draw",
-                iterator_parameter: "$element",
               },
             },
           },
@@ -76,9 +74,10 @@ const unoGame: GameObject = {
           args: {
             filter: {
               type: "filter:player",
-              filter: {},
-              maxAmount: 100,
-              minAmount: 2,
+              filter: {
+                maxAmount: 100,
+                minAmount: 2,
+              },
             },
           },
           returns: {
@@ -98,11 +97,10 @@ const unoGame: GameObject = {
                       args: {
                         filter: {
                           type: "filter:card",
-                          maxAmount: 1,
-                          minAmount: 0,
                           filter: {
                             inside: "$draw",
-                            iterator_parameter: "$element",
+                            maxAmount: 1,
+                            minAmount: 0,
                           },
                         },
                       },
@@ -115,11 +113,10 @@ const unoGame: GameObject = {
                       args: {
                         filter: {
                           type: "filter:hand",
-                          maxAmount: 1,
-                          minAmount: 1,
                           filter: {
                             from_player: "$player",
-                            iterator_parameter: "$element",
+                            maxAmount: 1,
+                            minAmount: 1,
                           },
                         },
                       },
@@ -162,16 +159,13 @@ const unoGame: GameObject = {
                   type: "filter:deck",
                   filter: {
                     has_tag: "draw",
-                    iterator_parameter: "$element",
+                    maxAmount: 1,
+                    minAmount: 1,
                   },
-                  maxAmount: 1,
-                  minAmount: 1,
                 },
-                iterator_parameter: "$element",
-                actions: [],
+                maxAmount: 1,
+                minAmount: 0,
               },
-              maxAmount: 1,
-              minAmount: 0,
             },
           },
           returns: {
@@ -201,4 +195,6 @@ const unoGame: GameObject = {
     },
   ],
   players: [],
+  methods: [],
 };
+export default unoGame;

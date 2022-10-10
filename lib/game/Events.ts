@@ -1,3 +1,4 @@
+import { changeDebugColor, DebugContext, debugLog } from ".";
 import {
   Action,
   performActions,
@@ -61,10 +62,13 @@ export async function performEvent<T extends EventObject>(
   game: Game
   // broadcast: boolean = false
 ) {
-  // if (broadcast) {
-  //   broadcastGameEventEvent(eventData, game);
-  // }
-
+  let debugContext = {
+    depth: 0,
+    event_name: eventData.type,
+    block_id: "",
+  } as DebugContext;
+  changeDebugColor();
+  debugLog(`Performing event ${eventData.type}`, debugContext, eventData);
   const events = game.getEventsFromType<T>(eventData.type);
   if (!events) return;
   for (let event of events) {
@@ -78,6 +82,6 @@ export async function performEvent<T extends EventObject>(
           throw new Error(`${name} is not a valid variable name`);
         variables.set(name, entered);
       }
-    await performActions(event.actions, variables, game);
+    await performActions(event.actions, variables, game, debugContext);
   }
 }

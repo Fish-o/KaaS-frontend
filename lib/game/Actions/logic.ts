@@ -3,6 +3,7 @@ import { Resolvable, resolveBaseObject } from "./resolvables";
 import { BaseAction } from "./BaseAction";
 import { Condition, performCondition } from "../Conditions";
 import { Game } from "../Game";
+import { DebugContext } from "..";
 
 class BaseLogicAction extends BaseAction {
   type: `action:logic.${string}`;
@@ -23,14 +24,20 @@ export class ActionLogicIf extends BaseLogicAction {
 async function performActionLogicIf(
   action: ActionLogicIf,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ): Promise<void | null | boolean> {
   const { condition, true_actions, false_actions } = action.args;
-  const result = await performCondition(condition, variables, game);
+  const result = await performCondition(
+    condition,
+    variables,
+    game,
+    debugContext
+  );
   if (result) {
-    return performActions(true_actions, variables, game);
+    return performActions(true_actions, variables, game, debugContext);
   } else {
-    return performActions(false_actions, variables, game);
+    return performActions(false_actions, variables, game, debugContext);
   }
 }
 
@@ -45,7 +52,8 @@ class ActionLogicLoop extends BaseLogicAction {
 async function performActionLogicLoop(
   action: ActionLogicLoop,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ): Promise<void | null | boolean> {
   let { loops, actions } = action.args;
 
@@ -54,7 +62,7 @@ async function performActionLogicLoop(
   }
 
   for (let i = 0; i < loops; i++) {
-    const result = await performActions(actions, variables, game);
+    const result = await performActions(actions, variables, game, debugContext);
     if (result) return result;
   }
 }
@@ -74,12 +82,18 @@ class ActionLogicForEach extends BaseLogicAction {
 async function performActionLogicForEach(
   action: ActionLogicForEach,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ): Promise<void | null | boolean> {
   const { collection, as, actions } = action.args;
   if (!as.startsWith("$")) throw new Error("Variable name must start with $");
 
-  let iterable = await resolveBaseObject(collection, variables, game);
+  let iterable = await resolveBaseObject(
+    collection,
+    variables,
+    game,
+    debugContext
+  );
   if (!(iterable instanceof Array))
     throw new Error(`Collection is not an array`);
   console.log("iterable", iterable);
@@ -87,7 +101,7 @@ async function performActionLogicForEach(
     console.log(variables);
     variables.set(as, item);
     console.log(variables);
-    let value = await performActions(actions, variables, game);
+    let value = await performActions(actions, variables, game, debugContext);
     if (value !== undefined) return value;
   }
   variables.delete(as);
@@ -118,7 +132,8 @@ export class ActionLogicMethod extends BaseLogicAction {
 export async function preformMethodAction(
   action: ActionLogicMethod,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ): Promise<void | null | boolean> {
   const { methodName } = action.args;
   const method = game.getMethodFromName(
@@ -128,7 +143,12 @@ export async function preformMethodAction(
     throw new Error(`Method "${methodName}" Does not exist`);
   }
 
-  let value = await performActions(method.actions, variables, game);
+  let value = await performActions(
+    method.actions,
+    variables,
+    game,
+    debugContext
+  );
 }
 
 export type LogicAction =
@@ -141,21 +161,22 @@ export type LogicAction =
 export function performLogicAction(
   action: LogicAction,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ): Promise<void | null | boolean> {
   switch (action.type) {
     case "action:logic.if":
-      return performActionLogicIf(action, variables, game);
+      return performActionLogicIf(action, variables, game, debugContext);
     case "action:logic.loop":
-      return performActionLogicLoop(action, variables, game);
+      return performActionLogicLoop(action, variables, game, debugContext);
     case "action:logic.for_each":
-      return performActionLogicForEach(action, variables, game);
+      return performActionLogicForEach(action, variables, game, debugContext);
     case "action:logic.return":
       return action.args.value ? Promise.resolve(true) : Promise.resolve(false);
     case "action:logic.break":
       return Promise.resolve(null);
     case "action:logic.method":
-      return preformMethodAction(action, variables, game);
+      return preformMethodAction(action, variables, game, debugContext);
   }
 }
 

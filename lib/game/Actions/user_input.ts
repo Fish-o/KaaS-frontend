@@ -22,6 +22,7 @@ import {
   resolvePlayerResolvable,
 } from "./resolvables";
 import { Card } from "../Objects/Card";
+import { DebugContext } from "..";
 
 class BaseUserInputAction extends BaseAction {
   type: `action:user_input.${string}`;
@@ -70,13 +71,20 @@ export type UserInputAction =
 async function performActionUserInputSelectPlayers(
   action: ActionUserInputSelectPlayers,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ): Promise<void> {
   const { from, max, min, message, selector } = action.args;
 
-  const players = await resolvePlayerResolvable(from, variables, game, 1);
+  const players = await resolvePlayerResolvable(
+    from,
+    variables,
+    game,
+    debugContext,
+    1
+  );
   const playerSelecting = (
-    await resolvePlayerResolvable(selector, variables, game, 1)
+    await resolvePlayerResolvable(selector, variables, game, debugContext, 1)
   )[0];
 
   let results: Player[] = [];
@@ -111,13 +119,19 @@ async function performActionUserInputSelectPlayers(
 async function preformActionUserInputSelectCards(
   action: ActionUserInputSelectCards,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ) {
   const { from, max, min, message, selector } = action.args;
 
-  const cards = await resolveCardResolvable(from, variables, game);
+  const cards = await resolveCardResolvable(
+    from,
+    variables,
+    game,
+    debugContext
+  );
   const playerSelecting = (
-    await resolvePlayerResolvable(selector, variables, game, 1)
+    await resolvePlayerResolvable(selector, variables, game, debugContext, 1)
   )[0];
 
   let results: Card[] = [];
@@ -151,13 +165,24 @@ async function preformActionUserInputSelectCards(
 export async function performUserInputAction(
   action: UserInputAction,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ) {
   switch (action.type) {
     case "action:user_input.select_players":
-      return await performActionUserInputSelectPlayers(action, variables, game);
+      return await performActionUserInputSelectPlayers(
+        action,
+        variables,
+        game,
+        debugContext
+      );
     case "action:user_input.select_cards":
-      return await preformActionUserInputSelectCards(action, variables, game);
+      return await preformActionUserInputSelectCards(
+        action,
+        variables,
+        game,
+        debugContext
+      );
   }
 }
 

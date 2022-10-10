@@ -15,6 +15,7 @@ import { Card } from "../Objects/Card";
 import { Deck } from "../Objects/Deck";
 import { Hand } from "../Objects/Player";
 import { CardHolderResolvable, CardResolvable } from "./resolvables";
+import { DebugContext } from "..";
 class BaseCardAction extends BaseAction {
   type: `action:cards.${string}`;
 }
@@ -34,11 +35,12 @@ class ActionMoveCards extends BaseCardAction {
 async function performMoveCardsAction(
   { type, args: { cards, to, where }, returns }: ActionMoveCards,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ) {
   let destinations = isValidVariableName(to)
     ? variables.get(to)
-    : await filterCardHolders(to, variables, game);
+    : await filterCardHolders(to, variables, game, debugContext);
   let destination: Deck | Hand | undefined = undefined;
   if (!destinations)
     throw new Error("No 'to' destinations found when moving cards");
@@ -56,7 +58,7 @@ async function performMoveCardsAction(
 
   const cardsFound: VariableTypes | undefined = isValidVariableName(cards)
     ? variables.get(cards)
-    : await performFilter(cards, variables, game);
+    : await performFilter(cards, variables, game, debugContext);
   let cardsToMove;
   if (!cardsFound) throw new Error("No cards found");
   else if (!(cardsFound instanceof Array)) cardsToMove = [cardsFound];
@@ -93,11 +95,12 @@ async function performMoveCardsAction(
 export function performCardAction(
   action: CardAction,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ) {
   switch (action.type) {
     case "action:cards.move":
-      return performMoveCardsAction(action, variables, game);
+      return performMoveCardsAction(action, variables, game, debugContext);
   }
 }
 

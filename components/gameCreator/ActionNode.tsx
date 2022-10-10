@@ -2,11 +2,15 @@ import { Input } from "@nextui-org/react";
 import { useContext, useState, useMemo, Dispatch, SetStateAction, useRef, useEffect } from "react";
 import { Action } from "../../lib/game/Actions";
 import { Filter } from "../../lib/game/Filters";
-import { GrabbedObjectContext, ObjectIsGrabbedContext, SetDraggableNodeObjects, TypedActionReturns, TypedNodeProperties } from "../gameCreator";
+import { GrabbedObjectContext, ObjectIsGrabbedContext, SetDraggableNodeObjects } from "../gameCreator";
+import { TypedActionReturns, TypedNodeProperties } from "../TypedNodeProperties"
 import styles from "../../styles/gameCreator.module.scss";
 import { ActionLogicIf, LogicAction } from "../../lib/game/Actions/logic";
-import { recurseResovlve as recursivelyResolveParameters } from "./FilterNode";
+import { recurseResolve } from "./FilterNode";
 import { TypedArgument, AcceptableTypesArray } from "./typedNode";
+import { Condition } from "../../lib/game/Conditions";
+import useStateRef from "react-usestateref";
+import { NodeOptions } from "./NodeOptions";
 
 
 type InitializeType<T> = {
@@ -28,20 +32,35 @@ function getPrototype<T>(t: T): InitializeType<T> {
 }
 
 export const ActionNode: React.FC<{ action: Action }> = ({ action }) => {
-  let held = useContext(ObjectIsGrabbedContext)
 
-  const { name, description } = getActionInfo(action.type);
+  let held = useContext(ObjectIsGrabbedContext)
+  if (!action.args) {
+    action.args = {}
+  }
+  if (!action.returns) {
+    action.returns = {}
+  }
+  const [args, setArgs, argsRef] = useStateRef<typeof action.args>(action.args);
+  useEffect(() => {
+    action.args = args;
+  }, [args, action]);
   const grabbedObject = useContext(GrabbedObjectContext);
 
-  const [updater, setUpdater] = useState(0)
+  useEffect(() => {
+    if (grabbedObject) {
+      setArgs((args) =>
+        recurseResolve(TypedNodeProperties[action.type], args, grabbedObject, held)
+      );
+    }
+  }, [grabbedObject, held, action.type, setArgs, argsRef])
+
+
+  const { name, description } = getActionInfo(action.type);
 
   return useMemo(() => {
-    if (!action.args) {
-      action.args = {}
-    }
-    recursivelyResolveParameters(TypedNodeProperties[action.type], action.args, grabbedObject, held)
+
     if (action.type === "action:logic.if") {
-      return <IfNode action={action} />
+      return <IfNode args={argsRef.current as ActionLogicIf["args"]} setArgs={setArgs} />
     }
     return (
       <div className={styles.actionNode} style={held ? { border: "2px solid red" } : {}}>
@@ -60,36 +79,35 @@ export const ActionNode: React.FC<{ action: Action }> = ({ action }) => {
           <p>{description}</p>
         </div>
         <div className={styles.rowList}>
-          {Object.entries(action.args).map(([key, value], index) => {
+          {Object.entries(argsRef.current).map(([key, value], index) => {
             return <TypedArgument
               value={value}
               $key={key}
-              object={action.args}
-              type={action.type}
-              setUpdater={setUpdater}
+              setValue={(newValue) => {
+                setArgs((args) => ({ ...args, [key]: newValue }))
+              }}
               key={key}
               acceptableTypes={TypedNodeProperties[action.type][key as (keyof typeof action.args)]}
             />
           })
           }
         </div>
-        <VariablePart data={action} type={action.type} held={held} setUpdater={setUpdater} />
+        AA
+        <NodeOptions node={action} />
+        <VariablePart action={action} type={action.type} />
+
+
       </div >
     )
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [updater, action, action.args, description, grabbedObject?.data.type, held, name])
+  }, [action, action.args, description, grabbedObject?.data.type, held, name])
 
 };
-const IfNode: React.FC<{ action: ActionLogicIf }> = ({ action }) => {
-  const { type, args } = action
-
-
-
+const IfNode: React.FC<{ args: ActionLogicIf["args"], setArgs: Dispatch<SetStateAction<ActionLogicIf["args"]>> }> = ({ args, setArgs }) => {
   let held = useContext(ObjectIsGrabbedContext)
+  const type = "action:logic.if"
   const { name, description } = getActionInfo(type);
-  const [, setUpdater] = useState(0)
-
   return (
     <div className={styles.actionNode} style={held ? { border: "2px solid red" } : {}}>
       <div className={styles.columnList}>
@@ -111,10 +129,10 @@ const IfNode: React.FC<{ action: ActionLogicIf }> = ({ action }) => {
           <TypedArgument
             value={args.condition}
             $key={"condition"}
-            object={args}
-            type={action.type}
-            setUpdater={setUpdater} key={"condition"}
-            acceptableTypes={TypedNodeProperties[action.type]["condition"]}
+            setValue={(newValue) => {
+              setArgs({ ...args, condition: newValue as Condition })
+            }}
+            acceptableTypes={TypedNodeProperties[type]["condition"]}
           />
 
         </div>
@@ -124,12 +142,11 @@ const IfNode: React.FC<{ action: ActionLogicIf }> = ({ action }) => {
 
             <TypedArgument
               value={args.true_actions}
-              $key={"true_actions"} object={args}
-              type={action.type}
-
-              setUpdater={setUpdater}
-              key={"condition"}
-              acceptableTypes={TypedNodeProperties[action.type]["true_actions"]}
+              $key={"true_actions"}
+              setValue={(newValue) => {
+                setArgs({ ...args, true_actions: newValue as Action[] })
+              }}
+              acceptableTypes={TypedNodeProperties[type]["true_actions"]}
             />
           </div>
           <div className={styles.actionNode}>
@@ -137,12 +154,10 @@ const IfNode: React.FC<{ action: ActionLogicIf }> = ({ action }) => {
             <TypedArgument
               value={args.false_actions}
               $key={"false_actions"}
-              object={args}
-              type={action.type}
-
-              setUpdater={setUpdater}
-              key={"condition"}
-              acceptableTypes={TypedNodeProperties[action.type]["false_actions"]}
+              setValue={(newValue) => {
+                setArgs({ ...args, false_actions: newValue as Action[] })
+              }}
+              acceptableTypes={TypedNodeProperties[type]["false_actions"]}
             />
           </div>
         </div>
@@ -152,59 +167,47 @@ const IfNode: React.FC<{ action: ActionLogicIf }> = ({ action }) => {
   )
 };
 
-const VariablePart: React.FC<{ data: Action, type: Action["type"], held: boolean, setUpdater: Dispatch<SetStateAction<number>> }> = ({ data, type, held, setUpdater }) => {
-  const [updater2, setUpdater2] = useState(0)
+const VariablePart: React.FC<{ action: Action, type: Action["type"] }> = ({ action, type }) => {
+  const [returns, setReturns, returnsRef] = useStateRef<typeof action.returns>(action.returns);
   useEffect(() => {
-    setUpdater((updater) => updater + 1)
-  }, [updater2, setUpdater])
+    action.returns = returns;
+  }, [returns, action]);
 
-  let dataRef = useRef(data.returns)
-  // useEffect(() => {
-  //   if (dataRef.current === undefined) {
-  //     dataRef.current = {}
-  //   }
-  // }, [])
-  if (!dataRef.current) {
-    dataRef.current = {}
-  }
-  if (!Object.values(dataRef.current).some((value) => value !== undefined)) {
-    // If there is no useful information in the returns object, don't save it
-    delete data.returns
+  useEffect(() => {
+    Object.entries(TypedActionReturns[type]).forEach(([key,]) => {
+      //@ts-ignore
+      let possibleTypes = TypedActionReturns[type][key] as string[];
 
-  } else {
-    if (data.returns === undefined) {
-      data.returns = dataRef.current
-    }
-  }
-
-
-  Object.entries(TypedActionReturns[type]).forEach(([key,]) => {
-    //@ts-ignore
-    let possibleTypes = TypedActionReturns[type][key] as string[];
-
-    if (Array.isArray(possibleTypes)) {
-      if (possibleTypes.includes("variable")) {
-        //@ts-ignore
-        if (!dataRef.current[key]) {
+      if (Array.isArray(possibleTypes)) {
+        if (possibleTypes.includes("variable")) {
           //@ts-ignore
-          dataRef.current[key] = undefined
+          if (!returns[key]) {
+            //@ts-ignore
+            returns[key] = undefined
+          }
         }
       }
-    }
-  })
+
+      setReturns(returns)
+    })
+  }, [type, returns, setReturns])
+
+
+
+  if (!returnsRef.current) return null
+
   return (
     <>
       <h2>Variable</h2>
-      {Object.entries(dataRef.current).map(([key, value], index) => {
+      {Object.entries(returnsRef.current).map(([key, value], index) => {
         return <TypedArgument
           value={value}
           $key={key}
-          object={dataRef.current}
-          type={type}
-          held={held}
-          setUpdater={setUpdater2}
+          setValue={(newValue) => {
+            setReturns((returns) => ({ ...returns, [key]: newValue }))
+          }}
           key={key}
-          acceptableTypes={TypedActionReturns[type][key as keyof typeof dataRef.current] as AcceptableTypesArray}
+          acceptableTypes={TypedActionReturns[type][key as keyof typeof returnsRef.current] as AcceptableTypesArray}
         />
       })
       }

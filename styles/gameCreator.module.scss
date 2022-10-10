@@ -9,6 +9,15 @@
     rgba(0, 0, 0, 0.3) 0px 3px 7px -3px;
 }
 
+.gapped {
+  gap: 10px;
+}
+.nodeOptions {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+}
+
 .actionNode {
   @include node;
   display: flex;
@@ -248,7 +257,7 @@
 
 .pickNewNode {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-width: 250px;

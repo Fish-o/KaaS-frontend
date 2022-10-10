@@ -1,4 +1,4 @@
-import { Button, FormElement, Input, useInput, Grid } from "@nextui-org/react";
+import { Button, FormElement, Input, useInput, Grid, Switch } from "@nextui-org/react";
 import { isArray, isNumber } from "lodash";
 import React, { memo, useContext, useEffect, useMemo, useState } from "react";
 import { Action } from "../../lib/game/Actions";
@@ -9,8 +9,10 @@ import DropPosition from "./DropPosition";
 import styles from "../../styles/gameCreator.module.scss";
 import DraggableObject from "./draggableObject";
 import { ResolveNodeType } from "./resolveNodeType";
+import { EventObject } from "../../lib/game/Events";
+import { MethodObject } from "../../lib/game/Method";
 
-type AcceptableTypes = "string" | "array" | "number" | "variable" | "required" | GrabbedObject["data"]["type"] | `string:${string}`
+type AcceptableTypes = "string" | "array" | "number" | "variable" | "required" | "boolean" | GrabbedObject["data"]["type"] | `string:${string}`
   | "action" | "condition"
 
 
@@ -20,7 +22,7 @@ export type AcceptableTypesArray = AcceptableTypes[] |
 }
 
 
-type AcceptableValueTypes = string | number | boolean | Filter | Action | Condition | AcceptableValueTypes[] | { [key: string]: AcceptableValueTypes }
+type AcceptableValueTypes = string | number | boolean | Filter | Action | Condition | EventObject | MethodObject | AcceptableValueTypes[] | { [key: string]: AcceptableValueTypes }
 
 
 const ResolveGrabbedNode: React.FC<{ data: ObjectTypes, i?: number, object: any, $key: string, held: boolean, allowedDropTypes: ObjectTypes["type"], setUpdater: React.Dispatch<React.SetStateAction<number>> }> = ({ data, i, object, $key, held, allowedDropTypes, setUpdater }) => {
@@ -77,8 +79,8 @@ const ResolveGrabbedNode: React.FC<{ data: ObjectTypes, i?: number, object: any,
   )
 }
 
-export const TypedInput: React.FC<{ initialValue: string | number | undefined, numberOnly: boolean, varaiblesAllowed: boolean, required: boolean, specificStringsAllowed: string[] | null, setValue: (arg0: string) => void }> =
-  ({ initialValue, numberOnly = false, varaiblesAllowed: varaibleAllowed = false, required = false, specificStringsAllowed, setValue }) => {
+export const TypedInput: React.FC<{ initialValue: string | number | undefined, numberOnly: boolean, variablesAllowed: boolean, required: boolean, specificStringsAllowed: string[] | null, setValue: (arg0: string) => void }> =
+  ({ initialValue, numberOnly: numberAllowed = false, variablesAllowed: varaibleAllowed = false, required = false, specificStringsAllowed, setValue }) => {
     const { value, bindings } = useInput(initialValue?.toString() || "");
 
 
@@ -89,7 +91,7 @@ export const TypedInput: React.FC<{ initialValue: string | number | undefined, n
       if (!value.startsWith("$")) {
         return {
           status: "error",
-          helperText: "This field must be a variable"
+          helperText: "This field must be a variable. Variables start with a $"
         }
       }
       if (value.startsWith("$") && value.length == 1) {
@@ -120,7 +122,13 @@ export const TypedInput: React.FC<{ initialValue: string | number | undefined, n
           helperText: "This field is required"
         }
       }
-      if (numberOnly && isNaN(Number(value))) {
+      if (numberAllowed && !isNaN(Number(value))) {
+        return {
+          status: "default",
+          helperText: ""
+        }
+      }
+      if (numberAllowed && isNaN(Number(value)) && !varaibleAllowed) {
         return {
           status: "error",
           helperText: "This field must be a number"
@@ -189,6 +197,7 @@ function getAllowedInputTypes(acceptableTypes: string[]) {
   }
 
   return {
+    isBoolean: acceptableTypes.includes("boolean"),
     multipleAllowed: acceptableTypes.includes("array"),
     stringsAllowed: acceptableTypes.includes("string"),
     numbersAllowed: acceptableTypes.includes("number"),
@@ -203,10 +212,6 @@ function getAllowedInputTypes(acceptableTypes: string[]) {
 }
 
 export const ActualResolvedValue: React.FC<{ value: any, allowedInputTypes: any, setValue: (arg0: any) => void }> = ({ value, allowedInputTypes, setValue }) => {
-  // const [value, setValue] = useState(initValue)
-  // useEffect(() => {
-  //   initSetValue(value)
-  // }, [value, initSetValue])
 
 
   if (typeof value === "object") {
@@ -236,12 +241,10 @@ export const ActualResolvedValue: React.FC<{ value: any, allowedInputTypes: any,
           }}  >
           </div>
         </DropPosition>
-        {JSON.stringify(allowedInputTypes.nodeTypes)}
-
         <TypedInput
           numberOnly={allowedInputTypes.numbersAllowed}
           required={allowedInputTypes.required}
-          varaiblesAllowed={allowedInputTypes.variablesAllowed}
+          variablesAllowed={allowedInputTypes.variablesAllowed}
           specificStringsAllowed={allowedInputTypes.specificStringsAllowed}
 
           initialValue={value}
@@ -277,6 +280,21 @@ export const ActualResolvedValue: React.FC<{ value: any, allowedInputTypes: any,
     )
 
   }
+  if (allowedInputTypes.isBoolean) {
+    return (
+      <Switch
+        initialChecked={value}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+        }}
+
+        onChange={(e) => {
+          setValue(e.target.checked)
+        }}
+      />
+    )
+  }
+
 
   return <h1>ERROR typeof value: {typeof value}, acceptableTypes: {JSON.stringify(allowedInputTypes)}</h1>
 }
@@ -287,21 +305,22 @@ export const ActualResolvedValue: React.FC<{ value: any, allowedInputTypes: any,
 export const TypedArgument: React.FC<
   {
     $key: string | number,
-    value: any,
-    object: Exclude<Action["args"] | Action["returns"] | Filter["filter"] | Condition, undefined>,
-    type: (Action | Filter | Condition)["type"],
+    // object: Exclude<Action["args"] | Action["returns"] | Filter["filter"] | Condition, undefined>,
+    // type: (Action | Filter | Condition)["type"],
+
+    value: AcceptableValueTypes,
+    // setValue: ((arg0: AcceptableValueTypes) => AcceptableValueTypes),
+    setValue: React.Dispatch<React.SetStateAction<AcceptableValueTypes>>,
 
 
-
-    setUpdater: React.Dispatch<React.SetStateAction<number>>,
+    // setUpdater: React.Dispatch<React.SetStateAction<number>>,
     orientation?: "horizontal" | "vertical",
     acceptableTypes: AcceptableTypesArray
     recursiveUpdate?: number
   }>
-  = memo(({ $key: key, value, object, type, setUpdater, orientation, acceptableTypes, recursiveUpdate }) => {
+  = memo(({ $key: key, value, setValue, orientation, acceptableTypes, recursiveUpdate }) => {
     let held = useContext(ObjectIsGrabbedContext)
 
-    const [updater2, setUpdater2] = useState(0);
 
     // See if acceptable types is an object and not an array and handle it differently
     if (typeof acceptableTypes === "object" && !Array.isArray(acceptableTypes) && value) {
@@ -312,12 +331,14 @@ export const TypedArgument: React.FC<
             {
               Object.keys(value).map((key) => {
                 return <TypedArgument
-                  key={key + updater2}
+                  key={key}
                   $key={key}
-                  value={value![key as keyof typeof value]}
-                  object={value as Action["args"] | Action["returns"] | Filter["filter"] | Condition}
-                  type={type}
-                  setUpdater={setUpdater2}
+                  value={value[key as keyof typeof value]}
+                  setValue={(newValue) => {
+
+                    // @ts-ignore
+                    setValue({ ...value, [key]: newValue })
+                  }}
                   orientation={orientation}
                   recursiveUpdate={recursiveUpdate}
                   acceptableTypes={(acceptableTypes as Record<string, AcceptableTypesArray>)[key]}
@@ -334,26 +355,26 @@ export const TypedArgument: React.FC<
     // handle an error
     if (!Array.isArray(acceptableTypes)) return (
       <div>
-        <h1>TypedNodeProperties IS MISSING AN ENTRY FOR {type} Key:{key}</h1>
-        <Button color="error" auto onPress={() => {
+        <h1>TypedNodeProperties IS MISSING AN ENTRY FOR Key {JSON.stringify(value)}:{key}</h1>
+        {/* <Button color="error" auto onPress={() => {
           // @ts-ignore
           delete object[key]
-          setUpdater(current => current + 1)
+          // setUpdater(current => current + 1)
         }} >
           Delete Key
-        </Button>
+        </Button> */}
       </div>
     );
 
 
     let allowedInputTypes = getAllowedInputTypes(acceptableTypes as string[])
 
-    if (allowedInputTypes.multipleAllowed && !isArray(value)) {
-      // @ts-ignore
-      object[key] = [value]
-      // @ts-ignore
-      value = object[key] as string | Filter | (string | Filter)[] | undefined;
-    }
+    // if (allowedInputTypes.multipleAllowed && !isArray(value)) {
+    //   // @ts-ignore
+    //   object[key] = [value]
+    //   // @ts-ignore
+    //   value = object[key] as string | Filter | (string | Filter)[] | undefined;
+    // }
 
 
 
@@ -380,27 +401,27 @@ export const TypedArgument: React.FC<
                       width: "100%",
                     },
                   }} onDrop={(grabbedObject) => {
-                    // @ts-ignore
-                    (value as (string | Filter | Action)[]).splice(index, 0, grabbedObject.data);
+                    if (!isArray(value)) setValue([grabbedObject.data]);
+                    value.splice(index, 0, grabbedObject.data)
+                    setValue([...value])
                     console.log("Dropped", grabbedObject, value)
-
-                    setUpdater((current: number) => current + 1)
-                    setUpdater2((current: number) => current + 1)
                     return true;
                   }} disable={held} />
+
                   <ActualResolvedValue
                     value={innerValue}
                     allowedInputTypes={allowedInputTypes}
                     setValue={(newValue) => {
                       console.log("Setting value", newValue)
+
+                      if (!isArray(value)) setValue([newValue]);
                       if (newValue === undefined) {
                         value.splice(index, 1)
                       } else {
                         value[index] = newValue
                       }
+                      setValue([...value])
                       console.log("Setting value", value)
-                      setUpdater((current: number) => current + 1)
-                      setUpdater2((current: number) => current + 1)
                     }}
                   />
 
@@ -410,13 +431,11 @@ export const TypedArgument: React.FC<
 
             <DropPosition config={{ type: allowedInputTypes.nodeTypes }}
               onDrop={(grabbedObject) => {
-                // @ts-ignore
-                (value as (string | Filter | Action)[]).splice(0, 0, grabbedObject.data);
                 console.log("Dropped", grabbedObject, value)
-
-                setUpdater((current: number) => current + 1)
-                setUpdater2((current: number) => current + 1)
-                return true;
+                if (!isArray(value)) setValue([grabbedObject.data]);
+                value.splice(value.length, 0, grabbedObject.data)
+                setValue([...value]);
+                return true
               }} disable={held}
             >
               <Button>
@@ -425,7 +444,7 @@ export const TypedArgument: React.FC<
             </DropPosition>
 
           </div>
-        </div>
+        </div >
       )
     }
 
@@ -491,20 +510,7 @@ export const TypedArgument: React.FC<
         <ActualResolvedValue
           value={value}
           allowedInputTypes={allowedInputTypes}
-          setValue={(newValue) => {
-            console.log(object, key, newValue)
-            // @ts-ignore
-            if (object[key] != newValue) {
-              setUpdater((current: number) => current + 1)
-            }
-            // @ts-ignore
-            object[key] = newValue
-
-            // TODO: FIX this
-            // setUpdater((current: number) => current + 1)
-            // setUpdater2((current: number) => current + 1)
-
-          }}
+          setValue={setValue}
         />
       </div>
     )

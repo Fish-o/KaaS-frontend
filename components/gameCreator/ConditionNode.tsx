@@ -1,39 +1,51 @@
 import { useContext, useEffect, useId, useMemo, useState } from "react";
 import { Condition } from "../../lib/game/Conditions";
-import { ObjectIsGrabbedContext, SetDraggableNodeObjects, TypedNodeProperties } from "../gameCreator";
+import { ObjectIsGrabbedContext, SetDraggableNodeObjects } from "../gameCreator";
 import styles from "../../styles/gameCreator.module.scss";
-import { recurseResovlve } from "./FilterNode";
+import { recurseResolve } from "./FilterNode";
 import { TypedArgument } from "./typedNode";
+import useStateRef from "react-usestateref";
+import { TypedNodeProperties } from "../TypedNodeProperties";
 
 
 export const ConditionNode: React.FC<{ condition: Condition }> = ({ condition }) => {
   let held = useContext(ObjectIsGrabbedContext)
+  if (!condition.condition) {
+    // @ts-ignore
+    condition.condition = {}
+  }
+  const [data, setData, dataRef] = useStateRef(condition.condition);
+  useEffect(() => {
+    condition.condition = data;
+  }, [data, condition])
 
-  const [updater, setUpdater] = useState(Date.now())
+  useEffect(() => {
+    setData(data => recurseResolve(TypedNodeProperties[condition.type], data, null, held))
+  }, [condition])
+
+
 
   return useMemo(() => {
-    const preferedOrder = ["key", "a", "operator", "b", "not", "conditions"]
+    const preferedOrder = ["key", "a", "operator", "b", "conditions", "not"]
 
-    recurseResovlve(TypedNodeProperties[condition.type], condition, null, held)
     return (
       <div className={styles.conditionNode} style={held ? { border: "2px solid red" } : {}}>
         <h1>Condition: {condition.type}</h1>
-        {
-          JSON.stringify(condition)
-        }
+
         <div>
           {
             preferedOrder.map((key) => {
-              if (key in condition) {
+              if (key in dataRef.current) {
+                let value = dataRef.current[key as keyof typeof data];
+                let properties = TypedNodeProperties[condition.type][key as keyof typeof data]
                 return (
                   <TypedArgument
-                    value={condition[key]}
+                    value={value}
                     $key={key}
-                    object={condition}
-                    type={condition.type}
-                    held={held}
-                    setUpdater={setUpdater}
-                    acceptableTypes={TypedNodeProperties[condition.type][key]}
+                    setValue={(value) => {
+                      setData(data => ({ ...data, [key]: value }))
+                    }}
+                    acceptableTypes={properties}
                     orientation={"vertical"}
                   />
                 )
@@ -50,5 +62,5 @@ export const ConditionNode: React.FC<{ condition: Condition }> = ({ condition })
 
 
       </div >)
-  }, [condition, held, updater])
+  }, [condition, held, data])
 }

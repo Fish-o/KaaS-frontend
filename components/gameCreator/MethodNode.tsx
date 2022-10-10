@@ -62,10 +62,15 @@ export const MethodNode: React.FC<{ method: MethodObject }> = ({ method }) => {
 
         <div className={styles.rowList} >
 
-          <h1>{"{"}<Input initialValue={method.type.replace("method:", "")} onChange={(e) => {
-            method.type = "method:" + e.currentTarget.value as `method:${string}`
-          }} />
-            {"}"}
+          <h1>
+            {"{"}<Input size="xl" onMouseDown={
+              (e) => {
+                e.stopPropagation()
+              }
+            }
+              initialValue={method.type.replace("method:", "")} onChange={(e) => {
+                method.type = "method:" + e.currentTarget.value as `method:${string}`
+              }} />{"}"}
           </h1>
 
 

@@ -1,3 +1,4 @@
+import { DebugContext, debugLog } from ".";
 import { Action, performActions, Variable, VariableMap } from "./Actions";
 import {
   CardHolderResolvable,
@@ -13,9 +14,11 @@ import { Hand, Player } from "./Objects/Player";
 
 interface FilterObject {
   type: `filter:${string}`;
-  maxAmount: number;
-  minAmount: number;
-  filter: { [key: string]: any };
+
+  filter: {
+    maxAmount: number;
+    minAmount: number;
+  } & { [key: string]: any };
 }
 
 export interface DeckFilterObject extends FilterObject {
@@ -44,7 +47,10 @@ export interface DeckFilterObject extends FilterObject {
       actions?: Action[];
       condition?: Condition;
     };
-  }>;
+  }> & {
+    maxAmount: number;
+    minAmount: number;
+  };
 }
 
 export interface PlayerFilterObject extends FilterObject {
@@ -69,7 +75,10 @@ export interface PlayerFilterObject extends FilterObject {
       actions?: Action[];
       condition?: Condition;
     };
-  }>;
+  }> & {
+    maxAmount: number;
+    minAmount: number;
+  };
 }
 
 export interface HandFilterObject extends FilterObject {
@@ -99,7 +108,10 @@ export interface HandFilterObject extends FilterObject {
       actions?: Action[];
       condition?: Condition;
     };
-  }>;
+  }> & {
+    maxAmount: number;
+    minAmount: number;
+  };
 }
 
 export interface CardFilterObject extends FilterObject {
@@ -124,7 +136,10 @@ export interface CardFilterObject extends FilterObject {
       actions?: Action[];
       condition?: Condition;
     };
-  }>;
+  }> & {
+    maxAmount: number;
+    minAmount: number;
+  };
 }
 export type CardHolderFilterObject = HandFilterObject | DeckFilterObject;
 export type Filter =
@@ -136,42 +151,48 @@ export type Filter =
 export async function performFilter(
   filter: DeckFilterObject,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ): Promise<Deck[]>;
 export async function performFilter(
   filter: PlayerFilterObject,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ): Promise<Player[]>;
 export async function performFilter(
   filter: HandFilterObject,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ): Promise<Hand[]>;
 export async function performFilter(
   filter: CardFilterObject,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ): Promise<Card[]>;
 export async function performFilter(
   filter: Filter,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ): Promise<BaseGameObject[]>;
 export async function performFilter(
   filter: Filter,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ): Promise<any> {
   switch (filter.type) {
     case "filter:deck":
-      return await filterDecks(filter, variables, game);
+      return await filterDecks(filter, variables, game, debugContext);
     case "filter:player":
-      return await filterPlayers(filter, variables, game);
+      return await filterPlayers(filter, variables, game, debugContext);
     case "filter:hand":
-      return await filterHands(filter, variables, game);
+      return await filterHands(filter, variables, game, debugContext);
     case "filter:card":
-      return await filterCards(filter, variables, game);
+      return await filterCards(filter, variables, game, debugContext);
   }
 }
 
@@ -188,6 +209,7 @@ async function handleIterator<T extends BaseGameObject>(
   objects: readonly T[],
   variables: VariableMap,
   game: Game,
+  debugContext: DebugContext,
   iterator: Filter["filter"]["iterator"]
 ) {
   console.log("Handling iterator", iterator, variables);
@@ -199,7 +221,12 @@ async function handleIterator<T extends BaseGameObject>(
           if (parameter) {
             variables.set(parameter, object);
           }
-          let result = await performActions(actions, variables, game);
+          let result = await performActions(
+            actions,
+            variables,
+            game,
+            debugContext
+          );
           if (parameter) {
             variables.delete(parameter);
           }
@@ -215,7 +242,12 @@ async function handleIterator<T extends BaseGameObject>(
           if (parameter) {
             newVars.set(parameter, object);
           }
-          let result = await performCondition(condition, newVars, game);
+          let result = await performCondition(
+            condition,
+            newVars,
+            game,
+            debugContext
+          );
           return result;
         })
       );
@@ -225,9 +257,9 @@ async function handleIterator<T extends BaseGameObject>(
 
 async function filterPlayers(
   {
-    minAmount,
-    maxAmount,
     filter: {
+      minAmount,
+      maxAmount,
       iterator,
       $and,
       $not,
@@ -239,13 +271,31 @@ async function filterPlayers(
     },
   }: PlayerFilterObject,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ): Promise<Player[]> {
+  debugContext = {
+    ...debugContext,
+    depth: debugContext.depth + 1,
+  };
+  debugLog("Filtering players", debugContext, {
+    minAmount,
+    maxAmount,
+    iterator,
+    $and,
+    $not,
+    $or,
+    has_hand,
+    has_all_of_tags,
+    has_one_of_tags,
+    has_tag,
+  });
+
   const players = game.getAllPlayers();
   const ands: Player[][] = [];
   const not: Player[] = [];
 
-  await handleIterator(ands, players, variables, game, iterator);
+  await handleIterator(ands, players, variables, game, debugContext, iterator);
 
   if (has_all_of_tags)
     ands.push(players.filter((p) => p.hasAllTags(has_all_of_tags)));
@@ -256,20 +306,28 @@ async function filterPlayers(
   if (has_tag) ands.push(players.filter((p) => p.hasTag(has_tag)));
 
   if (has_hand) {
-    if (has_hand.minAmount !== 1 || has_hand.maxAmount !== 1)
+    if (has_hand.filter.minAmount !== 1 || has_hand.filter.maxAmount !== 1)
       throw new Error("has_hand can only have minAmount and maxAmount of 1");
-    const hand = (await filterHands(has_hand, variables, game)).shift()!;
+    const hand = (
+      await filterHands(has_hand, variables, game, debugContext)
+    ).shift()!;
     ands.push(players.filter((p) => p.hasHand(hand)));
   }
 
   if ($and)
     ands.push(
-      ...(await Promise.all($and.map((f) => filterPlayers(f, variables, game))))
+      ...(await Promise.all(
+        $and.map((f) => filterPlayers(f, variables, game, debugContext))
+      ))
     );
 
   if ($or)
     ands.push(
-      (await Promise.all($or.map((f) => filterPlayers(f, variables, game))))
+      (
+        await Promise.all(
+          $or.map((f) => filterPlayers(f, variables, game, debugContext))
+        )
+      )
         .reduce((acc, curr) => {
           return acc.concat(curr);
         }, [])
@@ -277,7 +335,8 @@ async function filterPlayers(
         .filter((p, i, a) => a.indexOf(p) === i)
     );
 
-  if ($not) not.push(...(await filterPlayers($not, variables, game)));
+  if ($not)
+    not.push(...(await filterPlayers($not, variables, game, debugContext)));
 
   // Combine the ands and remove the nots
   let filteredPlayers = [...players];
@@ -310,9 +369,9 @@ async function filterPlayers(
 
 async function filterHands(
   {
-    minAmount,
-    maxAmount,
     filter: {
+      minAmount,
+      maxAmount,
       iterator,
       $and,
       $not,
@@ -326,32 +385,60 @@ async function filterHands(
     },
   }: HandFilterObject,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ): Promise<Hand[]> {
+  debugLog("Filtering hands", debugContext, {
+    minAmount,
+    maxAmount,
+    iterator,
+    $and,
+    $not,
+    $or,
+    from_player,
+    has_all_of_tags,
+    has_one_of_tags,
+    has_tag,
+    has_card,
+    has_x_of_cards,
+  });
+
   const hands = game.getAllHands();
   const ands: Hand[][] = [];
   const not: Hand[] = [];
 
-  await handleIterator(ands, hands, variables, game, iterator);
+  await handleIterator(ands, hands, variables, game, debugContext, iterator);
 
   if ($and)
     ands.push(
-      ...(await Promise.all($and.map((f) => filterHands(f, variables, game))))
+      ...(await Promise.all(
+        $and.map((f) => filterHands(f, variables, game, debugContext))
+      ))
     );
   if ($or)
     ands.push(
-      (await Promise.all($or.map((f) => filterHands(f, variables, game))))
+      (
+        await Promise.all(
+          $or.map((f) => filterHands(f, variables, game, debugContext))
+        )
+      )
         .reduce((acc, curr) => {
           return acc.concat(curr);
         }, [])
         .filter((h, i, a) => a.indexOf(h) === i)
     );
-  if ($not) not.push(...(await filterHands($not, variables, game)));
+  if ($not)
+    not.push(...(await filterHands($not, variables, game, debugContext)));
 
   if (from_player && typeof from_player !== "string") {
-    if (from_player.minAmount !== 1 || from_player.maxAmount !== 1)
+    if (
+      from_player.filter.minAmount !== 1 ||
+      from_player.filter.maxAmount !== 1
+    )
       throw new Error("from_player can only have minAmount and maxAmount of 1");
-    const player = (await filterPlayers(from_player, variables, game)).shift()!;
+    const player = (
+      await filterPlayers(from_player, variables, game, debugContext)
+    ).shift()!;
     ands.push([player.hand]);
   } else if (isValidVariableName(from_player)) {
     const player = variables.get(from_player);
@@ -374,16 +461,23 @@ async function filterHands(
   if (has_tag) ands.push(hands.filter((h) => h.hasTag(has_tag)));
 
   if (has_card) {
-    if (has_card.minAmount !== 1 || has_card.maxAmount !== 1)
+    if (has_card.filter.minAmount !== 1 || has_card.filter.maxAmount !== 1)
       throw new Error("has_card can only have minAmount and maxAmount of 1");
 
-    const card = (await filterCards(has_card, variables, game)).shift()!;
+    const card = (
+      await filterCards(has_card, variables, game, debugContext)
+    ).shift()!;
     ands.push(hands.filter((h) => h.hasCard(card)));
   }
 
   if (has_x_of_cards) {
     const amount = has_x_of_cards.amount;
-    const cards = await filterCards(has_x_of_cards.cards, variables, game);
+    const cards = await filterCards(
+      has_x_of_cards.cards,
+      variables,
+      game,
+      debugContext
+    );
     ands.push(hands.filter((h) => h.hasXOfCards(amount, cards)));
   }
 
@@ -408,9 +502,9 @@ async function filterHands(
 
 async function filterCards(
   {
-    maxAmount,
-    minAmount,
     filter: {
+      maxAmount,
+      minAmount,
       iterator,
       $and,
       $not,
@@ -422,41 +516,49 @@ async function filterCards(
     },
   }: CardFilterObject,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ): Promise<Card[]> {
+  debugContext = { ...debugContext, depth: debugContext.depth + 1 };
+  debugLog("Filtering cards", debugContext, {
+    maxAmount,
+    minAmount,
+    iterator,
+    $and,
+    $not,
+    $or,
+    has_all_of_tags,
+    has_one_of_tags,
+    has_tag,
+    inside,
+  });
+
   const cards = game.getAllCards();
   const ands: Card[][] = [];
   const not: Card[] = [];
-  console.log("filterCards", {
-    maxAmount,
-    minAmount,
-    filter: {
-      iterator,
-      $and,
-      $not,
-      $or,
-      has_all_of_tags,
-      has_one_of_tags,
-      has_tag,
-      inside,
-    },
-  });
 
-  await handleIterator(ands, cards, variables, game, iterator);
+  await handleIterator(ands, cards, variables, game, debugContext, iterator);
 
   if ($and)
     ands.push(
-      ...(await Promise.all($and.map((f) => filterCards(f, variables, game))))
+      ...(await Promise.all(
+        $and.map((f) => filterCards(f, variables, game, debugContext))
+      ))
     );
   if ($or)
     ands.push(
-      (await Promise.all($or.map((f) => filterCards(f, variables, game))))
+      (
+        await Promise.all(
+          $or.map((f) => filterCards(f, variables, game, debugContext))
+        )
+      )
         .reduce((acc, curr) => {
           return acc.concat(curr);
         }, [])
         .filter((c, i, a) => a.indexOf(c) === i)
     );
-  if ($not) not.push(...(await filterCards($not, variables, game)));
+  if ($not)
+    not.push(...(await filterCards($not, variables, game, debugContext)));
 
   if (has_all_of_tags)
     ands.push(cards.filter((c) => c.hasAllTags(has_all_of_tags)));
@@ -468,7 +570,12 @@ async function filterCards(
 
   if (inside) {
     console.log("inside", inside);
-    const results = await resolveCardHolderResolvable(inside, variables, game);
+    const results = await resolveCardHolderResolvable(
+      inside,
+      variables,
+      game,
+      debugContext
+    );
     results.forEach((result) => {
       ands.push(cards.filter((card) => result.hasCard(card)));
     });
@@ -495,9 +602,9 @@ async function filterCards(
 
 async function filterDecks(
   {
-    minAmount,
-    maxAmount,
     filter: {
+      minAmount,
+      maxAmount,
       iterator,
 
       $and,
@@ -511,27 +618,51 @@ async function filterDecks(
     },
   }: DeckFilterObject,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ): Promise<Deck[]> {
+  debugContext = { ...debugContext, depth: debugContext.depth + 1 };
+  debugLog("Filtering deck", debugContext, {
+    minAmount,
+    maxAmount,
+    iterator,
+
+    $and,
+    $not,
+    $or,
+    has_all_of_tags,
+    has_one_of_tags,
+    has_tag,
+    has_x_of_cards,
+    has_card,
+  });
+
   const decks = game.getAllDecks();
   const ands: Deck[][] = [];
   const not: Deck[] = [];
 
-  await handleIterator(ands, decks, variables, game, iterator);
+  await handleIterator(ands, decks, variables, game, debugContext, iterator);
 
   if ($and)
     ands.push(
-      ...(await Promise.all($and.map((f) => filterDecks(f, variables, game))))
+      ...(await Promise.all(
+        $and.map((f) => filterDecks(f, variables, game, debugContext))
+      ))
     );
   if ($or)
     ands.push(
-      (await Promise.all($or.map((f) => filterDecks(f, variables, game))))
+      (
+        await Promise.all(
+          $or.map((f) => filterDecks(f, variables, game, debugContext))
+        )
+      )
         .reduce((acc, curr) => {
           return acc.concat(curr);
         }, [])
         .filter((d, i, a) => a.indexOf(d) === i)
     );
-  if ($not) not.push(...(await filterDecks($not, variables, game)));
+  if ($not)
+    not.push(...(await filterDecks($not, variables, game, debugContext)));
 
   if (has_all_of_tags)
     ands.push(decks.filter((d) => d.hasAllTags(has_all_of_tags)));
@@ -542,15 +673,22 @@ async function filterDecks(
   if (has_tag) ands.push(decks.filter((d) => d.hasTag(has_tag)));
 
   if (has_card) {
-    if (has_card.minAmount !== 1 || has_card.maxAmount !== 1)
+    if (has_card.filter.minAmount !== 1 || has_card.filter.maxAmount !== 1)
       throw new Error("has_card can only have minAmount and maxAmount of 1");
-    const card = (await filterCards(has_card, variables, game)).shift()!;
+    const card = (
+      await filterCards(has_card, variables, game, debugContext)
+    ).shift()!;
     ands.push(decks.filter((d) => d.hasCard(card)));
   }
 
   if (has_x_of_cards) {
     const amount = has_x_of_cards.amount;
-    const cards = await filterCards(has_x_of_cards.cards, variables, game);
+    const cards = await filterCards(
+      has_x_of_cards.cards,
+      variables,
+      game,
+      debugContext
+    );
     ands.push(decks.filter((d) => d.hasXOfCards(amount, cards)));
   }
 
@@ -575,13 +713,14 @@ async function filterDecks(
 export async function filterCardHolders(
   cardHolder: CardHolderFilterObject,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ): Promise<Deck[] | Hand[]> {
   switch (cardHolder.type) {
     case "filter:deck":
-      return await filterDecks(cardHolder, variables, game);
+      return await filterDecks(cardHolder, variables, game, debugContext);
     case "filter:hand":
-      return await filterHands(cardHolder, variables, game);
+      return await filterHands(cardHolder, variables, game, debugContext);
   }
 }
 

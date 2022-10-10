@@ -1,4 +1,5 @@
 import { Variable, VariableMap } from ".";
+import { DebugContext } from "..";
 import {
   awaitEvent,
   broadcastGameEvent,
@@ -44,9 +45,17 @@ class ActionDeckDraw extends BaseDeckAction {
 async function performDeckShuffleAction(
   { type, args: { deck }, returns }: ActionDeckShuffle,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ) {
-  const decks = await resolveDeckResolvable(deck, variables, game, Infinity, 1);
+  const decks = await resolveDeckResolvable(
+    deck,
+    variables,
+    game,
+    debugContext,
+    Infinity,
+    1
+  );
 
   let randomSeed: string;
   if (game.is_host) {
@@ -77,14 +86,15 @@ async function performDeckShuffleAction(
 async function preformDeckDrawAction(
   { type, args: { deck, count, to }, returns }: ActionDeckDraw,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ) {
   const resolved_deck = (
-    await resolveDeckResolvable(deck, variables, game, 1, 1)
+    await resolveDeckResolvable(deck, variables, game, debugContext, 1, 1)
   )[0];
 
   const holder = (
-    await resolveCardHolderResolvable(to, variables, game, 1, 1)
+    await resolveCardHolderResolvable(to, variables, game, debugContext, 1, 1)
   )[0];
 
   const cards = resolved_deck.grabCardsFromDeck(count);
@@ -99,13 +109,14 @@ async function preformDeckDrawAction(
 export function preformDeckAction(
   action: DeckAction,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ) {
   switch (action.type) {
     case "action:deck.shuffle":
-      return performDeckShuffleAction(action, variables, game);
+      return performDeckShuffleAction(action, variables, game, debugContext);
     case "action:deck.draw":
-      return preformDeckDrawAction(action, variables, game);
+      return preformDeckDrawAction(action, variables, game, debugContext);
   }
 }
 

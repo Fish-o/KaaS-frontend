@@ -1,4 +1,5 @@
 import { Action, VariableMap } from ".";
+import { DebugContext } from "..";
 import { performEvent } from "../Events";
 import { performFilter } from "../Filters";
 import { Game, isValidVariableName } from "../Game";
@@ -32,11 +33,12 @@ class ActionGetData extends BaseDataAction {
 async function preformSetDataAction(
   { type, args: { object, key, value } }: ActionSetData,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ) {
   let resolvedObjects = isValidVariableName(object)
     ? variables.get(object)
-    : await performFilter(object, variables, game);
+    : await performFilter(object, variables, game, debugContext);
   let resolvedObject: BaseGameObject | undefined = undefined;
   if (!resolvedObjects) throw new Error("No object found");
 
@@ -67,11 +69,12 @@ async function preformSetDataAction(
 async function preformGetDataAction(
   { type, args: { object, key }, returns }: ActionGetData,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ) {
   let resolvedObjects = isValidVariableName(object)
     ? variables.get(object)
-    : await performFilter(object, variables, game);
+    : await performFilter(object, variables, game, debugContext);
   let resolvedObject: BaseGameObject | undefined = undefined;
   if (!resolvedObjects) throw new Error("No object found");
 
@@ -98,13 +101,14 @@ export type DataAction = ActionSetData | ActionGetData;
 export function preformDataAction(
   action: DataAction,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ) {
   switch (action.type) {
     case "action:data.set":
-      return preformSetDataAction(action, variables, game);
+      return preformSetDataAction(action, variables, game, debugContext);
     case "action:data.get":
-      return preformGetDataAction(action, variables, game);
+      return preformGetDataAction(action, variables, game, debugContext);
   }
 }
 export function actionIsDataAction(action: BaseAction): action is DataAction {

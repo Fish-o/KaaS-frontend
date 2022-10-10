@@ -1,3 +1,4 @@
+import { DebugContext } from ".";
 import { Action, performActions, VariableMap } from "./Actions";
 import { Game } from "./Game";
 
@@ -10,7 +11,8 @@ export interface MethodObject {
 export async function performMethod<T extends MethodObject>(
   methodName: `method:${string}`,
   game: Game,
-  variables: VariableMap
+  variables: VariableMap,
+  debugContext: DebugContext
   // broadcast: boolean = false
 ) {
   const method = game.getMethodFromName(methodName);
@@ -26,6 +28,6 @@ export async function performMethod<T extends MethodObject>(
   //       throw new Error(`${name} is not a valid variable name`);
   //     variables.set(name, entered);
   //   }
-  await performActions(method.actions, variables, game);
+  await performActions(method.actions, variables, game, debugContext);
   // }
 }

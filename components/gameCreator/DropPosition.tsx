@@ -24,7 +24,7 @@ function checkDropPositionCompatibility(dropType: string | string[], objectType:
 }
 
 
-function DropPositionObject(
+function DropPositionObject<T>(
   {
     children,
     active,
@@ -246,9 +246,10 @@ export const IdleHoverChecker:
   React.FC<{
     onHoverExit: () => void,
     onHoverEnter: () => void,
-    disable: boolean,
     children?: JSX.Element[] | JSX.Element
-  }> = ({ onHoverExit, onHoverEnter, disable, children }) => {
+  }> = ({ onHoverExit, onHoverEnter, children }) => {
+    let disable = useContext(ObjectIsGrabbedContext)
+
     const grabbedObject = useContext(GrabbedObjectContext)
     const { data: grabbedData, } = grabbedObject || {}
     // const [position, setPosition] = useState({

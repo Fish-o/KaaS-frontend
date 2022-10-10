@@ -12,6 +12,7 @@ import {
   PlayerFilterObject,
 } from "../Filters";
 import { Game, isValidVariableName } from "../Game";
+import { DebugContext } from "..";
 
 class BaseActionFind<T extends Filters, N extends string> extends BaseAction {
   type: `action:find.${N}`;
@@ -38,20 +39,21 @@ export type FindAction =
 export async function performFindAction(
   action: FindAction,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ) {
   if (!action.args.filter)
     throw new Error("Required argument 'filter' not provided");
   const enteredFilter = action.args.filter;
   let result;
   if (filterIsPlayerFilter(enteredFilter))
-    result = await performFilter(enteredFilter, variables, game);
+    result = await performFilter(enteredFilter, variables, game, debugContext);
   else if (filterIsDeckFilter(enteredFilter))
-    result = await performFilter(enteredFilter, variables, game);
+    result = await performFilter(enteredFilter, variables, game, debugContext);
   else if (filterIsCardFilter(enteredFilter))
-    result = await performFilter(enteredFilter, variables, game);
+    result = await performFilter(enteredFilter, variables, game, debugContext);
   else if (filterIsHandFilter(enteredFilter))
-    result = await performFilter(enteredFilter, variables, game);
+    result = await performFilter(enteredFilter, variables, game, debugContext);
   else throw new Error(`Invalid filter type ${action.args?.filter?.type}`);
 
   if (!action.returns) return;

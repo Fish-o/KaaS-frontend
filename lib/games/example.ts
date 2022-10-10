@@ -49,9 +49,9 @@ const exampleGame: GameObject = {
               type: "filter:deck",
               filter: {
                 has_tag: "draw",
+                maxAmount: 1,
+                minAmount: 1,
               },
-              maxAmount: 1,
-              minAmount: 1,
             },
           },
         },
@@ -61,9 +61,10 @@ const exampleGame: GameObject = {
           args: {
             filter: {
               type: "filter:deck",
-              maxAmount: 1,
-              minAmount: 1,
+
               filter: {
+                maxAmount: 1,
+                minAmount: 1,
                 has_tag: "discard",
               },
             },
@@ -78,9 +79,10 @@ const exampleGame: GameObject = {
           args: {
             filter: {
               type: "filter:deck",
-              maxAmount: 1,
-              minAmount: 1,
+
               filter: {
+                maxAmount: 1,
+                minAmount: 1,
                 has_tag: "draw",
               },
             },
@@ -95,9 +97,10 @@ const exampleGame: GameObject = {
           args: {
             filter: {
               type: "filter:card",
-              maxAmount: 1,
-              minAmount: 0,
+
               filter: {
+                maxAmount: 1,
+                minAmount: 0,
                 inside: "$draw",
               },
             },
@@ -155,13 +158,13 @@ const exampleGame: GameObject = {
                   type: "filter:deck",
                   filter: {
                     has_tag: "draw",
+                    maxAmount: 1,
+                    minAmount: 1,
                   },
-                  maxAmount: 1,
-                  minAmount: 1,
                 },
+                maxAmount: 1,
+                minAmount: 0,
               },
-              maxAmount: 1,
-              minAmount: 0,
             },
           },
           returns: {
@@ -173,11 +176,8 @@ const exampleGame: GameObject = {
           args: {
             filter: {
               type: "filter:hand",
-              maxAmount: 1,
-              minAmount: 1,
-              filter: {
-                from_player: "$selected",
-              },
+
+              filter: { maxAmount: 1, minAmount: 1, from_player: "$selected" },
             },
           },
           returns: {
@@ -194,143 +194,8 @@ const exampleGame: GameObject = {
       ],
     },
   ],
+  methods: [],
   players: [],
 };
-
-// const testingGame: GameObject = {
-//   type: "game",
-//   name: "test",
-//   description: "Eyo",
-//   decks: [
-//     {
-//       type: "object:deck",
-//       object: {
-//         cards: [
-//           {
-//             type: "object:card",
-//             object: {
-//               name: "Card 1.1",
-//               description: null,
-//               tags: ["card", "test1"],
-//             },
-//           },
-//           {
-//             type: "object:card",
-//             object: {
-//               name: "Card 1.2",
-//               description: null,
-//               tags: ["card", "test1"],
-//             },
-//           },
-//           {
-//             type: "object:card",
-//             object: {
-//               name: "Card 2",
-//               description: null,
-//               tags: ["card", "test2"],
-//             },
-//           },
-//           {
-//             type: "object:card",
-//             object: {
-//               name: "Filler 1",
-//               description: null,
-//               tags: ["a"],
-//             },
-//           },
-//           {
-//             type: "object:card",
-//             object: {
-//               name: "Filler 2",
-//               description: null,
-//               tags: ["a"],
-//             },
-//           },
-//           {
-//             type: "object:card",
-//             object: {
-//               name: "Filler 3",
-//               description: null,
-//               tags: ["a"],
-//             },
-//           },
-//           {
-//             type: "object:card",
-//             object: {
-//               name: "Filler 4",
-//               description: null,
-//               tags: ["a"],
-//             },
-//           },
-//         ],
-//         type: DeckType.finite,
-//         cardsOpen: false,
-//         tags: ["discard"],
-//         hidden: false,
-//         overflow: null,
-//       },
-//     },
-//     {
-//       type: "object:deck",
-//       object: {
-//         cards: [
-//           {
-//             type: "object:card",
-//             object: {
-//               name: "4H",
-//               description: null,
-//               tags: ["card", "test1"],
-//             },
-//           },
-//         ],
-//         type: DeckType.finite,
-//         cardsOpen: true,
-//         tags: ["draw"],
-//         hidden: false,
-//         overflow: null,
-//       },
-//     },
-//   ],
-//   settings: {
-//     minPlayerCount: 2,
-//     maxPlayerCount: 100,
-//     turnDirection: "clockwise",
-//   },
-
-//   events: [
-//     {
-//       type: "event:game.init",
-//       actions: [
-//         {
-//           // Get deck 1
-//           type: "action:find.decks",
-//           args: {
-//             filter: {
-//               type: "filter:deck",
-//               maxAmount: 1,
-//               minAmount: 1,
-//               filter: {
-//                 has_tag: "discard",
-//               },
-//             },
-//           },
-//           returns: {
-//             found_one: "$discard",
-//           },
-//         },
-//         {
-//           // Get deck 1
-//           type: "action:cards.move",
-//           args: {
-//             cards: "$discard",
-//             to: "$discard",
-//           },
-//         },
-//       ],
-//       returns: {},
-//     },
-//   ],
-//   players: [],
-// };
 
 export default exampleGame;

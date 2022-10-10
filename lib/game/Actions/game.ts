@@ -20,8 +20,8 @@ import { Game } from "../Game";
 //   game: Game
 // ){
 //   const { winners, losers } = action.args;
-//   const winners_ = await filter(winners, variables, game);
-//   const losers_ = await resolvePlayers(losers, variables, game);
+//   const winners_ = await filter(winners, variables, game, debugContext);
+//   const losers_ = await resolvePlayers(losers, variables, game, debugContext);
 //   game.win(winners_, losers_);
 // }
 
@@ -32,7 +32,7 @@ import { Game } from "../Game";
 // ) {
 //   switch (action.type) {
 //     case "action:game.win":
-//       return performWinGameAction(action, variables, game);
+//       return performWinGameAction(action, variables, game, debugContext);
 //   }
 // }
 

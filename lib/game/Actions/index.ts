@@ -1,3 +1,4 @@
+import { DebugContext, debugLog } from "..";
 import {
   CardFilterObject,
   CardHolderFilterObject,
@@ -77,21 +78,26 @@ export type Action =
 export async function performAction(
   action: Action,
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ): Promise<void | null | boolean> {
-  console.log("performing action", action, variables);
+  debugContext = {
+    ...debugContext,
+    depth: debugContext.depth + 1,
+  };
+  debugLog(`Performing action: ${action.type}`, debugContext, action);
   if (actionIsLogicAction(action))
-    return await performLogicAction(action, variables, game);
+    return await performLogicAction(action, variables, game, debugContext);
   else if (actionIsFindAction(action))
-    return await performFindAction(action, variables, game);
+    return await performFindAction(action, variables, game, debugContext);
   else if (actionIsCardAction(action))
-    return await performCardAction(action, variables, game);
+    return await performCardAction(action, variables, game, debugContext);
   else if (actionIsUserInputAction(action))
-    return await performUserInputAction(action, variables, game);
+    return await performUserInputAction(action, variables, game, debugContext);
   else if (actionIsDeckAction(action))
-    return await preformDeckAction(action, variables, game);
+    return await preformDeckAction(action, variables, game, debugContext);
   else if (actionIsDataAction(action))
-    return await preformDataAction(action, variables, game);
+    return await preformDataAction(action, variables, game, debugContext);
   else if (action.type === "action:debug") {
     const find = action.args.find;
     let res = undefined;
@@ -100,7 +106,7 @@ export async function performAction(
       res = variables.get(find);
       // log("[DEBUG]", "found variable", find, res);
     } else {
-      res = await performFilter(find, variables, game);
+      res = await performFilter(find, variables, game, debugContext);
       // log("[DEBUG]", "found", res);
     }
     // @ts-expect-error
@@ -110,10 +116,11 @@ export async function performAction(
 export async function performActions(
   actions: Action[],
   variables: VariableMap,
-  game: Game
+  game: Game,
+  debugContext: DebugContext
 ): Promise<void | null | boolean> {
   for (const action of actions) {
-    let value = await performAction(action, variables, game);
+    let value = await performAction(action, variables, game, debugContext);
     if (value !== undefined) return value;
   }
 }

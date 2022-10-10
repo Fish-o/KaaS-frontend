@@ -305,6 +305,11 @@ export class Game {
     this._events = eventsMaps;
   }
   private storeMethods(methods: MethodObject[]): void {
+    if (!methods) {
+      this._methods = new Map();
+      return;
+    }
+
     const methodsMap: Map<MethodObject["type"], MethodObject> = new Map();
     for (let method of methods) methodsMap.set(method.type, method);
     this._methods = methodsMap;
