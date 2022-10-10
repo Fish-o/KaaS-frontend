@@ -48,14 +48,7 @@ type EverythingByType = FiltersByType & ActionsByType & ConditionsByType;
 // This is a hack to get around the fact that the type system doesn't allow for runtime shit.
 // If you see an error make sure to do exactly what it says.
 type FilterTypedObject<K extends keyof BT, BT> = {
-  [K2 in keyof BT[K]]-?: //   EverythingByType[K][K2] extends PlayerResolvable ? ["required", "variable", "filter:player"] : // EverythingByType[K][K2] extends CardResolvable ? ["required", "variable", "filter:card"] : // EverythingByType[K][K2] extends CardHolderResolvable ? ["required", "variable", "filter:card", "filter:deck"] :
-  //     EverythingByType[K][K2] extends HandResolvable ? ["required", "variable", "filter:hand"] :
-  //       EverythingByType[K][K2] extends DeckResolvable ? ["required", "variable", "filter:deck"] :
-
-  // EverythingByType[K][K2] extends Resolvable ? ["required", "variable", EverythingByType[K][K2]] :
-
-  // BT[K][K2] extends Resolvable | string ? ["required", "variable", "string"] :
-  BT[K][K2] extends Resolvable
+  [K2 in keyof BT[K]]-?: BT[K][K2] extends Resolvable // BT[K][K2] extends Resolvable | string ? ["required", "variable", "string"] : // EverythingByType[K][K2] extends Resolvable ? ["required", "variable", EverythingByType[K][K2]] : //       EverythingByType[K][K2] extends DeckResolvable ? ["required", "variable", "filter:deck"] : //     EverythingByType[K][K2] extends HandResolvable ? ["required", "variable", "filter:hand"] : //   EverythingByType[K][K2] extends PlayerResolvable ? ["required", "variable", "filter:player"] : // EverythingByType[K][K2] extends CardResolvable ? ["required", "variable", "filter:card"] : // EverythingByType[K][K2] extends CardHolderResolvable ? ["required", "variable", "filter:card", "filter:deck"] :
     ? [
         "required",
         "variable",
@@ -382,7 +375,7 @@ export let TypedNodeProperties: {
       "filter:hand",
       "filter:player",
     ],
-    value: ["required", "string", "number", "boolean"],
+    value: ["required", "string"],
   },
   "action:user_input.select_players": {
     from: ["variable", "filter:player"],
@@ -440,10 +433,10 @@ export let TypedNodeProperties: {
     not: ["required", "boolean"],
     operator: [
       "required",
-      "string:contains",
       "string:=",
       "string:>",
       "string:<",
+      "string:contains",
       "string:!=",
       "string:starts_with",
       "string:ends_with",
@@ -456,10 +449,10 @@ export let TypedNodeProperties: {
     not: ["required", "boolean"],
     operator: [
       "required",
-      "string:contains",
       "string:=",
       "string:>",
       "string:<",
+      "string:contains",
       "string:!=",
       "string:starts_with",
       "string:ends_with",

@@ -126,10 +126,14 @@ export const FilterNode: React.FC<{ filter: Filter }> = ({ filter }) => {
   // TODO convert this into a priority list
   if ((dataRef.current.iterator?.actions?.length ?? 0) > 0 && !dataRef.current.iterator?.parameter) {
     // Reorder and put itterator_parameter at the top lol
+    // @ts-ignore
+
     let actions = dataRef.current.iterator.actions
     // @ts-ignore
     delete dataRef.current.iterator.actions
+    // @ts-ignore
     dataRef.current.iterator.parameter = "$element"
+    // @ts-ignore
     dataRef.current.iterator.actions = actions
   }
 

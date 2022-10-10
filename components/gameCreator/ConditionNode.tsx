@@ -21,6 +21,7 @@ export const ConditionNode: React.FC<{ condition: Condition }> = ({ condition })
 
   useEffect(() => {
     setData(data => recurseResolve(TypedNodeProperties[condition.type], data, null, held))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [condition])
 
 
@@ -62,5 +63,6 @@ export const ConditionNode: React.FC<{ condition: Condition }> = ({ condition })
 
 
       </div >)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [condition, held, data])
 }

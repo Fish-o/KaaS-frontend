@@ -194,6 +194,7 @@ export default function DropPosition<T extends ValidElementTypes>(
         }
       )
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, disabledByDistance])
   let width = (grabbedObject?.width ?? 100) * scale
   if (width > 100) width = 100

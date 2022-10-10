@@ -7,7 +7,7 @@ import { useContext, useRef, useState } from "react";
 
 function recursivelyCopy<T>(data: T): T {
   if (Array.isArray(data)) {
-    return data.map(recursivelyCopy) as T
+    return data.map(recursivelyCopy) as unknown as T
   }
   if (typeof data === "object") {
     // @ts-ignore
