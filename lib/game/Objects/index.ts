@@ -18,8 +18,12 @@ export class BaseGameObject {
     this._onUpdate.forEach((c) => c(object));
   }
 
-  constructor(tags: string[], data: Record<string, string>) {
-    this._id = nanoid();
+  constructor(
+    tags: string[],
+    data: Record<string, string>,
+    id: string = nanoid()
+  ) {
+    this._id = id;
     this._tags = tags;
     this._data = data;
   }

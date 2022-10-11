@@ -83,11 +83,14 @@ export function resolveHand(handObject: HandObject): Hand {
     data: handObject.object.data ?? {},
   });
 }
-export function resolveDecks(decks: DeckObject[]): Deck[] {
+export function resolveDecks(
+  decks: DeckObject[],
+  makeID: () => string
+): Deck[] {
   return decks.map((deck) => {
     let cardBundle: Card[] = [];
     if (deck.object.card_bundles) {
-      cardBundle = ResolveBundles(deck.object.card_bundles);
+      cardBundle = ResolveBundles(deck.object.card_bundles, makeID);
     }
     return new Deck({
       tags: deck.object.tags,

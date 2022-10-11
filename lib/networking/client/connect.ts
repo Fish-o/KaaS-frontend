@@ -59,13 +59,16 @@ export async function join_lobby(
       publicKey: host_public_key,
     });
     log("game/conn", "Getting lobby key...");
-    const { encrypted_lobby_key, game: newGame } =
-      await perform_connection_with_host(
-        user_id,
-        lobby,
-        encrypted_password,
-        player_name
-      );
+    const {
+      encrypted_lobby_key,
+      game: newGame,
+      seed,
+    } = await perform_connection_with_host(
+      user_id,
+      lobby,
+      encrypted_password,
+      player_name
+    );
     log("game/conn", "Decrypting lobby key...");
     const lobby_key = await decrypt({
       text: encrypted_lobby_key,
@@ -73,7 +76,7 @@ export async function join_lobby(
     });
     log("game/conn", `Got connection to lobby with key ${lobby_key}`);
     const imported_lobby_key = await importSymmetricKey(lobby_key);
-    return { lobby_key: imported_lobby_key, gameObj: newGame };
+    return { lobby_key: imported_lobby_key, gameObj: newGame, seed };
   } catch (e) {
     console.error("game/conn", "Error joining lobby:", e);
     throw e;

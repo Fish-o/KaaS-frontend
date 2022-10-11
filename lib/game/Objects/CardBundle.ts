@@ -5,15 +5,15 @@ export enum BundleType {
   standard_54 = "standard_54",
 }
 
-function ResolveBundle(bundle: BundleType): Card[] {
+function ResolveBundle(bundle: BundleType, makeID: () => string): Card[] {
   switch (bundle) {
     case BundleType.standard_52:
-      return ResolveStandard52();
+      return ResolveStandard52(makeID);
     case BundleType.standard_54:
-      return ResolveStandard54();
+      return ResolveStandard54(makeID);
   }
 }
-function ResolveStandard52(): Card[] {
+function ResolveStandard52(makeID: () => string): Card[] {
   const suits = [
     ["spades", "S"],
     ["hearts", "H"],
@@ -48,6 +48,7 @@ function ResolveStandard52(): Card[] {
             suit: suit[0],
             rank: rank[0],
           },
+          id: makeID(),
         })
       );
     }
@@ -55,8 +56,8 @@ function ResolveStandard52(): Card[] {
   return cards;
 }
 
-function ResolveStandard54(): Card[] {
-  const cards = ResolveStandard52();
+function ResolveStandard54(makeID: () => string): Card[] {
+  const cards = ResolveStandard52(makeID);
   for (let i = 0; i < 2; i++) {
     cards.push(
       new Card({
@@ -67,16 +68,20 @@ function ResolveStandard54(): Card[] {
           suit: "joker",
           rank: "joker",
         },
+        id: makeID(),
       })
     );
   }
   return cards;
 }
 
-export function ResolveBundles(bundles: BundleType[]): Card[] {
+export function ResolveBundles(
+  bundles: BundleType[],
+  makeID: () => string
+): Card[] {
   const cards: Card[] = [];
   for (const bundle of bundles) {
-    cards.push(...ResolveBundle(bundle));
+    cards.push(...ResolveBundle(bundle, makeID));
   }
   return cards;
 }

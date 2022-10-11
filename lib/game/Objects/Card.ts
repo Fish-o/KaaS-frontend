@@ -19,6 +19,7 @@ export class Card extends BaseGameObject {
     image_name?: string;
     tags: string[];
     data: Record<string, string>;
+    id?: string;
   }) {
     const img = new Image(config.cardWidth, config.cardHeight);
 
@@ -27,7 +28,7 @@ export class Card extends BaseGameObject {
       this._loadedImage = img;
       this._imageLoaded = true;
     };
-    super(opts.tags, opts.data);
+    super(opts.tags, opts.data, opts.id);
 
     this.imageName = opts.image_name ?? "back.jpg";
     this._name = opts.name;

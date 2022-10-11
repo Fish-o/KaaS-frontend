@@ -38,6 +38,8 @@ function sfc32(a: number, b: number, c: number, d: number) {
   };
 }
 
+let currentSeed = Math.random();
+
 export function shuffle(array: any[], input_seed: string | number) {
   console.log("shuffle", array, input_seed);
   // Create cyrb128 state:
@@ -68,12 +70,44 @@ export function shuffle(array: any[], input_seed: string | number) {
 }
 
 export function makeRandomString(length: number) {
-  var result = "";
-  var characters =
+  let result = "";
+  let characters =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  var charactersLength = characters.length;
+  let charactersLength = characters.length;
   for (var i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    result += characters.charAt(Math.floor(random() * charactersLength));
   }
   return result;
+}
+
+export function setSeed(seed: number | string) {
+  if (typeof seed === "string") {
+    currentSeed = cyrb128(seed)[0];
+  } else {
+    currentSeed = seed;
+  }
+}
+
+export function random() {
+  currentSeed = (currentSeed * 9301 + 49297) % 233280;
+  return currentSeed / 233280;
+}
+
+export function randomStringGenerator(
+  length: number,
+  inputSeed: string | number
+) {
+  var seed = cyrb128(inputSeed.toString());
+  let rand = sfc32(seed[0], seed[1], seed[2], seed[3]);
+  return function () {
+    let result = "";
+    let randomNumber = rand();
+    let characters =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let charactersLength = characters.length;
+    for (var i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(randomNumber * charactersLength));
+    }
+    return result;
+  };
 }

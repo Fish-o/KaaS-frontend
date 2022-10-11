@@ -122,16 +122,7 @@ export async function hostConnectHandler(game: Game, lobby: Channel) {
             type: "object:hand",
             object: {
               name: "hand",
-              cards: [
-                {
-                  type: "object:card",
-                  object: {
-                    name: player_name,
-                    description: "a",
-                    tags: [],
-                  },
-                },
-              ],
+              cards: [],
               tags: [],
             },
           },
@@ -151,6 +142,7 @@ export async function hostConnectHandler(game: Game, lobby: Channel) {
         success: true,
         game: game.makeGameObject(),
         encrypted_lobby_key: encrypted_lobby_key,
+        seed: game.seed,
       };
       lobby.trigger("client-connect", response);
     }

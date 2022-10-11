@@ -56,6 +56,7 @@ export type SuccessfulConnectionResponse = {
   success: true;
   encrypted_lobby_key: string;
   game: GameObject;
+  seed: string;
 };
 
 export type FailedConnectionResponse = {
