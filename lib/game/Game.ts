@@ -23,6 +23,7 @@ import { join_lobby } from "../networking/client/connect";
 import { log, UI } from "../graphics/ui";
 import exampleGame from "../games/example";
 import { MethodObject } from "./Method";
+import { makeRandomString, randomStringGenerator } from "../random";
 
 export enum GameState {
   Setup = "setup",
@@ -153,12 +154,22 @@ export class Game {
 
   public ui: UI;
   private _methods: Map<`method:${string}`, MethodObject>;
+  public seed: string;
+
+  // public randomNum: () => number;
+  public makeID: () => string;
   constructor(
     private gameObject: GameObject,
     auth: { privateKey: CryptoKey; publicKey: CryptoKey },
-    lobbyInfo?: LobbyInfo
+    lobbyInfo?: LobbyInfo,
+    seed?: string
   ) {
     this._user_id = lobbyInfo?.user_id || nanoid();
+
+    if (seed) this.seed = seed;
+    else this.seed = makeRandomString(16);
+
+    this.makeID = randomStringGenerator(10, this.seed);
 
     const { privateKey, publicKey } = auth;
 
@@ -171,7 +182,8 @@ export class Game {
     this._maxPlayerCount = gameObject.settings.maxPlayerCount;
     this._minPlayerCount = gameObject.settings.minPlayerCount;
     this._players = gameObject.players.map((p) => resolvePlayer(p));
-    this._decks = resolveDecks(gameObject.decks);
+
+    this._decks = resolveDecks(gameObject.decks, this.makeID);
     this._state = GameState.Setup;
 
     if (lobbyInfo) {
@@ -355,7 +367,7 @@ export class Game {
     // this._lobbyHost = false;
     const { privateKey, publicKey } = await generateKeyPair();
 
-    const { lobby_key, gameObj } = await join_lobby(
+    const { lobby_key, gameObj, seed } = await join_lobby(
       user_id,
       publicKey,
       privateKey,
@@ -374,7 +386,8 @@ export class Game {
         user_id: user_id,
         pusher,
         lobby,
-      }
+      },
+      seed
     );
     pusher.unbind();
     pusher.unbind_all();
