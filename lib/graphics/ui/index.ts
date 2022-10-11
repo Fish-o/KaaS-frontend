@@ -136,6 +136,24 @@ export class UI {
     this.buttons = [];
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
+
+  public gameWin(player: Player) {
+    this.addButton(
+      new Button({
+        x: 200,
+        y: 0,
+        height: 100,
+        width: 500,
+        fontSize: 75,
+        key: "game_win",
+        text: `Game win ${player.name}... Redirecting...`,
+        color: "#07d853",
+        display: true,
+        hideOnClick: true,
+        onClick: (x, y) => {},
+      })
+    );
+  }
 }
 export function log(module: string, ...args: any[]) {
   console.log(`[${module}]`, ...args);

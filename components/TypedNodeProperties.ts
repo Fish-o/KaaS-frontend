@@ -476,6 +476,10 @@ export let TypedNodeProperties: {
     deck: ["required", "variable", "filter:deck"],
     to: ["required", "variable", "filter:deck", "filter:hand"],
   },
+  "action:game.win": {
+    losers: ["variable", "filter:player"],
+    winners: ["required", "variable", "filter:player"],
+  },
 };
 export let TypedActionReturns: {
   [K in keyof ActionReturnsByType]: FilterTypedObject<K, ActionReturnsByType>;
@@ -522,5 +526,8 @@ export let TypedActionReturns: {
   },
   "action:user_input.select_players": {
     selected: ["variable"],
+  },
+  "action:game.win": {
+    winner: ["required", "variable"],
   },
 };

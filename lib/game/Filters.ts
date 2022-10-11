@@ -470,7 +470,7 @@ async function filterHands(
     ands.push(hands.filter((h) => h.hasCard(card)));
   }
 
-  if (has_x_of_cards) {
+  if (has_x_of_cards?.cards) {
     const amount = has_x_of_cards.amount;
     const cards = await filterCards(
       has_x_of_cards.cards,
@@ -497,6 +497,7 @@ async function filterHands(
     );
 
   // Done!
+  debugLog("Filtered Hand", debugContext, filteredHands);
   return filteredHands;
 }
 
@@ -520,18 +521,23 @@ async function filterCards(
   debugContext: DebugContext
 ): Promise<Card[]> {
   debugContext = { ...debugContext, depth: debugContext.depth + 1 };
-  debugLog("Filtering cards", debugContext, {
-    maxAmount,
-    minAmount,
-    iterator,
-    $and,
-    $not,
-    $or,
-    has_all_of_tags,
-    has_one_of_tags,
-    has_tag,
-    inside,
-  });
+  debugLog(
+    "Filtering cards",
+    debugContext,
+    {
+      maxAmount,
+      minAmount,
+      iterator,
+      $and,
+      $not,
+      $or,
+      has_all_of_tags,
+      has_one_of_tags,
+      has_tag,
+      inside,
+    },
+    variables
+  );
 
   const cards = game.getAllCards();
   const ands: Card[][] = [];
@@ -576,6 +582,8 @@ async function filterCards(
       game,
       debugContext
     );
+    console.log("inside", results);
+
     results.forEach((result) => {
       ands.push(cards.filter((card) => result.hasCard(card)));
     });
@@ -691,6 +699,7 @@ async function filterDecks(
     );
     ands.push(decks.filter((d) => d.hasXOfCards(amount, cards)));
   }
+  debugLog("Filtered Deck", debugContext, decks);
 
   // Combine the ands and remove the nots
   let filteredDecks = [...decks];
@@ -706,6 +715,7 @@ async function filterDecks(
     throw new Error(
       `Not enough decks found. minAmount: ${minAmount}, found: ${filteredDecks.length}`
     );
+  debugLog("Filtered Deck", debugContext, [...filteredDecks]);
 
   return filteredDecks;
 }

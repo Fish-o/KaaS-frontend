@@ -46,11 +46,20 @@ interface GameNewTurnEventObject extends BaseEventObject {
   actions: Action[];
 }
 
+interface GameEndEventObject extends BaseEventObject {
+  type: `event:game.end`;
+  returns: Partial<{
+    winner: Variable;
+  }>;
+  actions: Action[];
+}
+
 export type EventObject =
   | CardMovedEventObject
   | GameInitEventObject
   | GameStartEventObject
-  | GameNewTurnEventObject;
+  | GameNewTurnEventObject
+  | GameEndEventObject;
 
 export async function performEvent<T extends EventObject>(
   eventData: {

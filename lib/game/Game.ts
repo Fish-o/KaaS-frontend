@@ -430,17 +430,7 @@ export class Game {
           type: "object:hand",
           object: {
             name: "hand",
-            cards: [
-              {
-                type: "object:card",
-                object: {
-                  name: playerName,
-                  description: "a",
-                  tags: [],
-                  data: {},
-                },
-              },
-            ],
+            cards: [],
             tags: [],
           },
         },
@@ -537,6 +527,25 @@ export class Game {
     const gameObject = _.cloneDeep(this.gameObject);
     gameObject.players = this._players.map((p) => p.makeGameObject());
     return gameObject;
+  }
+
+  async end(winner: Player, losers: Player[]) {
+    this.ui.gameWin(winner);
+
+    this._state = GameState.End;
+    await performEvent(
+      {
+        type: "event:game.end",
+        data: {},
+      },
+      this
+    );
+    // wait for 5 seconds before disconnecting
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
+    this.disconnect();
+    // Redirect to join page
+    window.location.href = "/";
   }
 }
 

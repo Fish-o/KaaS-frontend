@@ -12,7 +12,7 @@ import {
   PlayerFilterObject,
 } from "../Filters";
 import { Game, isValidVariableName } from "../Game";
-import { DebugContext } from "..";
+import { DebugContext, debugLog } from "..";
 
 class BaseActionFind<T extends Filters, N extends string> extends BaseAction {
   type: `action:find.${N}`;
@@ -58,6 +58,7 @@ export async function performFindAction(
 
   if (!action.returns) return;
   else if (action.returns) {
+    debugLog("Returns", debugContext, action.returns, [...result]);
     const { found_many, found_one } = action.returns;
     if (isValidVariableName(found_many)) variables.set(found_many, result);
     if (isValidVariableName(found_one)) {

@@ -1,3 +1,5 @@
+import { isArray } from "lodash";
+
 export interface DebugContext {
   depth: number;
   event_name: string;
@@ -16,14 +18,18 @@ export function debugLog(
 ) {
   // If any of the args are objects, remove any values that are undefined
   // This is to prevent the console from printing out a bunch of undefined values
-  args = args.map((arg) => {
-    if (typeof arg === "object") {
-      return Object.fromEntries(
-        Object.entries(arg).filter(([key, value]) => value !== undefined)
-      );
-    }
-    return arg;
-  });
+  // args = args.map((arg) => {
+  //   if (isArray(arg)) {
+  //     return arg;
+  //   }
+
+  //   if (typeof arg === "object") {
+  //     return Object.fromEntries(
+  //       Object.entries(arg).filter(([key, value]) => value !== undefined)
+  //     );
+  //   }
+  //   return arg;
+  // });
 
   console.debug(
     "|   ".repeat(context.depth) + "%c" + message,

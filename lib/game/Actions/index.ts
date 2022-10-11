@@ -18,6 +18,7 @@ import { actionIsCardAction, CardAction, performCardAction } from "./cards";
 import { actionIsDataAction, DataAction, preformDataAction } from "./data";
 import { actionIsDeckAction, DeckAction, preformDeckAction } from "./deck";
 import { actionIsFindAction, FindAction, performFindAction } from "./find";
+import { actionIsGameAction, GameAction, performGameAction } from "./game";
 import { actionIsLogicAction, LogicAction, performLogicAction } from "./logic";
 import { Resolvable } from "./resolvables";
 import {
@@ -71,7 +72,7 @@ export type Action =
   | FindAction
   | LogicAction
   | DataAction
-  // | GameStateActions
+  | GameAction
   | DebugAction
   | UserInputAction;
 
@@ -85,19 +86,26 @@ export async function performAction(
     ...debugContext,
     depth: debugContext.depth + 1,
   };
-  debugLog(`Performing action: ${action.type}`, debugContext, action);
+  debugLog(
+    `Performing action: ${action.type}`,
+    debugContext,
+    action,
+    variables
+  );
   if (actionIsLogicAction(action))
-    return await performLogicAction(action, variables, game, debugContext);
+    return performLogicAction(action, variables, game, debugContext);
   else if (actionIsFindAction(action))
-    return await performFindAction(action, variables, game, debugContext);
+    return performFindAction(action, variables, game, debugContext);
   else if (actionIsCardAction(action))
-    return await performCardAction(action, variables, game, debugContext);
+    return performCardAction(action, variables, game, debugContext);
   else if (actionIsUserInputAction(action))
-    return await performUserInputAction(action, variables, game, debugContext);
+    return performUserInputAction(action, variables, game, debugContext);
   else if (actionIsDeckAction(action))
-    return await preformDeckAction(action, variables, game, debugContext);
+    return preformDeckAction(action, variables, game, debugContext);
   else if (actionIsDataAction(action))
-    return await preformDataAction(action, variables, game, debugContext);
+    return preformDataAction(action, variables, game, debugContext);
+  else if (actionIsGameAction(action))
+    return performGameAction(action, variables, game, debugContext);
   else if (action.type === "action:debug") {
     const find = action.args.find;
     let res = undefined;
