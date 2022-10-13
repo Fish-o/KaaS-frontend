@@ -127,6 +127,8 @@ export async function hostConnectHandler(game: Game, lobby: Channel) {
               name: "hand",
               cards: [],
               tags: [],
+              visible: false,
+              selfVisible: true,
             },
           },
         },

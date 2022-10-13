@@ -60,6 +60,10 @@ export class Player extends BaseGameObject {
     return this.id === game.currentPlayer?.id;
   }
 
+  isClientPlayer(game: Game) {
+    return this.user_id === game.user_id;
+  }
+
   isNextPlayer(game: Game) {
     return this.id === game.nextPlayer?.id;
   }
@@ -67,19 +71,37 @@ export class Player extends BaseGameObject {
 
 export class Hand extends BaseGameObject {
   private _cards: Card[];
+
+  private _visible: boolean = false;
+  private _selfVisible: boolean = false;
+
   constructor(
     private opts: {
       name: string;
       tags: string[];
       data: Record<string, string>;
       cards: Card[];
+      visible: boolean;
+      selfVisible: boolean;
     }
   ) {
     super(opts.tags, opts.data);
     this._cards = opts.cards;
+    this._visible = opts.visible;
+    this._selfVisible = opts.selfVisible;
   }
   get cards() {
     return this._cards as readonly Card[];
+  }
+  visibleTo(game: Game, player: Player) {
+    // return true;
+    if (this._visible) {
+      return true;
+    }
+    if (player.isClientPlayer(game)) {
+      return this._selfVisible;
+    }
+    return false;
   }
 
   hasCard(card: Card) {
@@ -120,6 +142,11 @@ export class Hand extends BaseGameObject {
     this.issueUpdate(this);
   }
 
+  setVisibility(visible: boolean) {
+    this._visible = visible;
+    this.issueUpdate(this);
+  }
+
   makeGameObject(): HandObject {
     return {
       type: "object:hand",
@@ -127,6 +154,8 @@ export class Hand extends BaseGameObject {
         tags: [...this.tags],
         name: this.opts.name,
         cards: this.cards.map((c) => c.makeGameObject()),
+        visible: this._visible,
+        selfVisible: this._selfVisible,
       },
     };
   }

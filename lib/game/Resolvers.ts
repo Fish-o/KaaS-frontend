@@ -52,6 +52,9 @@ export interface HandObject {
 
     name: string;
     cards: CardObject[];
+
+    visible: boolean;
+    selfVisible: boolean;
   };
 }
 export interface PlayerObject {
@@ -81,6 +84,8 @@ export function resolveHand(handObject: HandObject): Hand {
     cards: resolveCards(handObject.object.cards),
     tags: handObject.object.tags,
     data: handObject.object.data ?? {},
+    visible: handObject.object.visible,
+    selfVisible: handObject.object.selfVisible,
   });
 }
 export function resolveDecks(

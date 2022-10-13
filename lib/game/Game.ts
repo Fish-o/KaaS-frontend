@@ -447,6 +447,8 @@ export class Game {
             name: "hand",
             cards: [],
             tags: [],
+            visible: false,
+            selfVisible: true,
           },
         },
       },

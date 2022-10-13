@@ -20,7 +20,8 @@ export const CardGraphics: React.FC<{
   rotation?: Euler;
   scale: number;
   onClick?: () => void | any;
-}> = ({ card, position: startPos, scale: scaleModifier, onClick, groupPos, rotation }) => {
+  visible: boolean;
+}> = ({ card, position: startPos, scale: scaleModifier, onClick, groupPos, rotation, visible }) => {
   const posVec = startPos.clone();
 
 
@@ -36,7 +37,7 @@ export const CardGraphics: React.FC<{
   // Set up state for the hovered and active state
   const [hover, setHover] = useState(false);
   const [mouseDown, setMouseDown] = useState(false);
-  const [KingOfDiamonds] = useTexture(["card_images/" + (card.imageName)]);
+  const [KingOfDiamonds] = useTexture(["card_images/" + (visible ? card.imageName : "back.jpg")]);
   // Subscribe this component to the render-loop, rotate the mesh every frame
   // useFrame((state, delta) => (mesh.current!.rotation.y += 0.01));
   const { camera } = useThree();

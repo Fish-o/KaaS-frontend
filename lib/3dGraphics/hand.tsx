@@ -6,21 +6,23 @@ import { Ref, useEffect, useRef, useState } from "react";
 import { BufferGeometry, Color, Material, Mesh, Vector3 } from "three";
 import { useGameObject } from "../../hooks/game";
 import { useCursor } from "../../hooks/pointer";
+import { Game } from "../game/Game";
 import { Card } from "../game/Objects/Card";
-import { Hand } from "../game/Objects/Player";
+import { Hand, Player } from "../game/Objects/Player";
 import { CardGraphics } from "./card";
 
-export const HandGraphics: React.FC<{ position: Vector3; hand: Hand }> = ({
+export const HandGraphics: React.FC<{ position: Vector3; hand: Hand, player: Player, game: Game }> = ({
   position: startPos,
   hand,
+  player,
+  game,
 }) => {
   let updater = useGameObject(hand)
   console.log("Rendering HandGraphics", hand);
-  // return (
-  //   <Row row={[...hand.cards]} updater={updater} />
-  // )
-  const rows = _.chunk(hand.cards, 7);
-  const hands = _.chunk(rows, 2);
+
+  let visible = hand.visibleTo(game, player)
+
+
 
   return (
     <group position={startPos}>
@@ -61,6 +63,7 @@ export const HandGraphics: React.FC<{ position: Vector3; hand: Hand }> = ({
               key={"card" + card.id}
               position={new Vector3(offset * 6, yOffset * .1, yOffset * 6)}
               scale={1}
+              visible={visible}
             />
           );
         })

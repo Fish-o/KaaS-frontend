@@ -85,7 +85,10 @@ export const Players: React.FC<{ game: Game }> = ({ game }) => {
           <HandGraphics
             key={player.user_id}
             position={new Vector3(playerX, 3, playerY)}
-            hand={player.hand} />
+            hand={player.hand}
+            player={player}
+            game={game}
+          />
         )
       })
     }
