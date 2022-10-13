@@ -121,7 +121,6 @@ export class GameManager {
         this._id + " graphics",
         " <stop> Not initialized, nothing to do"
       );
-    this.cleanup();
     log(this._id + " graphics", " <stop> Cleaned up!");
   }
 }
