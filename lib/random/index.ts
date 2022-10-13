@@ -101,12 +101,11 @@ export function randomStringGenerator(
   let rand = sfc32(seed[0], seed[1], seed[2], seed[3]);
   return function () {
     let result = "";
-    let randomNumber = rand();
     let characters =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     let charactersLength = characters.length;
     for (var i = 0; i < length; i++) {
-      result += characters.charAt(Math.floor(randomNumber * charactersLength));
+      result += characters.charAt(Math.floor(rand() * charactersLength));
     }
     return result;
   };
