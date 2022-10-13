@@ -1,35 +1,20 @@
 import { Input } from "@nextui-org/react";
 import { useContext, useState, useMemo, Dispatch, SetStateAction, useRef, useEffect } from "react";
-import { Action } from "../../lib/game/Actions";
-import { Filter } from "../../lib/game/Filters";
-import { GrabbedObjectContext, ObjectIsGrabbedContext, SetDraggableNodeObjects } from "../gameCreator";
-import { TypedActionReturns, TypedNodeProperties } from "../TypedNodeProperties"
+import { Action } from "../../../lib/game/Actions";
+import { Filter } from "../../../lib/game/Filters";
+import { GrabbedObjectContext, ObjectIsGrabbedContext, SetDraggableNodeObjects } from "../../gameCreator";
+import { TypedActionReturns, TypedNodeProperties } from "../../TypedNodeProperties"
 import styles from "../../styles/gameCreator.module.scss";
-import { ActionLogicIf, LogicAction } from "../../lib/game/Actions/logic";
+import { ActionLogicIf, LogicAction } from "../../../lib/game/Actions/logic";
 import { recurseResolve } from "./FilterNode";
-import { TypedArgument, AcceptableTypesArray } from "./typedNode";
-import { Condition } from "../../lib/game/Conditions";
+import { TypedArgument, AcceptableTypesArray } from "../typedNode";
+import { Condition } from "../../../lib/game/Conditions";
 import useStateRef from "react-usestateref";
-import { NodeOptions } from "./NodeOptions";
+import { NodeOptions } from "../NodeOptions";
 
 
-type InitializeType<T> = {
-  [K in keyof T]-?: string extends T[K]
-  ? ""
-  : number extends T[K]
-  ? 0
-  : boolean extends T[K]
-  ? false
-  : Array<any> extends T[K]
-  ? []
-  : object extends T[K]
-  ? {}
-  : T[K];
-};
 
-function getPrototype<T>(t: T): InitializeType<T> {
-  return t as InitializeType<T>;
-}
+
 
 export const ActionNode: React.FC<{ action: Action }> = ({ action }) => {
 

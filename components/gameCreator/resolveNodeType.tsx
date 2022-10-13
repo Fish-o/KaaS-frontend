@@ -3,15 +3,15 @@ import { Action } from "../../lib/game/Actions"
 import { EventObject } from "../../lib/game/Events"
 import { Filter } from "../../lib/game/Filters"
 import { ObjectIsGrabbedContext, ObjectTypes } from "../gameCreator"
-import { EventNode } from "./EventNode"
-import { FilterNode } from "./FilterNode"
+import { EventNode } from "./nodes/EventNode"
+import { FilterNode } from "./nodes/FilterNode"
 
 import React, { memo, useContext } from "react";
-import { ActionNode } from "./ActionNode"
-import { ConditionNode } from "./ConditionNode"
+import { ActionNode } from "./nodes/ActionNode"
+import { ConditionNode } from "./nodes/ConditionNode"
 import { Condition } from "../../lib/game/Conditions"
 import { MethodObject } from "../../lib/game/Method"
-import { MethodNode } from "./MethodNode"
+import { MethodNode } from "./nodes/MethodNode"
 // class ErrorBoundary extends React.Component {
 //   constructor(props: {} | Readonly<{}>) {
 //     super(props);
@@ -54,9 +54,6 @@ import { MethodNode } from "./MethodNode"
 //   }
 // }
 export const ResolveNodeType: React.FC<{ objectData: ObjectTypes | string }> = memo(({ objectData }) => {
-  // held = held || rootHeld
-
-  let held = useContext(ObjectIsGrabbedContext)
   if (typeof objectData === "string") {
     return (
       <Input

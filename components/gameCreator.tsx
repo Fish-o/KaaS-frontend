@@ -49,7 +49,7 @@ import TopMenuBar from './gameCreator/TopMenuBar';
 import DraggableObject from './gameCreator/draggableObject'
 import DropPosition, { DropPositionObject } from './gameCreator/DropPosition';
 import { ResolveNodeType } from './gameCreator/resolveNodeType';
-import { FilterNode } from './gameCreator/FilterNode';
+import { FilterNode } from './gameCreator/nodes/FilterNode';
 import { CardHolderResolvable, CardResolvable, DeckResolvable, HandResolvable, PlayerResolvable, Resolvable } from '../lib/game/Actions/resolvables';
 import { GameObject } from '../lib/game/Resolvers';
 import { MethodObject } from '../lib/game/Method';

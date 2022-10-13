@@ -1,12 +1,12 @@
 import { useContext, useEffect, useState, useMemo, useId } from "react";
-import { EventObject } from "../../lib/game/Events";
-import { DraggableNodeObjects, ObjectIsGrabbedContext, SetDraggableNodeObjects } from "../gameCreator";
+import { EventObject } from "../../../lib/game/Events";
+import { DraggableNodeObjects, ObjectIsGrabbedContext, SetDraggableNodeObjects } from "../../gameCreator";
 import styles from "../../styles/gameCreator.module.scss";
-import { Action } from "../../lib/game/Actions";
-import DropPosition from "./DropPosition";
-import DraggableObject from "./draggableObject";
+import { Action } from "../../../lib/game/Actions";
+import DropPosition from "../DropPosition";
+import DraggableObject from "../draggableObject";
 import { ActionNode } from "./ActionNode";
-import { MethodObject } from "../../lib/game/Method";
+import { MethodObject } from "../../../lib/game/Method";
 import { Button, Input } from "@nextui-org/react";
 
 
