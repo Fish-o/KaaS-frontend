@@ -430,7 +430,6 @@ export class Game {
 
     this._pusher = pusher;
     this._lobbyChannel = lobby;
-    this._lobbyChannel = lobby;
     this._lobbyHost = true;
     this._lobbyKey = await generateSymmetricKey();
     this._lobbyPassword = lobbyPassword;

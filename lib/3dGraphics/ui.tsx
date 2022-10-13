@@ -7,7 +7,7 @@ const UIGraphics: React.FC<{ ui: UI, aspect: number }> = ({ ui, aspect }) => {
   // const ContextBridge = useContextBridge(CursorContext);
   // const { size } = useThree();
   const buttons = useUIButtons(ui);
-
+  console.log("Rendering buttons", buttons)
   return (
     <>
       {buttons.map((button, index) => {

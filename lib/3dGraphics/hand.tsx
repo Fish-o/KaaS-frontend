@@ -36,9 +36,7 @@ export const HandGraphics: React.FC<{ position: Vector3; hand: Hand, player: Pla
       {
         hand.cards.map((card, index, arr) => {
           console.log("card", card, "card" + card.id + arr.length);
-          // const scaling = (1 / rowCount) * 1.1;
           const cardCount = arr.length - 1;
-          // const maxOffset = cardCount * 0.5;
 
 
 
@@ -71,29 +69,3 @@ export const HandGraphics: React.FC<{ position: Vector3; hand: Hand, player: Pla
     </group>
   );
 };
-
-const Row: React.FC<{ row: Card[], updater: number }> = ({ row, updater }) => {
-  console.log("Rendering Row", row);
-
-  return <>
-    {row.map((card, index, arr) => {
-      // const scaling = (1 / rowCount) * 1.1;
-      const cardCount = arr.length - 1;
-      const maxOffset = cardCount * 0.5;
-      const offset = cardCount / 2 - index;
-      const zOffset = Math.abs(offset) - maxOffset;
-      const yOffset = Math.abs(offset) - maxOffset;
-      return (
-        <animated.group key={"card" + card.id}>
-          <CardGraphics
-            card={card}
-            key={"card" + card.id}
-            position={new Vector3(offset * 6, yOffset * 0.2, zOffset * 1)}
-            scale={1}
-          />
-        </animated.group>
-
-      );
-    })}
-  </>
-}

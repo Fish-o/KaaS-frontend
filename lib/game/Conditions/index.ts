@@ -429,7 +429,7 @@ export async function performCondition(
   debugContext: DebugContext
 ): Promise<boolean> {
   let result: boolean | undefined = undefined;
-  console.log("Performing condition", condition, variables);
+  // console.log("Performing condition", condition, variables);
   switch (condition.type) {
     case "condition:meta":
       result = await performMetaCondition(
@@ -499,8 +499,6 @@ export async function performCondition(
       throw new Error("Invalid condition");
   }
   if (condition.condition.not) result = !result;
-
-  console.log("[Game DEBUG] Condition result", condition, variables, result);
 
   return result;
 }

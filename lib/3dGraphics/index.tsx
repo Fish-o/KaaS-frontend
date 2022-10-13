@@ -66,7 +66,6 @@ export const Players: React.FC<{ game: Game }> = ({ game }) => {
   );
   const angleStart = Math.PI / 2 - playerAngle * playerIndex;
 
-  // console.timeLog("render", "Drawing players..");
   return (
     <>{
       players.map((player, index, arr) => {
