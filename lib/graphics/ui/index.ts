@@ -3,12 +3,12 @@ import { Card } from "../../game/Objects/Card";
 import { Player } from "../../game/Objects/Player";
 import { awaitEvent, broadcastGameEvent } from "../../networking/events";
 import { Button } from "./button";
-import { bindButtons, ButtonField, removeButton } from "./buttons";
+import { ButtonField } from "./buttons";
 import { CardSelectionUI } from "./cardSelection";
 import { PlayerSelectionUI } from "./playerSelection";
 const CANVAS_ID = "uiCanvas";
 export class UI {
-  public buttons: Button[] = [];
+  private _buttons: Button[] = [];
   public activeButtons: Button[] = [];
   public canvas: HTMLCanvasElement;
   public ctx: CanvasRenderingContext2D;
@@ -116,24 +116,27 @@ export class UI {
     });
   }
 
+  get buttons() {
+    return this._buttons as Readonly<Button[]>;
+  }
   public addButton(button: Button) {
     console.log("Adding button", button);
-    this.buttons.push(button);
+    this._buttons.push(button);
     this.issueUpdate(this);
   }
 
   public removeButton(button: ButtonField | string) {
     console.log("Removing button", button);
     if (typeof button === "string")
-      this.buttons = this.buttons.filter((b) => b.key !== button);
+      this._buttons = this._buttons.filter((b) => b.key !== button);
     else
-      this.buttons = this.buttons.filter(
+      this._buttons = this._buttons.filter(
         (b) => b !== button && b.key !== button.key
       );
     this.issueUpdate(this);
   }
   public cleanup() {
-    this.buttons = [];
+    this._buttons = [];
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
 

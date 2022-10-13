@@ -83,34 +83,3 @@ export function bindButtons(graphics: UI) {
     canvas.style.cursor = cursor;
   });
 }
-
-export function removeButton(button: ButtonField | string, graphics: UI) {
-  if (typeof button === "string")
-    graphics.buttons = graphics.buttons.filter((b) => b.key !== button);
-  else
-    graphics.buttons = graphics.buttons.filter(
-      (b) => b !== button && b.key !== button.key
-    );
-}
-// function renderStartButton(ctxs: CanvasContexts, graphics: Graphics) {
-//   const ctx = ctxs.ui_ctx;
-
-//   const game = graphics.game;
-//   if (game.game_state !== GameState.Setup) return;
-//   const buttonHeight = 40;
-//   const buttonWidth = 150;
-//   const xPos = ctx.canvas.width - buttonWidth + 10;
-//   const yPos = ctx.canvas.height - 80;
-
-//   ctx.shadowColor = "rgba(0, 0, 0, 0)";
-//   ctx.shadowOffsetY = 2;
-//   ctx.shadowOffsetX = 2;
-//   ctx.shadowBlur = 5;
-//   ctx.strokeStyle = "#07d853";
-//   ctx.fillStyle = "#07d853";
-//   roundRect(ctx, xPos, yPos, buttonWidth, buttonHeight, 5, true);
-//   ctx.shadowColor = "transparent";
-//   ctx.fillStyle = "black";
-//   ctx.font = "30px Arial";
-//   ctx.fillText("Start", xPos + 40, yPos + 30);
-// }
