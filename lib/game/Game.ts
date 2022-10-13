@@ -24,6 +24,7 @@ import { log, UI } from "../graphics/ui";
 import exampleGame from "../games/example";
 import { MethodObject } from "./Method";
 import { makeRandomString, randomStringGenerator } from "../random";
+import { leave_lobby } from "../networking/client/disconnect";
 
 export enum GameState {
   Setup = "setup",
@@ -201,8 +202,8 @@ export class Game {
     this.storeMethods(gameObject.methods);
     this.ui = new UI(this);
   }
-  abort(): void {
-    this._pusher?.disconnect();
+  async abort(): Promise<void> {
+    await this.disconnect();
   }
 
   get user_id(): string {
@@ -455,7 +456,9 @@ export class Game {
     bindHostEvents(this, lobby);
   }
 
-  private disconnect() {
+  private async disconnect() {
+    if (this._lobbyChannel && this._lobbyPassword)
+      await leave_lobby(this.user_id, this._lobbyChannel, this._lobbyPassword);
     log("GAME/pusher", "Disconnecting from Pusher...");
     if (this._pusher) this._pusher.disconnect();
   }
@@ -556,7 +559,7 @@ export class Game {
     // wait for 5 seconds before disconnecting
     await new Promise((resolve) => setTimeout(resolve, 5000));
 
-    this.disconnect();
+    await this.disconnect();
     // Redirect to join page
     window.location.href = "/";
   }

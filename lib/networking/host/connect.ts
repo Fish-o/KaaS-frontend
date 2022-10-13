@@ -3,6 +3,9 @@ import { nanoid } from "nanoid";
 import { Channel } from "pusher-js";
 import {
   connectionRequest,
+  DisconnectRequest,
+  DisconnectResponse,
+  disconnectResponse,
   FailedConnectionResponse,
   HandshakeResponse,
   SuccessfulConnectionResponse,
@@ -147,5 +150,28 @@ export async function hostConnectHandler(game: Game, lobby: Channel) {
       lobby.trigger("client-connect", response);
     }
   });
-  log("[NETWORKING]", "client-connect bound");
+  log("[NETWORKING]", "client-connect bound", lobby.name);
+
+  lobby.bind("client-disconnect", async (data: disconnectResponse) => {
+    log("[NETWORKING/connect]", "<-", "<client-disconnect>", data);
+    if (data.sender_id === game.user_id) return;
+    if (data.type === "disconnect_request") {
+      const player = game
+        .getAllPlayers()
+        .find((player) => player.user_id === data.sender_id);
+      if (!player) return;
+      game.removePlayer(player);
+      broadcastGameEvent(game, {
+        event: "player_leave",
+        user_id: data.sender_id,
+      });
+      lobby.trigger("client-disconnect", {
+        type: "disconnect_response",
+        sender_id: game.user_id,
+        responds_to: data.sender_id,
+        success: true,
+      } as DisconnectResponse);
+    }
+  });
+  log("[NETWORKING]", "client-disconnect bound", lobby.name);
 }

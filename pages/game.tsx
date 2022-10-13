@@ -16,7 +16,7 @@ const GameGraphics: NextPage = () => {
   const [gameLoaded, setGameLoaded] = useState(0);
   console.log("Loaded Page", gameLoaded, gameManager.current, gameManager.current?.game);
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && gameManager.current === undefined) {
       const createdGameManger = new GameManager();
       gameManager.current = createdGameManger;
       createdGameManger.init().then(() => {
@@ -25,9 +25,9 @@ const GameGraphics: NextPage = () => {
         setGameLoaded(current => current + 1);
       });
       return () => {
-        setGameLoaded(current => current + 1);
-        gameManager.current = undefined;
-        createdGameManger?.stop();
+        // setGameLoaded(current => current + 1);
+        // gameManager.current = undefined;
+        // createdGameManger?.stop();
       };
     }
   }, [])

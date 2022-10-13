@@ -42,6 +42,20 @@ export type HandshakeResponse = {
   encrypted_public_key: string;
 };
 
+export type DisconnectRequest = {
+  type: "disconnect_request";
+  sender_id: string;
+  lobby_key: string;
+};
+
+export type DisconnectResponse = {
+  type: "disconnect_response";
+  sender_id: string;
+  responds_to: string;
+};
+
+export type disconnectResponse = DisconnectRequest | DisconnectResponse;
+
 export type ConnectRequest = {
   type: "connect_request";
   sender_id: string;
