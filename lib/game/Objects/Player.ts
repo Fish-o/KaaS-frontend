@@ -147,6 +147,11 @@ export class Hand extends BaseGameObject {
     this.issueUpdate(this);
   }
 
+  setSelfVisibility(selfVisible: boolean) {
+    this._selfVisible = selfVisible;
+    this.issueUpdate(this);
+  }
+
   makeGameObject(): HandObject {
     return {
       type: "object:hand",
