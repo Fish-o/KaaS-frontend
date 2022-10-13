@@ -44,6 +44,7 @@ import { CardGraphics } from "./card";
 import { DeckGraphics } from "./deck";
 import { Game } from "../game/Game";
 import UIGraphics from "./ui";
+import { useGame } from "../../hooks/game";
 
 const deg2rad = (degrees: number) => degrees * (Math.PI / 180);
 
@@ -51,6 +52,7 @@ const deg2rad = (degrees: number) => degrees * (Math.PI / 180);
 
 export const Players: React.FC<{ game: Game }> = ({ game }) => {
 
+  const updater = useGame(game);
   const players = game.getAllPlayers();
   const circleCenterX = 0
   const circleCenterY = 0

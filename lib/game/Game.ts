@@ -260,6 +260,7 @@ export class Game {
       throw new Error("Cannot add player to game that is not in setup state");
     const player = resolvePlayer(playerObject);
     this._players.push(player);
+    this.issueUpdate(this);
     return player;
   }
   removePlayer(player: Player): void {
@@ -268,6 +269,7 @@ export class Game {
         "Cannot remove player from game that is not in setup state"
       );
     this._players = this._players.filter((p) => p !== player);
+    this.issueUpdate(this);
   }
 
   getAllCards(): Card[] {
@@ -561,6 +563,17 @@ export class Game {
     await this.disconnect();
     // Redirect to join page
     window.location.href = "/";
+  }
+
+  private _onUpdate: ((object: Game) => void)[] = [];
+  subscribeUpdate(callback: (object: Game) => void) {
+    this._onUpdate.push(callback);
+  }
+  unSubscribeUpdate(callback: (object: Game) => void) {
+    this._onUpdate = this._onUpdate.filter((c) => c !== callback);
+  }
+  issueUpdate(object: Game) {
+    this._onUpdate.forEach((c) => c(object));
   }
 }
 
