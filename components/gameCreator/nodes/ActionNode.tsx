@@ -77,7 +77,6 @@ export const ActionNode: React.FC<{ action: Action }> = ({ action }) => {
           })
           }
         </div>
-        AA
         <NodeOptions node={action} />
         <VariablePart action={action} type={action.type} />
 

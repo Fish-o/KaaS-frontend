@@ -4,7 +4,7 @@ import React, { memo, useContext, useEffect, useMemo, useState } from "react";
 import { Action } from "../../lib/game/Actions";
 import { Condition } from "../../lib/game/Conditions";
 import { Filter } from "../../lib/game/Filters";
-import { GrabbedObject, ObjectIsGrabbedContext, ObjectTypes } from "../gameCreator";
+import { DeleteSelfContext, GrabbedObject, ObjectIsGrabbedContext, ObjectTypes } from "../gameCreator";
 import DropPosition from "./DropPosition";
 import styles from "../../styles/gameCreator.module.scss";
 import DraggableObject from "./draggableObject";
@@ -216,11 +216,15 @@ export const ActualResolvedValue: React.FC<{ value: any, allowedInputTypes: any,
 
   if (typeof value === "object") {
     return (
-      <DraggableObject fillData={value} onGrab={() => {
+      <DeleteSelfContext.Provider value={() => {
         setValue(undefined)
       }}>
-        <ResolveNodeType objectData={value} />
-      </DraggableObject>
+        <DraggableObject fillData={value} onGrab={() => {
+          setValue(undefined)
+        }}>
+          <ResolveNodeType objectData={value} />
+        </DraggableObject>
+      </DeleteSelfContext.Provider>
     )
   }
 

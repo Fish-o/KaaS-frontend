@@ -110,6 +110,8 @@ export const RefGrabbedObjectContext = React.createContext<React.RefObject<Grabb
 
 
 export const ObjectIsGrabbedContext = React.createContext<boolean>(false);
+export const DeleteSelfContext = React.createContext<(() => void) | null>(null);
+
 
 
 export const GameCreator: React.FC = () => {
@@ -215,17 +217,24 @@ const DraggableCanvasObjects: React.FC = memo(() => {
       {nodeObjects.map((grabbedObject, i) => {
         return (
           <div style={{ position: "relative", zIndex: grabbedObject.zindex }} key={"testingKey" + i} >
-            <DraggableObject draggableObject={grabbedObject} key={"testingKey2" + i} detached={true} onDelete={
-              () => {
-                setNodeObjects?.((current) => {
-                  current.splice(i, 1);
-                  return [...current];
-                });
+            <DeleteSelfContext.Provider value={() => {
+              setNodeObjects?.((current) => {
+                current.splice(i, 1);
+                return [...current];
+              });
+            }}>
+              <DraggableObject draggableObject={grabbedObject} key={"testingKey2" + i} detached={true} onDelete={
+                () => {
+                  setNodeObjects?.((current) => {
+                    current.splice(i, 1);
+                    return [...current];
+                  });
+                }
               }
-            }
-            >
-              <ResolveNodeType objectData={grabbedObject.data} key={"testingKey3" + i} />
-            </DraggableObject>
+              >
+                <ResolveNodeType objectData={grabbedObject.data} key={"testingKey3" + i} />
+              </DraggableObject>
+            </DeleteSelfContext.Provider>
           </div>
         );
       })}

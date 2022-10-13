@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState, useMemo, useId } from "react";
 import { EventObject } from "../../../lib/game/Events";
-import { DraggableNodeObjects, ObjectIsGrabbedContext, SetDraggableNodeObjects } from "../../gameCreator";
+import { DeleteSelfContext, DraggableNodeObjects, ObjectIsGrabbedContext, SetDraggableNodeObjects } from "../../gameCreator";
 import styles from "../../../styles/gameCreator.module.scss";
 import { Action } from "../../../lib/game/Actions";
 import DropPosition from "../DropPosition";
@@ -84,18 +84,22 @@ export const MethodNode: React.FC<{ method: MethodObject }> = ({ method }) => {
         <MethodDropPosition method={method} id={id} i={0 - 1} setUpdater={setUpdater} held={held} />
         {method.actions.map((a, i) => (
           <div key={`${id}-${Object.uniqueID(a)}`}>
-
-            <DraggableObject
-              onGrab={() => {
-                method.actions.splice(i, 1);
-                setUpdater(current => current + 1)
-                console.log("Updating", method.actions)
-              }}
-              fillData={a}
-            >
-              <ActionNode action={a} key={`${id}-${Object.uniqueID(a)}`} />
-            </DraggableObject>
-
+            <DeleteSelfContext.Provider value={() => {
+              method.actions.splice(i, 1);
+              setUpdater(current => current + 1)
+              console.log("Updating", method.actions)
+            }}>
+              <DraggableObject
+                onGrab={() => {
+                  method.actions.splice(i, 1);
+                  setUpdater(current => current + 1)
+                  console.log("Updating", method.actions)
+                }}
+                fillData={a}
+              >
+                <ActionNode action={a} key={`${id}-${Object.uniqueID(a)}`} />
+              </DraggableObject>
+            </DeleteSelfContext.Provider>
             <MethodDropPosition method={method} id={id} i={i} key={`dp_${id}-${Object.uniqueID(a)}`} setUpdater={setUpdater} held={held} />
           </div >
         ))

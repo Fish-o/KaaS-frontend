@@ -1,5 +1,5 @@
 import { Button } from "@nextui-org/react";
-import { ObjectTypes, SetDraggableNodeObjects } from "../gameCreator";
+import { DeleteSelfContext, ObjectTypes, SetDraggableNodeObjects } from "../gameCreator";
 import styles from "../../styles/gameCreator.module.scss";
 import { BiCopy, BiWindowClose } from 'react-icons/bi';
 import { useContext, useRef, useState } from "react";
@@ -18,6 +18,8 @@ function recursivelyCopy<T>(data: T): T {
 
 
 export const NodeOptions: React.FC<{ node: ObjectTypes }> = ({ node }) => {
+
+  const onDelete = useContext(DeleteSelfContext)
   const [color, setColor] = useState<"default" | "primary" | "secondary" | "success" | "warning" | "error" | "gradient">("default")
 
   const [deleteHover, setDeleteHover] = useState(false)
@@ -26,15 +28,20 @@ export const NodeOptions: React.FC<{ node: ObjectTypes }> = ({ node }) => {
   const setDraggableNodeObjects = useContext(SetDraggableNodeObjects)
   const deleteTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  const onDelete = () => {
-  }
+
 
   async function playPanicAnimation() {
+    let delay = 300
+    if (!onDelete) {
+      return
+    }
     while (deleteTimeoutRef.current) {
+
       setColor("error")
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise(resolve => setTimeout(resolve, delay))
       setColor("warning")
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise(resolve => setTimeout(resolve, delay))
+      delay = Math.max(50, delay - 75)
     }
 
     setColor("default")
@@ -72,12 +79,12 @@ export const NodeOptions: React.FC<{ node: ObjectTypes }> = ({ node }) => {
 
             }
             deleteTimeoutRef.current = setTimeout(() => {
-              onDelete()
               if (deleteTimeoutRef.current) {
                 clearTimeout(deleteTimeoutRef.current)
                 deleteTimeoutRef.current = null
               }
-            }, 1000)
+              if (onDelete) onDelete()
+            }, 2000)
             playPanicAnimation()
           }}
           onPressEnd={() => {

@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState, useMemo, useId } from "react";
 import { EventObject } from "../../../lib/game/Events";
-import { DraggableNodeObjects, ObjectIsGrabbedContext, SetDraggableNodeObjects } from "../../gameCreator";
+import { DeleteSelfContext, DraggableNodeObjects, ObjectIsGrabbedContext, SetDraggableNodeObjects } from "../../gameCreator";
 import styles from "../../../styles/gameCreator.module.scss";
 import { Action } from "../../../lib/game/Actions";
 import DropPosition from "../DropPosition";
@@ -64,17 +64,22 @@ export const EventNode: React.FC<{ event: EventObject }> = ({ event }) => {
         <EventDropPosition event={event} id={id} i={0 - 1} setUpdater={setUpdater} held={held} />
         {event.actions.map((a, i) => (
           <div key={`${id}-${Object.uniqueID(a)}`}>
-
-            <DraggableObject
-              onGrab={() => {
-                event.actions.splice(i, 1);
-                setUpdater(current => current + 1)
-                console.log("Updating", event.actions)
-              }}
-              fillData={a}
-            >
-              <ActionNode action={a} key={`${id}-${Object.uniqueID(a)}`} />
-            </DraggableObject>
+            <DeleteSelfContext.Provider value={() => {
+              event.actions.splice(i, 1);
+              setUpdater(current => current + 1)
+              console.log("Updating", event.actions)
+            }}>
+              <DraggableObject
+                onGrab={() => {
+                  event.actions.splice(i, 1);
+                  setUpdater(current => current + 1)
+                  console.log("Updating", event.actions)
+                }}
+                fillData={a}
+              >
+                <ActionNode action={a} key={`${id}-${Object.uniqueID(a)}`} />
+              </DraggableObject>
+            </DeleteSelfContext.Provider>
 
             <EventDropPosition event={event} id={id} i={i} key={`dp_${id}-${Object.uniqueID(a)}`} setUpdater={setUpdater} held={held} />
           </div >
