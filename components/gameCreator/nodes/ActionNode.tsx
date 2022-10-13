@@ -4,7 +4,7 @@ import { Action } from "../../../lib/game/Actions";
 import { Filter } from "../../../lib/game/Filters";
 import { GrabbedObjectContext, ObjectIsGrabbedContext, SetDraggableNodeObjects } from "../../gameCreator";
 import { TypedActionReturns, TypedNodeProperties } from "../../TypedNodeProperties"
-import styles from "../../styles/gameCreator.module.scss";
+import styles from "../../../styles/gameCreator.module.scss";
 import { ActionLogicIf, LogicAction } from "../../../lib/game/Actions/logic";
 import { recurseResolve } from "./FilterNode";
 import { TypedArgument, AcceptableTypesArray } from "../typedNode";

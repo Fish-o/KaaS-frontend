@@ -3,7 +3,7 @@ import { isArray } from "lodash";
 import { useContext, useEffect, useState, useMemo, useRef } from "react";
 import useStateRef from "react-usestateref";
 import { Filter } from "../../../lib/game/Filters";
-import styles from "../../styles/gameCreator.module.scss";
+import styles from "../../../styles/gameCreator.module.scss";
 import { GrabbedObjectContext, ObjectIsGrabbedContext } from "../../gameCreator";
 import { TypedNodeProperties } from "../../TypedNodeProperties";
 import { IdleHoverChecker } from "../DropPosition";

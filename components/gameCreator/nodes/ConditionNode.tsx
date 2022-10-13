@@ -1,7 +1,7 @@
 import { useContext, useEffect, useId, useMemo, useState } from "react";
 import { Condition } from "../../../lib/game/Conditions";
 import { ObjectIsGrabbedContext, SetDraggableNodeObjects } from "../../gameCreator";
-import styles from "../../styles/gameCreator.module.scss";
+import styles from "../../../styles/gameCreator.module.scss";
 import { recurseResolve } from "./FilterNode";
 import { TypedArgument } from "../typedNode";
 import useStateRef from "react-usestateref";
