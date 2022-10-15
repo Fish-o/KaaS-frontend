@@ -227,7 +227,7 @@ const BaseGraphics: React.FC<{ gameState: Game }> = ({ gameState }) => {
         enableZoom={false}
         enablePan={false}
       /> */}
-      <PerspectiveCamera makeDefault fov={75} position={[0, 20, 70]}>
+      <PerspectiveCamera makeDefault fov={75} position={[0, 40, 70]}>
         <pointLight
           position={[0, 20, 70]}
           intensity={0.7}

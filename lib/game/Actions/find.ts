@@ -14,12 +14,14 @@ import {
 import { Game, isValidVariableName } from "../Game";
 import { DebugContext, debugLog } from "..";
 
-class BaseActionFind<T extends Filters, N extends string> extends BaseAction {
+class BaseActionFind<T extends Filters, N extends string>
+  implements BaseAction
+{
   type: `action:find.${N}`;
   args: {
     filter: T;
   };
-  returns?: Partial<{
+  returns: Partial<{
     found_many: Variable;
     found_one: Variable;
   }>;

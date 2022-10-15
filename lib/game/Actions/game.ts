@@ -9,12 +9,13 @@ interface BaseGameAction extends BaseAction {
   type: `action:game.${string}`;
 }
 
-interface WinGameAction extends BaseGameAction {
+class WinGameAction implements BaseGameAction {
   type: "action:game.win";
   args: {
     winners: PlayerResolvable;
     losers?: PlayerResolvable;
   };
+  returns: {};
 }
 
 async function performWinGameAction(

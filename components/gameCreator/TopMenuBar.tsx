@@ -16,6 +16,7 @@ import { MethodObject } from "../../lib/game/Method";
 
 import { GrabbedObject } from "../gameCreator"
 import { games } from "../../lib/games";
+import { UserInput } from "../../lib/game/Input";
 
 function startsWith<Prefix extends string>(prefix: Prefix, val: string): val is `${Prefix}${string}` {
   return val.startsWith(prefix);
@@ -63,7 +64,7 @@ function GetValidObject(type: ValueOf<typeof TypedNodeProperties>) {
   return defaultObject
 }
 
-function MakeValidDraggableObject<T extends (Action | Filter | Condition)["type"]>(type: T): Extract<(Action | Filter | Condition), { type: T }> {
+function MakeValidDraggableObject<T extends (Action | Filter | Condition | UserInput)["type"]>(type: T): Extract<(Action | Filter | Condition | UserInput), { type: T }> {
   if (!TypedNodeProperties[type]) throw new Error(`Invalid type ${type}`)
 
   let defaultObject = GetValidObject(TypedNodeProperties[type])
@@ -93,6 +94,13 @@ function MakeValidDraggableObject<T extends (Action | Filter | Condition)["type"
       filter: defaultObject
     } as any
   }
+  if (startsWith("input:", type)) {
+    return {
+      type: type,
+      filter: defaultObject
+    } as any
+  }
+
 
   throw new Error("Invalid type")
 }
@@ -106,6 +114,7 @@ const Actions = Object.fromEntries(Object.entries(TypedNodeProperties).filter(([
 
 const Conditions = Object.fromEntries(Object.entries(TypedNodeProperties).filter(([key, value]) => startsWith("condition:", key)).map(([key, value]) => [key, value]))
 
+const Inputs = Object.fromEntries(Object.entries(TypedNodeProperties).filter(([key, value]) => startsWith("input:", key)).map(([key, value]) => [key, value]))
 const GrabNewObjects: React.FC<{ setGrabNewObject: Dispatch<SetStateAction<boolean>>, objects: any, name: string }> = ({ setGrabNewObject, objects, name }) => {
   const [open, setOpen] = useState<boolean>(false)
 
@@ -154,6 +163,7 @@ const GrabNewObject: React.FC<{ setGrabNewObject: Dispatch<SetStateAction<boolea
       <GrabNewObjects setGrabNewObject={setGrabNewObject} objects={Filters} name={"Filters"} />
       <GrabNewObjects setGrabNewObject={setGrabNewObject} objects={Actions} name={"Actions"} />
       <GrabNewObjects setGrabNewObject={setGrabNewObject} objects={Conditions} name={"Conditions"} />
+      <GrabNewObjects setGrabNewObject={setGrabNewObject} objects={Inputs} name={"Input"} />
 
       {/* <Dropdown>
         <Dropdown.Button>Filters</Dropdown.Button>

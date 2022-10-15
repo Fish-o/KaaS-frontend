@@ -4,5 +4,5 @@ export class BaseAction {
   // id?: string;
   type: `action:${string}`;
   args: { [key: string]: any };
-  returns?: { [key: string]: Variable };
+  returns: { [key: string]: Variable };
 }

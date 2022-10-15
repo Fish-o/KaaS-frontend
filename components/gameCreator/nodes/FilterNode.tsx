@@ -1,19 +1,19 @@
 import { Button, Progress, Loading } from "@nextui-org/react";
 import { isArray } from "lodash";
-import { useContext, useEffect, useState, useMemo, useRef } from "react";
+import { useContext, useEffect, useState, useMemo, useRef, memo, MutableRefObject, Dispatch, SetStateAction } from "react";
 import useStateRef from "react-usestateref";
 import { Filter } from "../../../lib/game/Filters";
 import styles from "../../../styles/gameCreator.module.scss";
-import { GrabbedObjectContext, ObjectIsGrabbedContext } from "../../gameCreator";
+import { GrabbedObjectTypeContext, ObjectIsGrabbedContext } from "../../gameCreator";
 import { TypedNodeProperties } from "../../TypedNodeProperties";
 import { IdleHoverChecker } from "../DropPosition";
 import { NodeOptions } from "../NodeOptions";
 import { TypedArgument } from "../typedNode";
 
 
-function resolveValue(possibleTypes: any, filterObj: any, key: string, grabbedObject: any, held: boolean) {
+function resolveValue(possibleTypes: any, filterObj: any, key: string, grabbedObjectType: any) {
   //@ts-ignore
-  if (!grabbedObject) {
+  if (!grabbedObjectType) {
     if (filterObj[key] === "<Placeholder>") {
       //@ts-ignore
       delete filterObj[key]
@@ -21,12 +21,6 @@ function resolveValue(possibleTypes: any, filterObj: any, key: string, grabbedOb
   }
   if (filterObj[key]) return
 
-  if (grabbedObject && !held) {
-    if (possibleTypes.some((possibleType: any) => grabbedObject.data.type.startsWith(possibleType))) {
-      //@ts-ignore
-      filterObj[key] = "<Placeholder>"
-    }
-  }
   if (possibleTypes?.includes("string") || possibleTypes?.includes("variable") || possibleTypes?.includes("condition")) {
     //@ts-ignore
     filterObj[key] = undefined
@@ -36,19 +30,21 @@ function resolveValue(possibleTypes: any, filterObj: any, key: string, grabbedOb
     filterObj[key] = new Array()
   }
 }
-export function recurseResolve(possibleTypesObj: any, filterObj: any, grabbedObject: any, held: boolean) {
+export function recurseResolve(possibleTypesObj: any, data: any, grabbedObjectType: any) {
+  if (!possibleTypesObj) return data
   Object.entries(possibleTypesObj).forEach(([key,]) => {
     let possibleTypes = possibleTypesObj[key] as string[];
 
     if (Array.isArray(possibleTypes)) {
-      resolveValue(possibleTypes, filterObj, key, grabbedObject, held)
+
+      resolveValue(possibleTypes, data, key, grabbedObjectType)
 
     } else {
-      filterObj[key] = filterObj[key] || {}
-      recurseResolve(possibleTypes, filterObj[key], grabbedObject, held)
+      data[key] = data[key] || {}
+      recurseResolve(possibleTypes, data[key], grabbedObjectType)
     }
   })
-  return filterObj
+  return data
 }
 
 function recurseCleanup(filterObj: any) {
@@ -72,9 +68,7 @@ function recurseCleanup(filterObj: any) {
   return filterObj
 }
 
-
-export const FilterNode: React.FC<{ filter: Filter }> = ({ filter }) => {
-  let held = useContext(ObjectIsGrabbedContext)
+export const FilterResolver: React.FC<{ filter: Filter }> = memo(({ filter }) => {
   if (!filter.filter) {
     filter.filter = {
       maxAmount: 1,
@@ -85,7 +79,7 @@ export const FilterNode: React.FC<{ filter: Filter }> = ({ filter }) => {
   useEffect(() => {
     filter.filter = data;
   }, [data, filter]);
-  const grabbedObject = useContext(GrabbedObjectContext);
+  const grabbedObjectType = useContext(GrabbedObjectTypeContext);
 
 
 
@@ -103,21 +97,22 @@ export const FilterNode: React.FC<{ filter: Filter }> = ({ filter }) => {
     }, 500)
   }
   useEffect(() => {
-    if (!grabbedObject && maximizedDueToHover) {
+    if (!grabbedObjectType && maximizedDueToHover) {
       setMaximized(false)
       setMaximizedDueToHover(false)
     }
-  }, [grabbedObject, maximizedDueToHover])
+  }, [grabbedObjectType, maximizedDueToHover])
 
 
   useEffect(() => {
+    console.log("setting from maximized")
     if (maximized) {
-      setData(data => ({ ...recurseResolve(TypedNodeProperties[filter.type], data, grabbedObject, held) }))
+      setData(data => ({ ...recurseResolve(TypedNodeProperties[filter.type], data, grabbedObjectType) }))
 
     } else {
       setData(data => ({ ...recurseCleanup(data) }))
     }
-  }, [filter.filter, filter.type, grabbedObject, held, maximized, setData])
+  }, [filter.type, grabbedObjectType, maximized, setData])
 
 
 
@@ -136,56 +131,87 @@ export const FilterNode: React.FC<{ filter: Filter }> = ({ filter }) => {
     // @ts-ignore
     dataRef.current.iterator.actions = actions
   }
+  return (<IdleHoverChecker
+    onHoverExit={() => {
+      if (maximizeTimeout.current) {
+        clearTimeout(maximizeTimeout.current)
+        maximizeTimeout.current = null
+      }
+    }}
+    onHoverEnter={() => { startMaximizeTimeout() }}
+  >
+    <FilterNode
+      data={data}
+      setData={setData}
+      type={filter.type}
+      maximized={maximized}
+      maximizeTimeout={maximizeTimeout}
+      setMaximized={setMaximized}
+      maximizedDueToHover={maximizedDueToHover}
+    />
 
-  return (useMemo(() => {
+  </IdleHoverChecker>)
+})
+FilterResolver.displayName = "FilterResolver"
+
+
+
+const FilterNode: React.FC<{
+  type: Filter["type"],
+  data: Filter["filter"],
+  setData: Dispatch<SetStateAction<Filter["filter"]>>,
+  maximized: boolean,
+  maximizeTimeout: MutableRefObject<NodeJS.Timeout | null>,
+  maximizedDueToHover: boolean,
+  setMaximized: Dispatch<SetStateAction<boolean>>
+}> =
+  memo(({ type, data, setData, maximized, maximizeTimeout, maximizedDueToHover, setMaximized }) => {
+
     return (
-      <IdleHoverChecker
-        onHoverExit={() => {
-          if (maximizeTimeout.current) {
-            clearTimeout(maximizeTimeout.current)
-            maximizeTimeout.current = null
-          }
-        }}
-        onHoverEnter={() => { startMaximizeTimeout() }}
-      >
-        <div className={styles.filterNode} style={held ? { border: "2px solid red" } : {}}>
-          <div className={styles.filterHeader}>
-            <h2>{filter.type}</h2>
-            <div>
-              <Button
-                bordered={!maximized}
-                disabled={!!maximizeTimeout.current || maximizedDueToHover}
-                size="xs"
-                onPress={() => { setMaximized((current) => !current) }} >
-                {maximizeTimeout.current ?
-                  <Loading type="points" color="currentColor" size="sm" />
+      <div className={styles.filterNode} >
+        <div className={styles.filterHeader}>
+          <h2>{type}</h2>
+          <div>
+            <Button
+              bordered={!maximized}
+              disabled={!!maximizeTimeout.current || maximizedDueToHover}
+              size="xs"
+              onPress={() => { setMaximized((current) => !current) }} >
+              {maximizeTimeout.current ?
+                <Loading type="points" color="currentColor" size="sm" />
 
-                  : "Maximize"
-                }
-              </Button>
-            </div>
+                : "Maximize"
+              }
+            </Button>
           </div>
-          {
-            Object.entries(dataRef.current).map(([key, value]) => {
-              return (
-                <TypedArgument
-                  key={key}
-                  $key={key}
-                  value={value}
-                  setValue={(newValue) => {
-                    setData((data) => ({ ...data, [key]: newValue }))
-                  }}
-                  acceptableTypes={TypedNodeProperties[filter.type][key as keyof typeof filter.filter]}
-                  recursiveUpdate={maximized ? 0 : 1}
-                />
-              )
-            })
-          }
-        </div >
-      </IdleHoverChecker>
+        </div>
+        {
+          Object.entries(data).map(([key, value]) => {
+            return (
+              <TypedArgument
+                key={key}
+                $key={key}
+                value={value}
+                setValue={(newValue) => {
+                  setData((oldValue) => {
+                    if (newValue === undefined) {
+                      // @ts-ignore
+                      delete oldValue[key]
+                    } else {
+                      // @ts-ignore
+                      oldValue[key] = newValue
+                    }
+                    return { ...oldValue }
+                  })
+                }}
+                acceptableTypes={TypedNodeProperties[type][key as keyof typeof data]}
+                recursiveUpdate={maximized ? 0 : 1}
+              />
+            )
+          })
+        }
+      </div >
     )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [held, filter, maximized, maximizedDueToHover, dataRef, setData, data]))
-
-
-};
+  })
+FilterNode.displayName = "FilterNode"
+FilterNode.whyDidYouRender = true

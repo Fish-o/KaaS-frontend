@@ -40,8 +40,6 @@ import { Filter } from "../lib/game/Filters";
 import exampleGame from "../lib/games/example";
 import styles from "../styles/gameCreator.module.scss";
 import { EventObject } from "../lib/game/Events"
-import { findIndex } from "lodash";
-import { debug, time } from 'console';
 import { Condition } from '../lib/game/Conditions';
 import NoSSRProvider from './noSSRProvider';
 
@@ -49,12 +47,10 @@ import TopMenuBar from './gameCreator/TopMenuBar';
 import DraggableObject from './gameCreator/draggableObject'
 import DropPosition, { DropPositionObject } from './gameCreator/DropPosition';
 import { ResolveNodeType } from './gameCreator/resolveNodeType';
-import { FilterNode } from './gameCreator/nodes/FilterNode';
 import { CardHolderResolvable, CardResolvable, DeckResolvable, HandResolvable, PlayerResolvable, Resolvable } from '../lib/game/Actions/resolvables';
 import { GameObject } from '../lib/game/Resolvers';
 import { MethodObject } from '../lib/game/Method';
-
-
+import { UserInput } from '../lib/game/Input';
 
 
 type IDdAction = Action & {
@@ -75,11 +71,13 @@ interface GrabbedObjectBase {
 }
 
 
-export type ObjectTypes = (Action | EventObject | Filter | Condition | MethodObject)
+export type ObjectTypes = (Action | EventObject | Filter | Condition | MethodObject | UserInput)
+
 export type GrabbedObject = GrabbedObjectBase & { data: ObjectTypes }
+export type ObjectDatas = (Action["args"] | Action["returns"] | Filter["filter"] | Condition["condition"] | UserInput["input"])
+export type NodableObjectTypes = (Action | Filter | Condition | UserInput)
 
-
-
+export type KeysOfUnion<T> = T extends T ? keyof T : never
 interface DraggableContextType {
   activeDropPoints: { [key: string]: DropPositionObject }
   detachedCanvasRef: React.RefObject<HTMLDivElement>
@@ -105,6 +103,8 @@ export const SetDraggableNodeObjects = React.createContext<React.Dispatch<React.
 export const GrabbedObjectContext = React.createContext<GrabbedObject | null>(null);
 export const SetGrabbedObjectContext = React.createContext<React.Dispatch<React.SetStateAction<GrabbedObject | null>>>(() => { });
 export const RefGrabbedObjectContext = React.createContext<React.RefObject<GrabbedObject | null> | null>(null);
+
+export const GrabbedObjectTypeContext = React.createContext<GrabbedObject["data"]["type"] | null>(null);
 
 
 
@@ -157,27 +157,39 @@ export const GameCreator: React.FC = () => {
     <NoSSRProvider>
 
       <DraggableContext.Provider value={draggableContext}>
-        <DraggableScale.Provider value={draggableScale}>
-          <SetDraggableScale.Provider value={setDraggableScale}>
-            <SetDraggableContext.Provider value={setDraggableContext}>
-              <DraggableContextRef.Provider value={draggableContextRef}>
+        <SetDraggableContext.Provider value={setDraggableContext}>
+          <DraggableContextRef.Provider value={draggableContextRef}>
+
+            <DraggableScale.Provider value={draggableScale}>
+              <SetDraggableScale.Provider value={setDraggableScale}>
+
                 <DraggableNodeObjects.Provider value={nodeObjects}>
                   <SetDraggableNodeObjects.Provider value={setNodeObjects}>
+
+
                     <GrabbedObjectContext.Provider value={grabbedObject}>
                       <SetGrabbedObjectContext.Provider value={setGrabbedObject}>
                         <RefGrabbedObjectContext.Provider value={grabbedObjectRef}>
-                          <TopMenuBar gameSettings={gameData} />
-                          <DraggableCanvas detachedCanvasRef={detachedCanvasRef} />
+                          <GrabbedObjectTypeContext.Provider value={grabbedObject?.data.type ?? null}>
+
+                            <TopMenuBar gameSettings={gameData} />
+                            <DraggableCanvas detachedCanvasRef={detachedCanvasRef} />
+
+                          </GrabbedObjectTypeContext.Provider>
                         </RefGrabbedObjectContext.Provider>
                       </SetGrabbedObjectContext.Provider>
                     </GrabbedObjectContext.Provider>
+
                   </SetDraggableNodeObjects.Provider>
                 </DraggableNodeObjects.Provider>
-              </DraggableContextRef.Provider>
-            </SetDraggableContext.Provider>
-          </SetDraggableScale.Provider >
-        </DraggableScale.Provider >
+
+              </SetDraggableScale.Provider >
+            </DraggableScale.Provider >
+
+          </DraggableContextRef.Provider>
+        </SetDraggableContext.Provider>
       </DraggableContext.Provider >
+
     </NoSSRProvider>
 
   );

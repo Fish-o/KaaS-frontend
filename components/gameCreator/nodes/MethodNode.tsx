@@ -5,7 +5,7 @@ import styles from "../../../styles/gameCreator.module.scss";
 import { Action } from "../../../lib/game/Actions";
 import DropPosition from "../DropPosition";
 import DraggableObject from "../draggableObject";
-import { ActionNode } from "./ActionNode";
+import { ActionResolver } from "./ActionNode";
 import { MethodObject } from "../../../lib/game/Method";
 import { Button, Input } from "@nextui-org/react";
 
@@ -53,7 +53,7 @@ const MethodDropPosition: React.FC<{ method: MethodObject, id: string, i: number
 }
 export const MethodNode: React.FC<{ method: MethodObject }> = ({ method }) => {
   let held = useContext(ObjectIsGrabbedContext)
-
+  let deleteSelf = useContext(DeleteSelfContext)
   const [updater, setUpdater] = useState(Date.now())
   const id = useId();
   return useMemo(() => {
@@ -75,11 +75,13 @@ export const MethodNode: React.FC<{ method: MethodObject }> = ({ method }) => {
 
 
 
-          <Button color={"error"}>
+          <Button color={"error"} onClick={() => {
+            deleteSelf?.();
+          }}>
             Delete (Not Working)
 
 
-          </Button>
+          </Button >
         </div>
         <MethodDropPosition method={method} id={id} i={0 - 1} setUpdater={setUpdater} held={held} />
         {method.actions.map((a, i) => (
@@ -97,7 +99,7 @@ export const MethodNode: React.FC<{ method: MethodObject }> = ({ method }) => {
                 }}
                 fillData={a}
               >
-                <ActionNode action={a} key={`${id}-${Object.uniqueID(a)}`} />
+                <ActionResolver action={a} key={`${id}-${Object.uniqueID(a)}`} />
               </DraggableObject>
             </DeleteSelfContext.Provider>
             <MethodDropPosition method={method} id={id} i={i} key={`dp_${id}-${Object.uniqueID(a)}`} setUpdater={setUpdater} held={held} />

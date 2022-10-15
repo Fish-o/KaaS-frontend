@@ -5,15 +5,10 @@ export class PlayerSelectionUI {
   public playersSelecting: Player[] | null = null;
   public onSelection: (player: Player) => void;
   public _UI: UI;
-  constructor(
-    _UI: UI,
-    players: Player[],
-    onSelection: (player: Player) => void
-  ) {
+  constructor(_UI: UI, players: Player[]) {
     this.playersSelecting = players;
     const buttonWidth = 100;
     const buttonHeight = 50;
-    this.onSelection = onSelection;
     this._UI = _UI;
     players.forEach((player, index, players) => {
       console.log("Adding button", player);
@@ -50,5 +45,8 @@ export class PlayerSelectionUI {
     this.playersSelecting?.forEach((player) => {
       this._UI.removeButton(`select-player-${player.id}`);
     });
+  }
+  public subscribe(callback: (player: Player) => void) {
+    this.onSelection = callback;
   }
 }

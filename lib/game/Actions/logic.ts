@@ -7,18 +7,20 @@ import { DebugContext } from "..";
 
 class BaseLogicAction extends BaseAction {
   type: `action:logic.${string}`;
+  returns: {};
 }
 /*
   Logic If
 */
 
-export class ActionLogicIf extends BaseLogicAction {
+export class ActionLogicIf implements BaseLogicAction {
   type: "action:logic.if";
   args: {
     condition: Condition;
     true_actions: Action[];
     false_actions: Action[];
   };
+  returns: {};
 }
 
 async function performActionLogicIf(
@@ -41,12 +43,13 @@ async function performActionLogicIf(
   }
 }
 
-class ActionLogicLoop extends BaseLogicAction {
+class ActionLogicLoop implements BaseLogicAction {
   type: "action:logic.loop";
   args: {
     actions: Action[];
     loops: number;
   };
+  returns: {};
 }
 
 async function performActionLogicLoop(
@@ -71,13 +74,14 @@ async function performActionLogicLoop(
   Logic For Each
 */
 
-class ActionLogicForEach extends BaseLogicAction {
+class ActionLogicForEach implements BaseLogicAction {
   type: "action:logic.for_each";
   args: {
     collection: Resolvable;
     as: Variable;
     actions: Action[];
   };
+  returns: {};
 }
 async function performActionLogicForEach(
   action: ActionLogicForEach,
@@ -111,22 +115,26 @@ async function performActionLogicForEach(
   Other
 */
 
-export class ActionLogicReturn extends BaseLogicAction {
+export class ActionLogicReturn implements BaseLogicAction {
   type: "action:logic.return";
   args: {
     value: boolean;
   };
+  returns: {};
 }
 
-export class ActionLogicBreak extends BaseLogicAction {
+export class ActionLogicBreak implements BaseLogicAction {
   type: "action:logic.break";
+  args: {};
+  returns: {};
 }
 
-export class ActionLogicMethod extends BaseLogicAction {
+export class ActionLogicMethod implements BaseLogicAction {
   type: "action:logic.method";
   args: {
     methodName: string;
   };
+  returns: {};
 }
 
 export async function preformMethodAction(

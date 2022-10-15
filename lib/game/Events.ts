@@ -10,7 +10,7 @@ import { Game, isValidVariableName } from "./Game";
 
 interface BaseEventObject {
   type: `event:${string}`;
-  returns?: {
+  returns: {
     [key: string]: Variable;
   };
 }

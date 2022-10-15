@@ -11,16 +11,17 @@ class BaseDataAction extends BaseAction {
   type: `action:data.${string}`;
 }
 
-class ActionSetData extends BaseDataAction {
+class ActionSetData implements BaseDataAction {
   type: "action:data.set";
   args: {
     object: Resolvable;
     key: string;
     value: string;
   };
+  returns: {};
 }
 
-class ActionGetData extends BaseDataAction {
+class ActionGetData implements BaseDataAction {
   type: "action:data.get";
   args: {
     object: Resolvable;

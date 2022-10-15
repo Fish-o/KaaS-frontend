@@ -9,6 +9,7 @@ import {
   PlayerFilterObject,
 } from "../Filters";
 import { Game } from "../Game";
+import { performUserInputAction } from "../Input";
 import { BaseGameObject } from "../Objects";
 import { Card } from "../Objects/Card";
 import { Deck } from "../Objects/Deck";
@@ -21,12 +22,7 @@ import { actionIsFindAction, FindAction, performFindAction } from "./find";
 import { actionIsGameAction, GameAction, performGameAction } from "./game";
 import { actionIsLogicAction, LogicAction, performLogicAction } from "./logic";
 import { Resolvable } from "./resolvables";
-import {
-  actionIsUserInputAction,
-  performUserInputAction,
-  UserInputAction,
-} from "./user_input";
-
+import { UserInputAction, preformUserInputAction } from "./user_input";
 export type TODO = never;
 
 export type Variable = `$${string}`;
@@ -52,18 +48,12 @@ export type Filters =
   | DeckFilterObject
   | HandFilterObject;
 
-//  class ActionGameReverseDirection extends BaseAction {
-//   type: "action:game_reverse_direction";
-//   args: {};
-//   returns: undefined;
-// }
-
-// type GameStateActions = never;
-interface DebugAction extends BaseAction {
+class DebugAction implements BaseAction {
   type: "action:debug";
   args: {
     find: Resolvable;
   };
+  returns: {};
 }
 
 export type Action =
@@ -98,8 +88,8 @@ export async function performAction(
     return performFindAction(action, variables, game, debugContext);
   else if (actionIsCardAction(action))
     return performCardAction(action, variables, game, debugContext);
-  else if (actionIsUserInputAction(action))
-    return performUserInputAction(action, variables, game, debugContext);
+  else if (action.type == "action:user_input")
+    return preformUserInputAction(action, variables, game, debugContext);
   else if (actionIsDeckAction(action))
     return preformDeckAction(action, variables, game, debugContext);
   else if (actionIsDataAction(action))

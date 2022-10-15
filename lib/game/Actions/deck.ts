@@ -21,23 +21,23 @@ class BaseDeckAction extends BaseAction {
   type: `action:deck.${string}`;
 }
 
-class ActionDeckShuffle extends BaseDeckAction {
+class ActionDeckShuffle implements BaseDeckAction {
   type: "action:deck.shuffle";
   args: {
     deck: DeckResolvable;
   };
-  returns?: Partial<{
+  returns: Partial<{
     deck: Variable;
   }>;
 }
-class ActionDeckDraw extends BaseDeckAction {
+class ActionDeckDraw implements BaseDeckAction {
   type: "action:deck.draw";
   args: {
     deck: DeckResolvable;
     count: number;
     to: CardHolderResolvable;
   };
-  returns?: Partial<{
+  returns: Partial<{
     deck: Variable;
   }>;
 }
@@ -66,10 +66,7 @@ async function performDeckShuffleAction(
       seed: randomSeed,
     });
   } else {
-    const event = (await awaitEvent(
-      game,
-      "sync_random_seed"
-    )) as SyncRandomSeedEvent;
+    const event = await awaitEvent(game, "sync_random_seed").eventPromise;
     randomSeed = event.seed;
   }
 

@@ -55,7 +55,7 @@ export class UI {
         })
       );
     else
-      awaitEvent(this.game, "game_tick").then((e) => {
+      awaitEvent(this.game, "game_tick").eventPromise.then((e) => {
         this.game_tick();
       });
   }
@@ -85,35 +85,60 @@ export class UI {
         })
       );
     else
-      awaitEvent(this.game, "game_start").then((e) => {
+      awaitEvent(this.game, "game_start").eventPromise.then((e) => {
         this.game.start();
       });
   }
-  public promptPlayerSelection(players: Player[]): Promise<Player> {
+  public promptPlayerSelection(players: Player[]) {
     console.log("Prompting player selection");
-    return new Promise((resolve, reject) => {
-      new PlayerSelectionUI(this, players, (player) => {
+    let cancelPromise = () => {
+      console.log("Cancelled player selection before it was even started");
+    };
+
+    const ui = new PlayerSelectionUI(this, players);
+
+    const selectedPlayers = new Promise<Player>((resolve, reject) => {
+      cancelPromise = () => {
+        ui.remove();
+        reject("Cancelled");
+      };
+      ui.subscribe((player) => {
         resolve(player);
       });
     });
+
+    return {
+      cancel: cancelPromise,
+      playerPromise: selectedPlayers,
+    };
   }
+
   public promptCardSelection(
     cards: Card[],
     minCards: number,
     maxCards: number
-  ): Promise<Card[]> {
+  ) {
     console.log("Prompting card selection");
-    return new Promise((resolve, reject) => {
-      new CardSelectionUI(
-        this,
-        cards,
-        (card) => {
-          resolve(card);
-        },
-        minCards,
-        maxCards
-      );
+    let cancelPromise = () => {
+      console.log("Cancelled card selection before it was even started");
+    };
+
+    const ui = new CardSelectionUI(this, cards, minCards, maxCards);
+
+    const selectedCards = new Promise<Card[]>((resolve, reject) => {
+      cancelPromise = () => {
+        ui.remove();
+        reject("Cancelled");
+      };
+      ui.subscribe((cards) => {
+        resolve(cards);
+      });
     });
+
+    return {
+      cancel: cancelPromise,
+      promise: selectedCards,
+    };
   }
 
   get buttons() {

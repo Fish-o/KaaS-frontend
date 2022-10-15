@@ -11,13 +11,7 @@ export class CardSelectionUI {
   public maxCards: number;
 
   public finishButtonShown: boolean = false;
-  constructor(
-    _UI: UI,
-    cards: Card[],
-    onSelection: (cards: Card[]) => void,
-    minCards: number,
-    maxCards: number
-  ) {
+  constructor(_UI: UI, cards: Card[], minCards: number, maxCards: number) {
     this.minCards = minCards;
     this.maxCards = maxCards;
     this.cardsForSelection = cards;
@@ -25,7 +19,6 @@ export class CardSelectionUI {
     const buttonWidth = config.cardWidth;
     const buttonHeight = config.cardHeight;
 
-    this.onSelection = onSelection;
     this._UI = _UI;
     cards.forEach((card, i) => {
       card.setSelectable(true);
@@ -113,5 +106,8 @@ export class CardSelectionUI {
     // this.cardsForSelection?.forEach((card) => {
     this._UI.removeButton(`finish-card-selection`);
     // });
+  }
+  public subscribe(callback: (cards: Card[]) => void) {
+    this.onSelection = callback;
   }
 }

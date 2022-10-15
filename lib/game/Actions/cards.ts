@@ -19,14 +19,14 @@ import { DebugContext } from "..";
 class BaseCardAction extends BaseAction {
   type: `action:cards.${string}`;
 }
-class ActionMoveCards extends BaseCardAction {
+class ActionMoveCards implements BaseCardAction {
   type: "action:cards.move";
   args: {
     cards: CardResolvable;
     to: CardHolderResolvable;
     where?: "top" | "bottom" | "random";
   };
-  returns?: Partial<{
+  returns: Partial<{
     moved_cards: Variable;
     destination: Variable;
   }>;

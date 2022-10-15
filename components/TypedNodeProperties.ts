@@ -2,6 +2,7 @@ import { Action, Variable } from "../lib/game/Actions";
 import { Resolvable } from "../lib/game/Actions/resolvables";
 import { Condition } from "../lib/game/Conditions";
 import { Filter } from "../lib/game/Filters";
+import { UserInput } from "../lib/game/Input";
 
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
   k: infer I
@@ -35,6 +36,10 @@ type ConditionsByType = {
   [K in Condition["type"]]: Extract<Condition, { type: K }>["condition"];
 };
 
+type InputsByType = {
+  [K in UserInput["type"]]: Extract<UserInput, { type: K }>["input"];
+};
+
 type ActionReturnsByType = {
   [K in Action["type"]]: Exclude<
     Extract<Action, { type: K }>["returns"],
@@ -42,7 +47,10 @@ type ActionReturnsByType = {
   >;
 };
 
-type EverythingByType = FiltersByType & ActionsByType & ConditionsByType;
+type EverythingByType = FiltersByType &
+  ActionsByType &
+  ConditionsByType &
+  InputsByType;
 
 // **DISCLAMER**: THIS IS THE BIGGEST FUCKING HACK. I'M SORRY.
 // This is a hack to get around the fact that the type system doesn't allow for runtime shit.
@@ -64,6 +72,8 @@ type FilterTypedObject<K extends keyof BT, BT> = {
           ]
     : BT[K][K2] extends Action[]
     ? ["required", "array", "action"]
+    : BT[K][K2] extends UserInput[]
+    ? ["required", "array", "input"]
     : BT[K][K2] extends number
     ? ["required", "number"]
     : BT[K][K2] extends number | Variable
@@ -377,19 +387,9 @@ export let TypedNodeProperties: {
     ],
     value: ["required", "string"],
   },
-  "action:user_input.select_players": {
-    from: ["variable", "filter:player"],
-    max: ["required", "number"],
-    message: ["required", "string"],
-    min: ["required", "number"],
-    selector: ["required", "variable", "filter:player"],
-  },
-  "action:user_input.select_cards": {
-    from: ["variable", "filter:card"],
-    max: ["required", "number"],
-    message: ["required", "string"],
-    min: ["required", "number"],
-    selector: ["required", "variable", "filter:player"],
+  "action:user_input": {
+    inputs: ["required", "array", "input"],
+    operation: ["required", "string:all", "string:any"],
   },
   "condition:amount": {
     a: ["required", "variable"],
@@ -458,16 +458,13 @@ export let TypedNodeProperties: {
       "string:ends_with",
     ],
   },
-
   "action:logic.return": {
     value: ["required", "boolean"],
   },
   "action:logic.break": {},
-
   "action:logic.method": {
     methodName: ["required", "string"],
   },
-
   "action:deck.shuffle": {
     deck: ["required", "variable", "filter:deck"],
   },
@@ -479,6 +476,22 @@ export let TypedNodeProperties: {
   "action:game.win": {
     losers: ["variable", "filter:player"],
     winners: ["required", "variable", "filter:player"],
+  },
+  "input:select_cards": {
+    from: ["variable", "filter:card"],
+    max: ["required", "number"],
+    message: ["required", "string"],
+    min: ["required", "number"],
+    selector: ["required", "variable", "filter:player"],
+    actions: ["required", "array", "action"],
+  },
+  "input:select_players": {
+    from: ["variable", "filter:player"],
+    max: ["required", "number"],
+    message: ["required", "string"],
+    min: ["required", "number"],
+    selector: ["required", "variable", "filter:player"],
+    actions: ["required", "array", "action"],
   },
 };
 export let TypedActionReturns: {
@@ -521,12 +534,7 @@ export let TypedActionReturns: {
   "action:logic.loop": {},
   "action:logic.return": {},
   "action:logic.method": {},
-  "action:user_input.select_cards": {
-    selected: ["required", "variable"],
-  },
-  "action:user_input.select_players": {
-    selected: ["variable"],
-  },
+  "action:user_input": {},
   "action:game.win": {
     winner: ["required", "variable"],
   },

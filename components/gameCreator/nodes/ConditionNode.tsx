@@ -1,63 +1,39 @@
-import { useContext, useEffect, useId, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { Condition } from "../../../lib/game/Conditions";
-import { ObjectIsGrabbedContext, SetDraggableNodeObjects } from "../../gameCreator";
 import styles from "../../../styles/gameCreator.module.scss";
 import { recurseResolve } from "./FilterNode";
-import { TypedArgument } from "../typedNode";
-import useStateRef from "react-usestateref";
 import { TypedNodeProperties } from "../../TypedNodeProperties";
+import { NodeData } from "../NodeData";
 
 
-export const ConditionNode: React.FC<{ condition: Condition }> = ({ condition }) => {
-  let held = useContext(ObjectIsGrabbedContext)
+export const ConditionNode: React.FC<{ condition: Condition }> = memo(({ condition }) => {
+  let type = condition.type
   if (!condition.condition) {
     // @ts-ignore
     condition.condition = {}
   }
-  const [data, setData, dataRef] = useStateRef(condition.condition);
+  const [data, setData] = useState(condition.condition);
   useEffect(() => {
     condition.condition = data;
   }, [data, condition])
 
   useEffect(() => {
-    setData(data => recurseResolve(TypedNodeProperties[condition.type], data, null, held))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [condition])
+    setData(data => recurseResolve(TypedNodeProperties[type], data, null))
+  }, [condition, setData, type])
+  return (
+    <div className={styles.conditionNode}>
+      <h1>Condition: {type}</h1>
 
-
-
-  return useMemo(() => {
-    const preferedOrder = ["key", "a", "operator", "b", "conditions", "not"]
-
-    return (
-      <div className={styles.conditionNode} style={held ? { border: "2px solid red" } : {}}>
-        <h1>Condition: {condition.type}</h1>
-
-        <div>
-          {
-            preferedOrder.map((key) => {
-              if (key in dataRef.current) {
-                let value = dataRef.current[key as keyof typeof data];
-                let properties = TypedNodeProperties[condition.type][key as keyof typeof data]
-                return (
-                  <TypedArgument
-                    value={value}
-                    $key={key}
-                    setValue={(value) => {
-                      setData(data => ({ ...data, [key]: value }))
-                    }}
-                    acceptableTypes={properties}
-                    orientation={"vertical"}
-                  />
-                )
-              }
-              return null
-            })
-          }
-
-        </div>
-      </div >
-    )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [condition, held, data])
-}
+      <div>
+        <NodeData
+          data={data}
+          setData={setData}
+          TypedDataObject={TypedNodeProperties}
+          type={type}
+          preferredOrder={["key", "a", "operator", "b", "conditions", "not"]}
+        />
+      </div>
+    </div >
+  )
+})
+ConditionNode.displayName = "ConditionNode"

@@ -1,17 +1,20 @@
-import { Input } from "@nextui-org/react"
+import { Button, Input } from "@nextui-org/react"
 import { Action } from "../../lib/game/Actions"
 import { EventObject } from "../../lib/game/Events"
 import { Filter } from "../../lib/game/Filters"
-import { ObjectIsGrabbedContext, ObjectTypes } from "../gameCreator"
+import { DeleteSelfContext, ObjectIsGrabbedContext, ObjectTypes } from "../gameCreator"
 import { EventNode } from "./nodes/EventNode"
-import { FilterNode } from "./nodes/FilterNode"
+import { FilterResolver } from "./nodes/FilterNode"
 
 import React, { memo, useContext } from "react";
-import { ActionNode } from "./nodes/ActionNode"
+import { ActionResolver } from "./nodes/ActionNode"
 import { ConditionNode } from "./nodes/ConditionNode"
 import { Condition } from "../../lib/game/Conditions"
 import { MethodObject } from "../../lib/game/Method"
 import { MethodNode } from "./nodes/MethodNode"
+import { InputNode } from "./nodes/InputNode"
+import { UserInput } from "../../lib/game/Input"
+import { TypedNodeProperties } from "../TypedNodeProperties"
 // class ErrorBoundary extends React.Component {
 //   constructor(props: {} | Readonly<{}>) {
 //     super(props);
@@ -53,6 +56,26 @@ import { MethodNode } from "./nodes/MethodNode"
 //     return this.props.children;
 //   }
 // }
+
+const UnknownType: React.FC<{ objectData: ObjectTypes }> = ({ objectData }) => {
+  const deleteSelf = useContext(DeleteSelfContext);
+
+  return (
+    <div>Unknown node type: {objectData.type}
+      {JSON.stringify(objectData)}
+      <Button onClick={() => {
+        deleteSelf?.();
+      }}
+        color="error">Delete</Button>
+
+
+    </div>)
+
+
+}
+
+
+
 export const ResolveNodeType: React.FC<{ objectData: ObjectTypes | string }> = memo(({ objectData }) => {
   if (typeof objectData === "string") {
     return (
@@ -62,26 +85,38 @@ export const ResolveNodeType: React.FC<{ objectData: ObjectTypes | string }> = m
       />
     )
   }
+
+
+
+  if (objectData.type.startsWith("event:")) {
+    return <EventNode event={objectData as EventObject} />
+  }
+
+  if (objectData.type.startsWith('method:')) {
+    return <MethodNode method={objectData as MethodObject} />
+  }
+  // @ts-ignore
+  if (!TypedNodeProperties[objectData.type]) {
+    return <UnknownType objectData={objectData} />
+
+  }
   if (objectData.type.startsWith("action:")) {
 
     return (
       // <ErrorBoundary action={objectData}>
-      <ActionNode action={objectData as Action} />
+      <ActionResolver action={objectData as Action} />
       // </ErrorBoundary>
     )
   }
-  if (objectData.type.startsWith("event:")) {
-    return <EventNode event={objectData as EventObject} />
-  }
   if (objectData.type.startsWith('filter:')) {
-    return <FilterNode filter={objectData as Filter} />
+    return <FilterResolver filter={objectData as Filter} />
   }
   if (objectData.type.startsWith('condition:')) {
     return <ConditionNode condition={objectData as Condition} />
   }
 
-  if (objectData.type.startsWith('method:')) {
-    return <MethodNode method={objectData as MethodObject} />
+  if (objectData.type.startsWith('input:')) {
+    return <InputNode input={objectData as UserInput} />
   }
 
   return <p>

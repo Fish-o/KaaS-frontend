@@ -5,7 +5,7 @@ import styles from "../../../styles/gameCreator.module.scss";
 import { Action } from "../../../lib/game/Actions";
 import DropPosition from "../DropPosition";
 import DraggableObject from "../draggableObject";
-import { ActionNode } from "./ActionNode";
+import { ActionResolver } from "./ActionNode";
 
 
 const EventDropPosition: React.FC<{ event: EventObject, id: string, i: number, setUpdater: React.Dispatch<React.SetStateAction<number>>, held: boolean }> = ({ event, id, i, setUpdater, held }) => {
@@ -77,7 +77,7 @@ export const EventNode: React.FC<{ event: EventObject }> = ({ event }) => {
                 }}
                 fillData={a}
               >
-                <ActionNode action={a} key={`${id}-${Object.uniqueID(a)}`} />
+                <ActionResolver action={a} key={`${id}-${Object.uniqueID(a)}`} />
               </DraggableObject>
             </DeleteSelfContext.Provider>
 

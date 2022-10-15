@@ -1,8 +1,8 @@
 import { Input } from "@nextui-org/react";
-import { useContext, useState, useMemo, Dispatch, SetStateAction, useRef, useEffect } from "react";
+import { useContext, useState, useMemo, Dispatch, SetStateAction, useRef, useEffect, memo } from "react";
 import { Action } from "../../../lib/game/Actions";
 import { Filter } from "../../../lib/game/Filters";
-import { GrabbedObjectContext, ObjectIsGrabbedContext, SetDraggableNodeObjects } from "../../gameCreator";
+import { GrabbedObjectContext, GrabbedObjectTypeContext, NodableObjectTypes, ObjectDatas, ObjectIsGrabbedContext, ObjectTypes, SetDraggableNodeObjects } from "../../gameCreator";
 import { TypedActionReturns, TypedNodeProperties } from "../../TypedNodeProperties"
 import styles from "../../../styles/gameCreator.module.scss";
 import { ActionLogicIf, LogicAction } from "../../../lib/game/Actions/logic";
@@ -11,83 +11,69 @@ import { TypedArgument, AcceptableTypesArray } from "../typedNode";
 import { Condition } from "../../../lib/game/Conditions";
 import useStateRef from "react-usestateref";
 import { NodeOptions } from "../NodeOptions";
+import { NodeData } from "../NodeData";
 
 
 
+export const ActionResolver: React.FC<{ action: Action }> = ({ action }) => {
+  const type = action.type
 
-
-export const ActionNode: React.FC<{ action: Action }> = ({ action }) => {
-
-  let held = useContext(ObjectIsGrabbedContext)
   if (!action.args) {
     action.args = {}
-  }
-  if (!action.returns) {
-    action.returns = {}
   }
   const [args, setArgs, argsRef] = useStateRef<typeof action.args>(action.args);
   useEffect(() => {
     action.args = args;
   }, [args, action]);
-  const grabbedObject = useContext(GrabbedObjectContext);
 
+
+
+  if (!action.returns) {
+    action.returns = {}
+  }
+  const [returns, setReturns, returnsRef] = useStateRef<typeof action.returns>(action.returns);
   useEffect(() => {
-    if (grabbedObject) {
+    action.returns = returns;
+  }, [returns, action]);
+
+
+
+  const grabbedObjectType = useContext(GrabbedObjectTypeContext);
+  useEffect(() => {
+    if (grabbedObjectType) {
       setArgs((args) =>
-        recurseResolve(TypedNodeProperties[action.type], args, grabbedObject, held)
+        recurseResolve(TypedNodeProperties[type], args, grabbedObjectType)
       );
     }
-  }, [grabbedObject, held, action.type, setArgs, argsRef])
+  }, [grabbedObjectType, type, setArgs, argsRef])
 
-
-  const { name, description } = getActionInfo(action.type);
 
   return useMemo(() => {
+    const { name, description } = getActionInfo(type);
 
-    if (action.type === "action:logic.if") {
+    if (!TypedNodeProperties[type]) {
+      return <div>Unknown action type: {type}</div>;
+    }
+    if (type === "action:logic.if") {
       return <IfNode args={argsRef.current as ActionLogicIf["args"]} setArgs={setArgs} />
     }
     return (
-      <div className={styles.actionNode} style={held ? { border: "2px solid red" } : {}}>
+      <div className={styles.actionNode} >
 
         <div>
-          <h1
-            style={{
-              textAlign: "center",
-              padding: "0px",
-              margin: "0px",
-              marginTop: "10px",
-            }}
-          >
-            {name}
-          </h1>
+          <h1> {name} </h1>
           <p>{description}</p>
         </div>
         <div className={styles.rowList}>
-          {Object.entries(argsRef.current).map(([key, value], index) => {
-            return <TypedArgument
-              value={value}
-              $key={key}
-              setValue={(newValue) => {
-                setArgs((args) => ({ ...args, [key]: newValue }))
-              }}
-              key={key}
-              acceptableTypes={TypedNodeProperties[action.type][key as (keyof typeof action.args)]}
-            />
-          })
-          }
+          < NodeData type={type} data={args} setData={setArgs} TypedDataObject={TypedNodeProperties} preferredOrder={[""]} />
+          < NodeData type={type} data={returns} setData={setReturns} TypedDataObject={TypedActionReturns} prefix={"Returns"} />
         </div>
-        <NodeOptions node={action} />
-        <VariablePart action={action} type={action.type} />
-
-
-      </div >
+      </div>
     )
+  }, [type, args, argsRef, returns, setArgs, setReturns])
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [action, action.args, description, grabbedObject?.data.type, held, name])
+}
 
-};
 const IfNode: React.FC<{ args: ActionLogicIf["args"], setArgs: Dispatch<SetStateAction<ActionLogicIf["args"]>> }> = ({ args, setArgs }) => {
   let held = useContext(ObjectIsGrabbedContext)
   const type = "action:logic.if"
@@ -129,6 +115,7 @@ const IfNode: React.FC<{ args: ActionLogicIf["args"], setArgs: Dispatch<SetState
               $key={"true_actions"}
               setValue={(newValue) => {
                 setArgs({ ...args, true_actions: newValue as Action[] })
+
               }}
               acceptableTypes={TypedNodeProperties[type]["true_actions"]}
             />
@@ -150,54 +137,6 @@ const IfNode: React.FC<{ args: ActionLogicIf["args"], setArgs: Dispatch<SetState
     </div >
   )
 };
-
-const VariablePart: React.FC<{ action: Action, type: Action["type"] }> = ({ action, type }) => {
-  const [returns, setReturns, returnsRef] = useStateRef<typeof action.returns>(action.returns);
-  useEffect(() => {
-    action.returns = returns;
-  }, [returns, action]);
-
-  useEffect(() => {
-    Object.entries(TypedActionReturns[type]).forEach(([key,]) => {
-      //@ts-ignore
-      let possibleTypes = TypedActionReturns[type][key] as string[];
-
-      if (Array.isArray(possibleTypes)) {
-        if (possibleTypes.includes("variable")) {
-          //@ts-ignore
-          if (!returns[key]) {
-            //@ts-ignore
-            returns[key] = undefined
-          }
-        }
-      }
-
-      setReturns(returns)
-    })
-  }, [type, returns, setReturns])
-
-
-
-  if (!returnsRef.current) return null
-
-  return (
-    <>
-      <h2>Variable</h2>
-      {Object.entries(returnsRef.current).map(([key, value], index) => {
-        return <TypedArgument
-          value={value}
-          $key={key}
-          setValue={(newValue) => {
-            setReturns((returns) => ({ ...returns, [key]: newValue }))
-          }}
-          key={key}
-          acceptableTypes={TypedActionReturns[type][key as keyof typeof returnsRef.current] as AcceptableTypesArray}
-        />
-      })
-      }
-    </>
-  )
-}
 
 function getActionInfo(type: Action["type"]): {
   name: string;
@@ -268,23 +207,11 @@ function getActionInfo(type: Action["type"]): {
         description: "Debug",
       };
 
-
-
-    case "action:user_input.select_players":
+    case "action:user_input":
       return {
-        name: "Select players",
-        description: "Prompt a user to select players",
-      };
-    case "action:user_input.select_cards":
-      return {
-        name: "Select cards",
-        description: "Prompt a user to select cards",
-      };
-
-
-
-
-
+        name: "User input",
+        description: "Get a users input",
+      }
 
     case "action:deck.shuffle":
       return {
@@ -296,11 +223,6 @@ function getActionInfo(type: Action["type"]): {
         name: "Draw cards",
         description: "Draw cards from a deck",
       }
-
-
-
-
-
 
     case "action:data.get":
       return {

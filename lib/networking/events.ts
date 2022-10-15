@@ -176,13 +176,23 @@ export async function broadcastGameEvent(game: Game, event: PartialGameEvent) {
   channel.trigger("client-game", fullEvent);
 }
 
-// TODO: Make this good typescript pls
-export async function awaitEvent<T extends GameEvent>(
+export function awaitEvent<T extends GameEvent["event"]>(
   game: Game,
-  type: T["event"],
+  type: T,
   timeout?: number
-): Promise<T> {
-  return new Promise((resolve, reject) => {
+): {
+  cancel: () => void;
+  eventPromise: Promise<Extract<GameEvent, { event: T }>>;
+} {
+  let cancel = () => {
+    console.error("game/events", "awaitEvent cancelled before it was set");
+  };
+
+  let event = new Promise((resolve, reject) => {
+    cancel = () => {
+      reject(new Error("awaitEvent cancelled"));
+    };
+
     const channel = game.lobbyChannel;
     const eventListener = (event: GameEvent) => {
       if (isEventType(event, type)) {
@@ -198,6 +208,11 @@ export async function awaitEvent<T extends GameEvent>(
         reject(new Error("Timeout"));
       }, timeout);
   });
+
+  return { cancel, eventPromise: event } as {
+    cancel: () => void;
+    eventPromise: Promise<Extract<GameEvent, { event: T }>>;
+  };
 }
 
 function isEventType<T extends GameEvent>(
