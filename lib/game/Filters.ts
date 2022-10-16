@@ -2,8 +2,15 @@ import { DebugContext, debugLog } from ".";
 import { Action, performActions, Variable, VariableMap } from "./Actions";
 import {
   CardHolderResolvable,
+  CardResolvable,
+  DeckResolvable,
+  HandResolvable,
   PlayerResolvable,
   resolveCardHolderResolvable,
+  resolveCardResolvable,
+  resolveDeckResolvable,
+  resolveHandResolvable,
+  resolvePlayerResolvable,
 } from "./Actions/resolvables";
 import { Condition, performCondition } from "./Conditions";
 import { Game, isValidVariableName } from "./Game";
@@ -34,9 +41,9 @@ export interface DeckFilterObject extends FilterObject {
       cards: CardFilterObject;
     };
 
-    $not: DeckFilterObject;
-    $and: DeckFilterObject[];
-    $or: DeckFilterObject[];
+    $not: DeckResolvable;
+    $and: DeckResolvable[];
+    $or: DeckResolvable[];
 
     has_property: {
       property: string;
@@ -62,9 +69,9 @@ export interface PlayerFilterObject extends FilterObject {
 
     has_hand: HandFilterObject;
 
-    $not: PlayerFilterObject;
-    $and: PlayerFilterObject[];
-    $or: PlayerFilterObject[];
+    $not: PlayerResolvable;
+    $and: PlayerResolvable[];
+    $or: PlayerResolvable[];
 
     has_property: {
       property: string;
@@ -95,9 +102,9 @@ export interface HandFilterObject extends FilterObject {
     };
     from_player: PlayerResolvable;
 
-    $not: HandFilterObject;
-    $and: HandFilterObject[];
-    $or: HandFilterObject[];
+    $not: HandResolvable;
+    $and: HandResolvable[];
+    $or: HandResolvable[];
 
     has_property: {
       property: string;
@@ -123,9 +130,9 @@ export interface CardFilterObject extends FilterObject {
 
     inside: CardHolderResolvable;
 
-    $not: CardFilterObject;
-    $and: CardFilterObject[];
-    $or: CardFilterObject[];
+    $not: CardResolvable;
+    $and: CardResolvable[];
+    $or: CardResolvable[];
 
     has_property: {
       property: string;
@@ -317,7 +324,9 @@ async function filterPlayers(
   if ($and)
     ands.push(
       ...(await Promise.all(
-        $and.map((f) => filterPlayers(f, variables, game, debugContext))
+        $and.map((f) =>
+          resolvePlayerResolvable(f, variables, game, debugContext)
+        )
       ))
     );
 
@@ -325,7 +334,9 @@ async function filterPlayers(
     ands.push(
       (
         await Promise.all(
-          $or.map((f) => filterPlayers(f, variables, game, debugContext))
+          $or.map((f) =>
+            resolvePlayerResolvable(f, variables, game, debugContext)
+          )
         )
       )
         .reduce((acc, curr) => {
@@ -336,7 +347,9 @@ async function filterPlayers(
     );
 
   if ($not)
-    not.push(...(await filterPlayers($not, variables, game, debugContext)));
+    not.push(
+      ...(await resolvePlayerResolvable($not, variables, game, debugContext))
+    );
 
   // Combine the ands and remove the nots
   let filteredPlayers = [...players];
@@ -346,11 +359,11 @@ async function filterPlayers(
   filteredPlayers = filteredPlayers.filter((p) => !not.includes(p));
 
   // Min and max amount
-  if (filterPlayers.length > maxAmount)
+  if (filteredPlayers.length > maxAmount)
     filteredPlayers = filteredPlayers.slice(0, maxAmount);
-  if (filterPlayers.length < minAmount)
+  if (filteredPlayers.length < minAmount)
     throw new Error(
-      `Not enough players found. minAmount: ${minAmount}, found: ${filterPlayers.length}`
+      `Not enough players found. minAmount: ${minAmount}, found: ${filteredPlayers.length}`
     );
   console.log("filteredPlayers", filteredPlayers);
   console.log({
@@ -412,14 +425,16 @@ async function filterHands(
   if ($and)
     ands.push(
       ...(await Promise.all(
-        $and.map((f) => filterHands(f, variables, game, debugContext))
+        $and.map((f) => resolveHandResolvable(f, variables, game, debugContext))
       ))
     );
   if ($or)
     ands.push(
       (
         await Promise.all(
-          $or.map((f) => filterHands(f, variables, game, debugContext))
+          $or.map((f) =>
+            resolveHandResolvable(f, variables, game, debugContext)
+          )
         )
       )
         .reduce((acc, curr) => {
@@ -428,7 +443,9 @@ async function filterHands(
         .filter((h, i, a) => a.indexOf(h) === i)
     );
   if ($not)
-    not.push(...(await filterHands($not, variables, game, debugContext)));
+    not.push(
+      ...(await resolveHandResolvable($not, variables, game, debugContext))
+    );
 
   if (from_player && typeof from_player !== "string") {
     if (
@@ -548,14 +565,16 @@ async function filterCards(
   if ($and)
     ands.push(
       ...(await Promise.all(
-        $and.map((f) => filterCards(f, variables, game, debugContext))
+        $and.map((f) => resolveCardResolvable(f, variables, game, debugContext))
       ))
     );
   if ($or)
     ands.push(
       (
         await Promise.all(
-          $or.map((f) => filterCards(f, variables, game, debugContext))
+          $or.map((f) =>
+            resolveCardResolvable(f, variables, game, debugContext)
+          )
         )
       )
         .reduce((acc, curr) => {
@@ -564,7 +583,9 @@ async function filterCards(
         .filter((c, i, a) => a.indexOf(c) === i)
     );
   if ($not)
-    not.push(...(await filterCards($not, variables, game, debugContext)));
+    not.push(
+      ...(await resolveCardResolvable($not, variables, game, debugContext))
+    );
 
   if (has_all_of_tags)
     ands.push(cards.filter((c) => c.hasAllTags(has_all_of_tags)));
@@ -654,14 +675,16 @@ async function filterDecks(
   if ($and)
     ands.push(
       ...(await Promise.all(
-        $and.map((f) => filterDecks(f, variables, game, debugContext))
+        $and.map((f) => resolveDeckResolvable(f, variables, game, debugContext))
       ))
     );
   if ($or)
     ands.push(
       (
         await Promise.all(
-          $or.map((f) => filterDecks(f, variables, game, debugContext))
+          $or.map((f) =>
+            resolveDeckResolvable(f, variables, game, debugContext)
+          )
         )
       )
         .reduce((acc, curr) => {
@@ -670,7 +693,9 @@ async function filterDecks(
         .filter((d, i, a) => a.indexOf(d) === i)
     );
   if ($not)
-    not.push(...(await filterDecks($not, variables, game, debugContext)));
+    not.push(
+      ...(await resolveDeckResolvable($not, variables, game, debugContext))
+    );
 
   if (has_all_of_tags)
     ands.push(decks.filter((d) => d.hasAllTags(has_all_of_tags)));

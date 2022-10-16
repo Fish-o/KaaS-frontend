@@ -14,7 +14,7 @@ import { MethodObject } from "../../lib/game/Method"
 import { MethodNode } from "./nodes/MethodNode"
 import { InputNode } from "./nodes/InputNode"
 import { UserInput } from "../../lib/game/Input"
-import { TypedNodeProperties } from "../TypedNodeProperties"
+import { isValidType } from "../TypedNodeProperties";
 // class ErrorBoundary extends React.Component {
 //   constructor(props: {} | Readonly<{}>) {
 //     super(props);
@@ -61,69 +61,69 @@ const UnknownType: React.FC<{ objectData: ObjectTypes }> = ({ objectData }) => {
   const deleteSelf = useContext(DeleteSelfContext);
 
   return (
-    <div>Unknown node type: {objectData.type}
+    <div>
+      Unknown node type: {objectData.type}
       {JSON.stringify(objectData)}
-      <Button onClick={() => {
-        deleteSelf?.();
-      }}
-        color="error">Delete</Button>
+      <Button
+        onClick={() => {
+          deleteSelf?.();
+        }}
+        color="error"
+      >
+        Delete
+      </Button>
+    </div>
+  );
+};
 
+export const ResolveNodeType: React.FC<{ objectData: ObjectTypes | string }> =
+  memo(({ objectData }) => {
+    if (typeof objectData === "string") {
+      return (
+        <Input
+          value={objectData || typeof objectData}
+          aria-label={"Argument input"}
+        />
+      );
+    }
+    if (!objectData) {
+      return <h1>No object data</h1>;
+    }
+    if (!objectData.type) {
+      return <h1>No object data type</h1>;
+    }
 
-    </div>)
+    if (objectData.type.startsWith("event:")) {
+      return <EventNode event={objectData as EventObject} />;
+    }
 
+    if (objectData.type.startsWith("method:")) {
+      return <MethodNode method={objectData as MethodObject} />;
+    }
+    if (!isValidType(objectData.type)) {
+      return <UnknownType objectData={objectData} />;
+    }
+    if (objectData.type.startsWith("action:")) {
+      return (
+        // <ErrorBoundary action={objectData}>
+        <ActionResolver action={objectData as Action} />
+        // </ErrorBoundary>
+      );
+    }
+    if (objectData.type.startsWith("filter:")) {
+      return <FilterResolver filter={objectData as Filter} />;
+    }
+    if (objectData.type.startsWith("condition:")) {
+      return <ConditionNode condition={objectData as Condition} />;
+    }
 
-}
+    if (objectData.type.startsWith("input:")) {
+      return <InputNode input={objectData as UserInput} />;
+    }
 
-
-
-export const ResolveNodeType: React.FC<{ objectData: ObjectTypes | string }> = memo(({ objectData }) => {
-  if (typeof objectData === "string") {
-    return (
-      <Input
-        value={objectData || typeof objectData}
-        aria-label={"Argument input"}
-      />
-    )
-  }
-
-
-
-  if (objectData.type.startsWith("event:")) {
-    return <EventNode event={objectData as EventObject} />
-  }
-
-  if (objectData.type.startsWith('method:')) {
-    return <MethodNode method={objectData as MethodObject} />
-  }
-  // @ts-ignore
-  if (!TypedNodeProperties[objectData.type]) {
-    return <UnknownType objectData={objectData} />
-
-  }
-  if (objectData.type.startsWith("action:")) {
-
-    return (
-      // <ErrorBoundary action={objectData}>
-      <ActionResolver action={objectData as Action} />
-      // </ErrorBoundary>
-    )
-  }
-  if (objectData.type.startsWith('filter:')) {
-    return <FilterResolver filter={objectData as Filter} />
-  }
-  if (objectData.type.startsWith('condition:')) {
-    return <ConditionNode condition={objectData as Condition} />
-  }
-
-  if (objectData.type.startsWith('input:')) {
-    return <InputNode input={objectData as UserInput} />
-  }
-
-  return <p>
-    Unknown Object {objectData.type}
-  </p>
-  // }, [grabbedObject, grabbedObject.data, grabbedObject.type])
-})
+    return <p>Unknown Object {objectData.type}</p>;
+    // }, [grabbedObject, grabbedObject.data, grabbedObject.type])
+  });
 ResolveNodeType.displayName = "ResolveNodeType"
 
 // ResolveNodeType

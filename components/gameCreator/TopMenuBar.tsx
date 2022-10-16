@@ -6,7 +6,13 @@ import { EventObject } from "../../lib/game/Events";
 import { Filter } from "../../lib/game/Filters";
 import exampleGame from "../../lib/games/example";
 import { ObjectTypes, SetDraggableContext, SetDraggableNodeObjects } from "../gameCreator";
-import { TypedNodeProperties } from "../TypedNodeProperties";
+import {
+  ActionNodeProperties,
+  ConditionNodeProperties,
+  DefaultValueNodeProperties,
+  FilterNodeProperties,
+  InputNodeProperties,
+} from "../TypedNodeProperties";
 import styles from "../../styles/gameCreator.module.scss";
 import DraggableObject from "./draggableObject";
 import { ResolveNodeType } from "./resolveNodeType";
@@ -14,190 +20,173 @@ import { Condition } from "../../lib/game/Conditions";
 import { GameObject } from "../../lib/game/Resolvers";
 import { MethodObject } from "../../lib/game/Method";
 
-import { GrabbedObject } from "../gameCreator"
+import { GrabbedObject } from "../gameCreator";
 import { games } from "../../lib/games";
 import { UserInput } from "../../lib/game/Input";
 
-function startsWith<Prefix extends string>(prefix: Prefix, val: string): val is `${Prefix}${string}` {
+function startsWith<Prefix extends string>(
+  prefix: Prefix,
+  val: string
+): val is `${Prefix}${string}` {
   return val.startsWith(prefix);
 }
 
-
 type ValueOf<T> = T[keyof T];
 
-function GetValidObject(type: ValueOf<typeof TypedNodeProperties>) {
-  let defaultObject = {} as { [key: string]: any }
+function GetValidObject(type: any) {
+  let defaultObject = {} as { [key: string]: any };
 
   Object.entries(type).forEach(([key, value]) => {
-    if (!Array.isArray(value)) return
-    if (!value.includes("required")) return
+    if (!Array.isArray(value)) return;
+    if (!value.includes("required")) return;
 
     if (value.includes("array")) {
-      defaultObject[key] = new Array()
-      return
+      defaultObject[key] = new Array();
+      return;
     }
     if (value.includes("number")) {
-      defaultObject[key] = 0
-      return
+      defaultObject[key] = 0;
+      return;
     }
-    let literalStrings = value.filter((val) => val.startsWith('string:'))
+    let literalStrings = value.filter((val) => val.startsWith("string:"));
     if (literalStrings.length > 0) {
-      defaultObject[key] = literalStrings[0].replace('string:', '')
-      return
+      defaultObject[key] = literalStrings[0].replace("string:", "");
+      return;
     }
     if (value.includes("variable")) {
-      defaultObject[key] = undefined
-      return
-
+      defaultObject[key] = undefined;
+      return;
     }
-    if (value.includes("string")) {
-      defaultObject[key] = undefined
-      return
+    if (value.includes("string:")) {
+      defaultObject[key] = undefined;
+      return;
     }
     if (value.includes("boolean")) {
-      defaultObject[key] = false
-      return
+      defaultObject[key] = false;
+      return;
     }
-    defaultObject[key] = "{UNKNOWN}"
-  }
-  )
-  return defaultObject
+    defaultObject[key] = "{UNKNOWN}";
+  });
+  return defaultObject;
 }
 
-function MakeValidDraggableObject<T extends (Action | Filter | Condition | UserInput)["type"]>(type: T): Extract<(Action | Filter | Condition | UserInput), { type: T }> {
-  if (!TypedNodeProperties[type]) throw new Error(`Invalid type ${type}`)
-
-  let defaultObject = GetValidObject(TypedNodeProperties[type])
-
+function MakeValidDraggableObject<
+  T extends (Action | Filter | Condition | UserInput)["type"]
+>(type: T): Extract<Action | Filter | Condition | UserInput, { type: T }> {
   if (startsWith("action:", type)) {
+    if (!ActionNodeProperties[type]) throw new Error(`Invalid type ${type}`);
+    let defaultObject = GetValidObject(ActionNodeProperties[type]);
     return {
       type: type,
       args: defaultObject,
-    } as any
+    } as any;
   }
   if (startsWith("event:", type)) {
     return {
       type: type,
-    } as any
+    } as any;
   }
 
   if (startsWith("condition:", type)) {
+    if (!ConditionNodeProperties[type]) throw new Error(`Invalid type ${type}`);
+    let defaultObject = GetValidObject(ConditionNodeProperties[type]);
     return {
       condition: defaultObject,
       type: type,
-    } as any
+    } as any;
   }
 
   if (startsWith("filter:", type)) {
+    if (!FilterNodeProperties[type]) throw new Error(`Invalid type ${type}`);
+    let defaultObject = GetValidObject(FilterNodeProperties[type]);
     return {
       type: type,
-      filter: defaultObject
-    } as any
+      filter: defaultObject,
+    } as any;
   }
   if (startsWith("input:", type)) {
+    if (!InputNodeProperties[type]) throw new Error(`Invalid type ${type}`);
+    let defaultObject = GetValidObject(InputNodeProperties[type]);
     return {
       type: type,
-      filter: defaultObject
-    } as any
+      filter: defaultObject,
+    } as any;
   }
 
-
-  throw new Error("Invalid type")
+  throw new Error("Invalid type");
 }
 
-
-
-
-const Filters = Object.fromEntries(Object.entries(TypedNodeProperties).filter(([key, value]) => startsWith("filter:", key)).map(([key, value]) => [key, value]))
-
-const Actions = Object.fromEntries(Object.entries(TypedNodeProperties).filter(([key, value]) => startsWith("action:", key)).map(([key, value]) => [key, value]))
-
-const Conditions = Object.fromEntries(Object.entries(TypedNodeProperties).filter(([key, value]) => startsWith("condition:", key)).map(([key, value]) => [key, value]))
-
-const Inputs = Object.fromEntries(Object.entries(TypedNodeProperties).filter(([key, value]) => startsWith("input:", key)).map(([key, value]) => [key, value]))
-const GrabNewObjects: React.FC<{ setGrabNewObject: Dispatch<SetStateAction<boolean>>, objects: any, name: string }> = ({ setGrabNewObject, objects, name }) => {
-  const [open, setOpen] = useState<boolean>(false)
+const GrabNewObjects: React.FC<{
+  setGrabNewObject: Dispatch<SetStateAction<boolean>>;
+  objects: any;
+  name: string;
+}> = ({ setGrabNewObject, objects, name }) => {
+  const [open, setOpen] = useState<boolean>(false);
 
   if (open) {
     return (
       <div className={styles.columnList}>
-        <Button onClick={() => setOpen(!open)}>{name} </Button>
-        <div >
+        <Button onClick={() => setOpen(false)}>{name} </Button>
+        <div>
           {
             // @ts-ignore
-            Object.entries(objects).map(([key, _]: [keyof typeof TypedNodeProperties, unknown]) => {
-
+            (
+              Object.entries(objects) as [
+                [(Action | Filter | Condition | UserInput)["type"], unknown]
+              ]
+            ).map(([key, _]) => {
               return (
                 <div key={key}>
-                  <DraggableObject fillData={MakeValidDraggableObject(key)} onGrab={() => {
-                    setGrabNewObject(false)
-                  }}>
-                    <ResolveNodeType objectData={MakeValidDraggableObject(key)} />
-
+                  <DraggableObject
+                    fillData={MakeValidDraggableObject(key)}
+                    onGrab={() => {
+                      setGrabNewObject(false);
+                    }}
+                  >
+                    <ResolveNodeType
+                      objectData={MakeValidDraggableObject(key)}
+                    />
                   </DraggableObject>
                 </div>
-              )
-
-
-            })}
+              );
+            })
+          }
         </div>
       </div>
-
-
-    )
+    );
   }
+  return <Button onClick={() => setOpen(true)}>{name} </Button>;
+};
+
+const GrabNewObject: React.FC<{
+  setGrabNewObject: Dispatch<SetStateAction<boolean>>;
+}> = ({ setGrabNewObject }) => {
+  console.log("Rendering GrabNewObject");
   return (
-    <Button onClick={() => setOpen(!open)}>{name} </Button>
-
-  )
-}
-
-
-
-const GrabNewObject: React.FC<{ setGrabNewObject: Dispatch<SetStateAction<boolean>> }> = ({ setGrabNewObject }) => {
-
-  console.log("Rendering GrabNewObject")
-  return (
-
     <div className={styles.pickNewNode + " " + styles.columnList}>
-      <GrabNewObjects setGrabNewObject={setGrabNewObject} objects={Filters} name={"Filters"} />
-      <GrabNewObjects setGrabNewObject={setGrabNewObject} objects={Actions} name={"Actions"} />
-      <GrabNewObjects setGrabNewObject={setGrabNewObject} objects={Conditions} name={"Conditions"} />
-      <GrabNewObjects setGrabNewObject={setGrabNewObject} objects={Inputs} name={"Input"} />
-
-      {/* <Dropdown>
-        <Dropdown.Button>Filters</Dropdown.Button>
-        <Dropdown.Menu>
-          <Dropdown.Item>
-
-          </Dropdown.Item>
-        </Dropdown.Menu>
-
-
-
-      </Dropdown> */}
-      {/* {
-        // @ts-ignore
-        Object.entries(TypedNodeProperties).map(([key, _]: [keyof typeof TypedNodeProperties, unknown]) => {
-
-          return (
-            <div key={key}>
-              <DraggableObject fillData={MakeValidDraggableObject(key)} onGrab={() => {
-                setGrabNewObject(false)
-              }}>
-                <ResolveNodeType objectData={MakeValidDraggableObject(key)} />
-
-              </DraggableObject>
-            </div>
-          )
-
-
-        })
-
-      } */}
-    </div >
-  )
-}
+      <GrabNewObjects
+        setGrabNewObject={setGrabNewObject}
+        objects={FilterNodeProperties}
+        name={"Filters"}
+      />
+      <GrabNewObjects
+        setGrabNewObject={setGrabNewObject}
+        objects={ActionNodeProperties}
+        name={"Actions"}
+      />
+      <GrabNewObjects
+        setGrabNewObject={setGrabNewObject}
+        objects={ConditionNodeProperties}
+        name={"Conditions"}
+      />
+      <GrabNewObjects
+        setGrabNewObject={setGrabNewObject}
+        objects={InputNodeProperties}
+        name={"Input"}
+      />
+    </div>
+  );
+};
 
 
 const SelectNewGame: React.FC<{ selectGame: (arg0: GameObject) => void }> = ({ selectGame }) => {

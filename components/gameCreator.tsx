@@ -6,26 +6,46 @@ declare global {
   }
 }
 
-(function () {
-  //@ts-ignore
-  if (typeof Object.uniqueID == "undefined") {
-    let id = 0;
-    // @ts-ignore
-    Object.uniqueID = function (o) {
-      if (typeof o.__uniqueid == "undefined") {
-        Object.defineProperty(o, "__uniqueid", {
-          value: ++id,
-          enumerable: false,
-          // This could go either way, depending on your 
-          // interpretation of what an "id" is
-          writable: false
-        });
-      }
+// (function () {
+//   //@ts-ignore
+//   if (typeof Object.uniqueID == "undefined") {
+//     let id = 0;
+//     // @ts-ignore
+//     Object.uniqueID = function (o) {
+//       if (typeof o.__uniqueid == "undefined") {
+//         Object.defineProperty(o, "__uniqueid", {
+//           value: ++id,
+//           enumerable: false,
+//           // This could go either way, depending on your 
+//           // interpretation of what an "id" is
+//           writable: false
+//         });
+//       }
 
-      return o.__uniqueid;
-    };
+//       return o.__uniqueid;
+//     };
+//   }
+// })();
+
+
+let id = 0;
+export function getUniqueID<T>(t: T): number {
+  // @ts-ignore
+  if (typeof t.__uniqueid == "undefined") {
+    Object.defineProperty(t, "__uniqueid", {
+      value: ++id,
+      enumerable: false,
+      // This could go either way, depending on your
+      // interpretation of what an "id" is
+      writable: false
+    });
   }
-})();
+
+  // @ts-ignore
+  return t.__uniqueid;
+}
+
+
 
 
 
@@ -68,6 +88,7 @@ interface GrabbedObjectBase {
   height: number | null,
   zindex?: number,
   dontGrabImmediately?: boolean,
+  maximized?: boolean,
 }
 
 
@@ -106,13 +127,13 @@ export const RefGrabbedObjectContext = React.createContext<React.RefObject<Grabb
 
 export const GrabbedObjectTypeContext = React.createContext<GrabbedObject["data"]["type"] | null>(null);
 
-
-
+export const CurrentMousePositionRef =
+  React.createContext<React.MutableRefObject<{ x: number; y: number }> | null>(
+    null
+  );
 
 export const ObjectIsGrabbedContext = React.createContext<boolean>(false);
 export const DeleteSelfContext = React.createContext<(() => void) | null>(null);
-
-
 
 export const GameCreator: React.FC = () => {
   const gameData = useMemo<GameObject>(() => {
@@ -121,22 +142,23 @@ export const GameCreator: React.FC = () => {
       return JSON.parse(gameDataString) as GameObject;
     }
     return exampleGame;
-  }, [])
-  const detachedCanvasRef = useRef<HTMLDivElement>(null)
+  }, []);
+  const detachedCanvasRef = useRef<HTMLDivElement>(null);
 
-  const [draggableScale, setDraggableScale] = useState(1)
-  const [draggableContext, setDraggableContext, draggableContextRef] = useState<DraggableContextType>({
-    activeDropPoints: {},
-    detachedCanvasRef,
-  });
+  const [draggableScale, setDraggableScale] = useState(1);
+  const [draggableContext, setDraggableContext, draggableContextRef] =
+    useState<DraggableContextType>({
+      activeDropPoints: {},
+      detachedCanvasRef,
+    });
   const [nodeObjects, setNodeObjects] = useState<NodeObjects>(() => {
     let x = 0;
     let y = 0;
-    let seedData = [...gameData.events, ...(gameData.methods ?? [])]
+    let seedData = [...gameData.events, ...(gameData.methods ?? [])];
 
     return seedData.map((data) => {
       x += 100;
-      y += 100
+      y += 100;
       return {
         clientX: x,
         clientY: y,
@@ -146,52 +168,62 @@ export const GameCreator: React.FC = () => {
         type: "event",
         zindex: 0,
         dontGrabImmediately: true,
-      }
-    }) as NodeObjects
+      };
+    }) as NodeObjects;
   });
 
+  const [grabbedObject, setGrabbedObject, grabbedObjectRef] =
+    useState<GrabbedObject | null>(null);
 
-  const [grabbedObject, setGrabbedObject, grabbedObjectRef] = useState<GrabbedObject | null>(null);
-
+  const currentMousePosition = useRef({ x: 0, y: 0 });
+  React.useEffect(() => {
+    const updateMousePosition = (ev: { clientX: any; clientY: any }) => {
+      currentMousePosition.current = { x: ev.clientX, y: ev.clientY };
+    };
+    window.addEventListener("mousemove", updateMousePosition);
+    return () => {
+      window.removeEventListener("mousemove", updateMousePosition);
+    };
+  }, []);
   return (
     <NoSSRProvider>
-
       <DraggableContext.Provider value={draggableContext}>
         <SetDraggableContext.Provider value={setDraggableContext}>
           <DraggableContextRef.Provider value={draggableContextRef}>
-
             <DraggableScale.Provider value={draggableScale}>
               <SetDraggableScale.Provider value={setDraggableScale}>
-
                 <DraggableNodeObjects.Provider value={nodeObjects}>
                   <SetDraggableNodeObjects.Provider value={setNodeObjects}>
-
-
                     <GrabbedObjectContext.Provider value={grabbedObject}>
-                      <SetGrabbedObjectContext.Provider value={setGrabbedObject}>
-                        <RefGrabbedObjectContext.Provider value={grabbedObjectRef}>
-                          <GrabbedObjectTypeContext.Provider value={grabbedObject?.data.type ?? null}>
-
-                            <TopMenuBar gameSettings={gameData} />
-                            <DraggableCanvas detachedCanvasRef={detachedCanvasRef} />
-
+                      <SetGrabbedObjectContext.Provider
+                        value={setGrabbedObject}
+                      >
+                        <RefGrabbedObjectContext.Provider
+                          value={grabbedObjectRef}
+                        >
+                          <GrabbedObjectTypeContext.Provider
+                            value={grabbedObject?.data.type ?? null}
+                          >
+                            <CurrentMousePositionRef.Provider
+                              value={currentMousePosition}
+                            >
+                              <TopMenuBar gameSettings={gameData} />
+                              <DraggableCanvas
+                                detachedCanvasRef={detachedCanvasRef}
+                              />
+                            </CurrentMousePositionRef.Provider>
                           </GrabbedObjectTypeContext.Provider>
                         </RefGrabbedObjectContext.Provider>
                       </SetGrabbedObjectContext.Provider>
                     </GrabbedObjectContext.Provider>
-
                   </SetDraggableNodeObjects.Provider>
                 </DraggableNodeObjects.Provider>
-
-              </SetDraggableScale.Provider >
-            </DraggableScale.Provider >
-
+              </SetDraggableScale.Provider>
+            </DraggableScale.Provider>
           </DraggableContextRef.Provider>
         </SetDraggableContext.Provider>
-      </DraggableContext.Provider >
-
+      </DraggableContext.Provider>
     </NoSSRProvider>
-
   );
 };
 

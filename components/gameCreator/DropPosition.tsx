@@ -70,12 +70,20 @@ function DropPositionObject<T>(
       )
     }
     return (
-      <div className={style}
+      <div
+        className={style}
         ref={dropDivRef}
-        style={active ? { width: width ?? undefined, height: height ?? undefined, ...activeStyle } : { ...inactiveStyle }}>
-        A
-      </div>
-    )
+        style={
+          active
+            ? {
+                width: width ?? undefined,
+                height: height ?? undefined,
+                ...activeStyle,
+              }
+            : { ...inactiveStyle }
+        }
+      ></div>
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     active,

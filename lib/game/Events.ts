@@ -16,13 +16,14 @@ interface BaseEventObject {
 }
 interface CardMovedEventObject extends BaseEventObject {
   type: `event:card.moved`;
-  returns: Partial<{
-    moved_card: Variable;
-    destination: Variable;
-    source: Variable;
-  }>;
-
-  actions: Action[];
+    returns: Partial<{
+      moved_card: Variable;
+      destination: Variable;
+      source: Variable;
+    }>;
+  
+    actions: Action[];
+  
 }
 interface GameInitEventObject extends BaseEventObject {
   type: `event:game.init`;

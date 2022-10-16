@@ -1,5 +1,8 @@
 import { Action, Variable } from "../lib/game/Actions";
-import { Resolvable } from "../lib/game/Actions/resolvables";
+import {
+  CardHolderResolvable,
+  Resolvable,
+} from "../lib/game/Actions/resolvables";
 import { Condition } from "../lib/game/Conditions";
 import { Filter } from "../lib/game/Filters";
 import { UserInput } from "../lib/game/Input";
@@ -52,184 +55,78 @@ type EverythingByType = FiltersByType &
   ConditionsByType &
   InputsByType;
 
-// **DISCLAMER**: THIS IS THE BIGGEST FUCKING HACK. I'M SORRY.
-// This is a hack to get around the fact that the type system doesn't allow for runtime shit.
-// If you see an error make sure to do exactly what it says.
-type FilterTypedObject<K extends keyof BT, BT> = {
-  [K2 in keyof BT[K]]-?: BT[K][K2] extends Resolvable // BT[K][K2] extends Resolvable | string ? ["required", "variable", "string"] : // EverythingByType[K][K2] extends Resolvable ? ["required", "variable", EverythingByType[K][K2]] : //       EverythingByType[K][K2] extends DeckResolvable ? ["required", "variable", "filter:deck"] : //     EverythingByType[K][K2] extends HandResolvable ? ["required", "variable", "filter:hand"] : //   EverythingByType[K][K2] extends PlayerResolvable ? ["required", "variable", "filter:player"] : // EverythingByType[K][K2] extends CardResolvable ? ["required", "variable", "filter:card"] : // EverythingByType[K][K2] extends CardHolderResolvable ? ["required", "variable", "filter:card", "filter:deck"] :
+type PushFront<TailT extends any[], HeadT> = ((
+  head: HeadT,
+  ...tail: TailT
+) => void) extends (...arr: infer ArrT) => void
+  ? ArrT
+  : never;
+
+type CalculatePermutations<U extends string, ResultT extends any[] = []> = {
+  [k in U]: [Exclude<U, k>] extends [never]
+    ? PushFront<ResultT, k>
+    : CalculatePermutations<Exclude<U, k>, PushFront<ResultT, k>>;
+}[U];
+type UnionHasType<T, U> = (T extends U ? true : never) extends never
+  ? false
+  : true;
+
+type HandleArrayRequired<T> = [UnionHasType<T, undefined>] extends [false]
+  ? [Exclude<T, undefined>] extends [Array<infer U>]
     ? [
         "required",
-        "variable",
-        ...TuplifyUnion<Exclude<BT[K][K2], string | undefined>["type"]>
+        "array",
+        ...TuplifyUnion<DecodedBasicType<Exclude<U, undefined>>>
       ]
-    : // EverythingByType[K][K2] extends `$${string}` ? ["required", "variable"] :
-    BT[K][K2] extends string
-    ?
-        | ["required", "string"]
-        | [
-            "required",
-            ...TuplifyUnion<`string:${Exclude<BT[K][K2], undefined>}`>
-          ]
-    : BT[K][K2] extends Action[]
-    ? ["required", "array", "action"]
-    : BT[K][K2] extends UserInput[]
-    ? ["required", "array", "input"]
-    : BT[K][K2] extends number
-    ? ["required", "number"]
-    : BT[K][K2] extends number | Variable
-    ? ["required", "number", "variable"]
-    : BT[K][K2] extends number | string
-    ? ["required", "number", "string"]
-    : BT[K][K2] extends Condition[]
-    ? ["required", "array", "condition"]
-    : BT[K][K2] extends Condition
-    ? ["required", "condition"]
-    : BT[K][K2] extends boolean
-    ? ["required", "boolean"]
-    : BT[K][K2] extends boolean | string | number
-    ? ["required", "string", "number", "boolean"]
-    : BT[K][K2] extends Action[] | undefined
-    ? ["array", "action"]
-    : BT[K][K2] extends Filter | undefined
-    ? TuplifyUnion<Exclude<BT[K][K2], undefined>["type"]>
-    : BT[K][K2] extends Filter[] | undefined
-    ? ["array", ...TuplifyUnion<Exclude<BT[K][K2], undefined>[number]["type"]>]
-    : BT[K][K2] extends string[] | undefined
-    ? ["array", "string"]
-    : BT[K][K2] extends `$${string}` | undefined
-    ? ["variable"]
-    : BT[K][K2] extends string | undefined
-    ? ["string"] | TuplifyUnion<`string:${Exclude<BT[K][K2], undefined>}`>
-    : BT[K][K2] extends Resolvable | undefined
-    ? [
-        "variable",
-        ...TuplifyUnion<Exclude<BT[K][K2], string | undefined>["type"]>
-      ]
-    : BT[K][K2] extends number | undefined
-    ? ["number"]
-    : BT[K][K2] extends number | string | undefined
-    ? ["number", "string"]
-    : BT[K][K2] extends boolean | undefined
-    ? ["boolean"]
-    : BT[K][K2] extends Condition | undefined
-    ? ["condition"]
-    : BT[K][K2] extends Object | undefined
-    ? {
-        [K3 in keyof Exclude<BT[K][K2], undefined>]-?: Exclude<
-          BT[K][K2],
-          undefined
-        >[K3] extends `$${string}`
-          ? ["required", "variable"]
-          : Exclude<BT[K][K2], undefined>[K3] extends string
-          ?
-              | ["required", "string"]
-              | [
-                  "required",
-                  ...TuplifyUnion<`string:${Exclude<
-                    Exclude<BT[K][K2], undefined>[K3],
-                    undefined
-                  >}`>
-                ]
-          : Exclude<BT[K][K2], undefined>[K3] extends Action[]
-          ? ["required", "array", "action"]
-          : Exclude<BT[K][K2], undefined>[K3] extends number
-          ? ["required", "number"]
-          : Exclude<BT[K][K2], undefined>[K3] extends number | string
-          ? ["required", "number", "string"]
-          : Exclude<BT[K][K2], undefined>[K3] extends Condition[]
-          ? ["required", "array", "condition"]
-          : Exclude<BT[K][K2], undefined>[K3] extends Condition
-          ? ["required", "condition"]
-          : Exclude<BT[K][K2], undefined>[K3] extends boolean
-          ? ["required", "boolean"]
-          : Exclude<BT[K][K2], undefined>[K3] extends boolean | string | number
-          ? ["required", "string", "number", "boolean"]
-          : Exclude<BT[K][K2], undefined>[K3] extends Action[] | undefined
-          ? ["array", "action"]
-          : Exclude<BT[K][K2], undefined>[K3] extends Filter | undefined
-          ? TuplifyUnion<
-              Exclude<Exclude<BT[K][K2], undefined>[K3], undefined>["type"]
-            >
-          : Exclude<BT[K][K2], undefined>[K3] extends Filter[] | undefined
-          ? [
-              "array",
-              ...TuplifyUnion<
-                Exclude<
-                  Exclude<BT[K][K2], undefined>[K3],
-                  undefined
-                >[number]["type"]
-              >
-            ]
-          : Exclude<BT[K][K2], undefined>[K3] extends string[] | undefined
-          ? ["array", "string"]
-          : Exclude<BT[K][K2], undefined>[K3] extends `$${string}` | undefined
-          ? ["variable"]
-          : Exclude<BT[K][K2], undefined>[K3] extends string | undefined
-          ?
-              | ["string"]
-              | TuplifyUnion<`string:${Exclude<
-                  Exclude<BT[K][K2], undefined>[K3],
-                  undefined
-                >}`>
-          : Exclude<BT[K][K2], undefined>[K3] extends Resolvable | undefined
-          ? [
-              "variable",
-              ...TuplifyUnion<
-                Exclude<
-                  Exclude<BT[K][K2], undefined>[K3],
-                  string | undefined
-                >["type"]
-              >
-            ]
-          : Exclude<BT[K][K2], undefined>[K3] extends number | undefined
-          ? ["number"]
-          : Exclude<BT[K][K2], undefined>[K3] extends
-              | number
-              | string
-              | undefined
-          ? ["number", "string"]
-          : Exclude<BT[K][K2], undefined>[K3] extends boolean | undefined
-          ? ["boolean"]
-          : Exclude<BT[K][K2], undefined>[K3] extends Condition | undefined
-          ? ["condition"]
-          : unknown;
-      }
-    : never;
-  // EverythingByType[K][K2]
-  // } : unknown
-  // } : 'unknown'
+    : ["required", ...TuplifyUnion<DecodedBasicType<Exclude<T, undefined>>>]
+  : [Exclude<T, undefined>] extends [Array<infer U>]
+  ? ["array", ...TuplifyUnion<DecodedBasicType<Exclude<U, undefined>>>]
+  : [DecodedBasicType<Exclude<T, undefined>>] extends [never]
+  ? never
+  : TuplifyUnion<DecodedBasicType<Exclude<T, undefined>>>;
+
+type RecursiveSolve<T> = HandleArrayRequired<T> extends never
+  ? { [K in keyof T]-?: RecursiveSolve<T[K]> }
+  : // @ts-ignore
+    CalculatePermutations<HandleArrayRequired<T>[number]>;
+
+type FilterTypedObject<K extends keyof BT, BT> = {
+  [K2 in keyof BT[K]]-?: RecursiveSolve<BT[K][K2]>;
 };
-// type FilterTypedObject<K extends keyof EverythingByType> = {
-//   [K2 in keyof EverythingByType[K]]-?:
-//   EverythingByType[K][K2] extends Object ? {
-//     [K3 in keyof EverythingByType[K][K2]]-?:
-//     EverythingByType[K][K2][K3]
-//   } :
-//   EverythingByType[K][K2]
-// }
 
-// type FilterTypedObject<K extends keyof EverythingByType> = {
-//   [K2 in keyof EverythingByType[K]]-?:
-//   EverythingByType[K][K2] }
+// prettier-ignore
+type DecodedBasicType<T> = 
+[Filter | `$${string}`] extends [T] ? "filter" | "variable"
+: T extends number                       ? "number"
+: T extends boolean                    ? "boolean"
+: T extends `$${string}`                ? "variable"
+: T extends string                     ? `string:${Exclude<T, undefined>}`
+: T extends Action                     ? "action"
+: T extends Condition                  ? "condition"
+: T extends UserInput                  ? "input"
+: T extends Filter                     ? T["type"]
+: never
 
-// export let DescriptionForAllTheTypes:
-//   {
-//     [key in keyof EverythingByType[keyof EverythingByType]]: string
-//   } =
-//   deck:
+type TypedObject<T> = {
+  [K in keyof T]: FilterTypedObject<K, T>;
+};
 
-// }
+type DefaultsTypedObject<BT> = {
+  [K2 in keyof BT]?: DefaultsTypedObject<BT[K2]>;
+};
 
-export let TypedNodeProperties: {
-  [K in keyof EverythingByType]: FilterTypedObject<K, EverythingByType>;
-} = {
+// *DISCLAMER*: THIS IS THE BIGGEST FUCKING HACK. I'M SORRY.
+// This is a hack to get around the fact that the type system doesn't allow for runtime shit.
+// If you see an error make sure to do exactly what it says.
+
+export let FilterNodeProperties: TypedObject<FiltersByType> = {
   "filter:card": {
-    $and: ["array", "filter:card"],
-    $or: ["array", "filter:card"],
-    $not: ["filter:card"],
-    has_all_of_tags: ["array", "string"],
-    has_one_of_tags: ["array", "string"],
-    has_tag: ["string"],
+    $and: ["array", "variable", "filter:card"],
+    $or: ["array", "variable", "filter:card"],
+    $not: ["variable", "filter:card"],
+    has_all_of_tags: ["array", "string:"],
+    has_one_of_tags: ["array", "string:"],
+    has_tag: ["string:"],
     inside: ["variable", "filter:deck", "filter:hand"],
     iterator: {
       actions: ["array", "action"],
@@ -237,23 +134,24 @@ export let TypedNodeProperties: {
       condition: ["condition"],
     },
     has_property: {
-      property: ["required", "string"],
-      value: ["required", "string"],
+      property: ["required", "string:"],
+      value: ["required", "string:"],
     },
     maxAmount: ["required", "number"],
+
     minAmount: ["required", "number"],
   },
   "filter:deck": {
-    $and: ["array", "filter:deck"],
-    $or: ["array", "filter:deck"],
-    $not: ["filter:deck"],
-    has_all_of_tags: ["array", "string"],
+    $and: ["array", "variable", "filter:deck"],
+    $or: ["array", "variable", "filter:deck"],
+    $not: ["variable", "filter:deck"],
+    has_all_of_tags: ["array", "string:"],
     has_card: ["filter:card"],
-    has_one_of_tags: ["array", "string"],
-    has_tag: ["string"],
+    has_one_of_tags: ["array", "string:"],
+    has_tag: ["string:"],
     has_x_of_cards: {
       amount: ["required", "number"],
-      cards: ["filter:card"],
+      cards: ["required", "filter:card"],
     },
 
     iterator: {
@@ -263,23 +161,23 @@ export let TypedNodeProperties: {
     },
 
     has_property: {
-      property: ["required", "string"],
-      value: ["required", "string"],
+      property: ["required", "string:"],
+      value: ["required", "string:"],
     },
     maxAmount: ["required", "number"],
     minAmount: ["required", "number"],
   },
   "filter:hand": {
-    $and: ["array", "filter:hand"],
-    $or: ["array", "filter:hand"],
-    $not: ["filter:hand"],
-    has_all_of_tags: ["array", "string"],
-    has_one_of_tags: ["array", "string"],
+    $and: ["array", "variable", "filter:hand"],
+    $or: ["array", "variable", "filter:hand"],
+    $not: ["variable", "filter:hand"],
+    has_all_of_tags: ["array", "string:"],
+    has_one_of_tags: ["array", "string:"],
     from_player: ["variable", "filter:player"],
-    has_tag: ["string"],
+    has_tag: ["string:"],
     has_x_of_cards: {
       amount: ["required", "number"],
-      cards: ["filter:card"],
+      cards: ["required", "filter:card"],
     },
     has_card: ["filter:card"],
     iterator: {
@@ -289,19 +187,19 @@ export let TypedNodeProperties: {
     },
 
     has_property: {
-      property: ["required", "string"],
-      value: ["required", "string"],
+      property: ["required", "string:"],
+      value: ["required", "string:"],
     },
     maxAmount: ["required", "number"],
     minAmount: ["required", "number"],
   },
   "filter:player": {
-    $and: ["array", "filter:player"],
-    $or: ["array", "filter:player"],
-    $not: ["filter:player"],
-    has_all_of_tags: ["array", "string"],
-    has_one_of_tags: ["array", "string"],
-    has_tag: ["string"],
+    $and: ["array", "variable", "filter:player"],
+    $or: ["array", "variable", "filter:player"],
+    $not: ["variable", "filter:player"],
+    has_all_of_tags: ["array", "string:"],
+    has_one_of_tags: ["array", "string:"],
+    has_tag: ["string:"],
     has_hand: ["filter:hand"],
     iterator: {
       actions: ["array", "action"],
@@ -310,38 +208,34 @@ export let TypedNodeProperties: {
     },
 
     has_property: {
-      property: ["required", "string"],
-      value: ["required", "string"],
+      property: ["required", "string:"],
+      value: ["required", "string:"],
     },
     maxAmount: ["required", "number"],
     minAmount: ["required", "number"],
   },
+};
+
+export let ActionNodeProperties: TypedObject<ActionsByType> = {
   "action:cards.move": {
-    cards: ["required", "variable", "filter:card"],
+    cards: ["required", "filter:card", "variable"],
     to: ["required", "variable", "filter:deck", "filter:hand"],
     where: ["string:top", "string:bottom", "string:random"],
   },
   "action:debug": {
-    find: [
-      "required",
-      "variable",
-      "filter:card",
-      "filter:deck",
-      "filter:hand",
-      "filter:player",
-    ],
+    find: ["required", "variable", "filter"],
   },
   "action:find.cards": {
-    filter: ["required", "variable", "filter:card"],
+    filter: ["required", "filter:card"],
   },
   "action:find.decks": {
-    filter: ["required", "variable", "filter:deck"],
+    filter: ["required", "filter:deck"],
   },
   "action:find.hands": {
-    filter: ["required", "variable", "filter:hand"],
+    filter: ["required", "filter:hand"],
   },
   "action:find.players": {
-    filter: ["required", "variable", "filter:player"],
+    filter: ["required", "filter:player"],
   },
   "action:logic.if": {
     condition: ["required", "condition"],
@@ -351,49 +245,50 @@ export let TypedNodeProperties: {
   "action:logic.for_each": {
     actions: ["required", "array", "action"],
     as: ["required", "variable"],
-    collection: [
-      "required",
-      "variable",
-      "filter:card",
-      "filter:deck",
-      "filter:hand",
-      "filter:player",
-    ],
+    collection: ["required", "variable", "filter"],
   },
   "action:logic.loop": {
     actions: ["required", "array", "action"],
     loops: ["required", "number"],
   },
   "action:data.get": {
-    key: ["required", "string"],
-    object: [
-      "required",
-      "variable",
-      "filter:card",
-      "filter:deck",
-      "filter:hand",
-      "filter:player",
-    ],
+    key: ["required", "string:"],
+    object: ["required", "variable", "filter"],
   },
   "action:data.set": {
-    key: ["required", "string"],
-    object: [
-      "required",
-      "variable",
-      "filter:card",
-      "filter:deck",
-      "filter:hand",
-      "filter:player",
-    ],
-    value: ["required", "string"],
+    key: ["required", "string:"],
+    object: ["required", "variable", "filter"],
+    value: ["required", "string:"],
   },
   "action:user_input": {
     inputs: ["required", "array", "input"],
     operation: ["required", "string:all", "string:any"],
   },
+  "action:logic.return": {
+    value: ["required", "boolean"],
+  },
+  "action:logic.break": {},
+  "action:logic.method": {
+    methodName: ["required", "string:"],
+  },
+  "action:deck.shuffle": {
+    deck: ["required", "variable", "filter:deck"],
+  },
+  "action:deck.draw": {
+    count: ["required", "number"],
+    deck: ["required", "variable", "filter:deck"],
+    to: ["required", "variable", "filter:hand", "filter:deck"],
+  },
+  "action:game.win": {
+    losers: ["variable", "filter:player"],
+    winners: ["required", "variable", "filter:player"],
+  },
+};
+
+export let ConditionNodeProperties: TypedObject<ConditionsByType> = {
   "condition:amount": {
     a: ["required", "variable"],
-    b: ["required", "number", "variable"],
+    b: ["required", "variable", "number"],
     operator: ["required", "string:=", "string:>", "string:<"],
     not: ["required", "boolean"],
   },
@@ -416,20 +311,27 @@ export let TypedNodeProperties: {
   },
   "condition:tags": {
     a: ["required", "variable"],
-    b: ["required", "string"],
+    b: ["required", "string:"],
     not: ["required", "boolean"],
     operator: ["required", "string:contains"],
   },
   "condition:type": {
     a: ["required", "variable"],
-    b: ["required", "string"],
+    b: [
+      "required",
+      "variable",
+      "string:deck",
+      "string:card",
+      "string:hand",
+      "string:player",
+    ],
     not: ["required", "boolean"],
     operator: ["required", "string:is_type", "string:contains_type"],
   },
   "condition:data.single": {
     a: ["required", "variable"],
-    b: ["required", "string"],
-    key: ["required", "string"],
+    b: ["required", "string:"],
+    key: ["required", "string:"],
     not: ["required", "boolean"],
     operator: [
       "required",
@@ -445,7 +347,7 @@ export let TypedNodeProperties: {
   "condition:data.compare": {
     a: ["required", "variable"],
     b: ["required", "variable"],
-    key: ["required", "string"],
+    key: ["required", "string:"],
     not: ["required", "boolean"],
     operator: [
       "required",
@@ -458,29 +360,13 @@ export let TypedNodeProperties: {
       "string:ends_with",
     ],
   },
-  "action:logic.return": {
-    value: ["required", "boolean"],
-  },
-  "action:logic.break": {},
-  "action:logic.method": {
-    methodName: ["required", "string"],
-  },
-  "action:deck.shuffle": {
-    deck: ["required", "variable", "filter:deck"],
-  },
-  "action:deck.draw": {
-    count: ["required", "number"],
-    deck: ["required", "variable", "filter:deck"],
-    to: ["required", "variable", "filter:deck", "filter:hand"],
-  },
-  "action:game.win": {
-    losers: ["variable", "filter:player"],
-    winners: ["required", "variable", "filter:player"],
-  },
+};
+
+export let InputNodeProperties: TypedObject<InputsByType> = {
   "input:select_cards": {
     from: ["variable", "filter:card"],
     max: ["required", "number"],
-    message: ["required", "string"],
+    message: ["required", "string:"],
     min: ["required", "number"],
     selector: ["required", "variable", "filter:player"],
     actions: ["required", "array", "action"],
@@ -488,15 +374,14 @@ export let TypedNodeProperties: {
   "input:select_players": {
     from: ["variable", "filter:player"],
     max: ["required", "number"],
-    message: ["required", "string"],
+    message: ["required", "string:"],
     min: ["required", "number"],
     selector: ["required", "variable", "filter:player"],
     actions: ["required", "array", "action"],
   },
 };
-export let TypedActionReturns: {
-  [K in keyof ActionReturnsByType]: FilterTypedObject<K, ActionReturnsByType>;
-} = {
+
+export let TypedActionReturns: TypedObject<ActionReturnsByType> = {
   "action:cards.move": {
     destination: ["variable"],
     moved_cards: ["variable"],
@@ -539,3 +424,47 @@ export let TypedActionReturns: {
     winner: ["required", "variable"],
   },
 };
+
+export let DefaultValueNodeProperties: DefaultsTypedObject<EverythingByType> = {
+  "filter:card": {
+    iterator: {
+      parameter: "$card",
+    },
+    maxAmount: 99999999,
+    minAmount: 1,
+  },
+  "filter:deck": {
+    iterator: {
+      parameter: "$deck",
+    },
+  },
+  "filter:hand": {
+    iterator: {
+      parameter: "$hand",
+    },
+
+    maxAmount: 99999999,
+    minAmount: 1,
+  },
+  "filter:player": {
+    iterator: {
+      parameter: "$player",
+    },
+  },
+};
+
+export function isValidType(type: string): type is keyof EverythingByType {
+  if (type in FilterNodeProperties) {
+    return true;
+  }
+  if (type in ActionNodeProperties) {
+    return true;
+  }
+  if (type in ConditionNodeProperties) {
+    return true;
+  }
+  if (type in InputNodeProperties) {
+    return true;
+  }
+  return false;
+}

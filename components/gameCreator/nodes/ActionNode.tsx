@@ -3,7 +3,11 @@ import { useContext, useState, useMemo, Dispatch, SetStateAction, useRef, useEff
 import { Action } from "../../../lib/game/Actions";
 import { Filter } from "../../../lib/game/Filters";
 import { GrabbedObjectContext, GrabbedObjectTypeContext, NodableObjectTypes, ObjectDatas, ObjectIsGrabbedContext, ObjectTypes, SetDraggableNodeObjects } from "../../gameCreator";
-import { TypedActionReturns, TypedNodeProperties } from "../../TypedNodeProperties"
+import {
+  TypedActionReturns,
+  ActionNodeProperties,
+  DefaultValueNodeProperties,
+} from "../../TypedNodeProperties";
 import styles from "../../../styles/gameCreator.module.scss";
 import { ActionLogicIf, LogicAction } from "../../../lib/game/Actions/logic";
 import { recurseResolve } from "./FilterNode";
@@ -13,129 +17,139 @@ import useStateRef from "react-usestateref";
 import { NodeOptions } from "../NodeOptions";
 import { NodeData } from "../NodeData";
 
-
-
 export const ActionResolver: React.FC<{ action: Action }> = ({ action }) => {
-  const type = action.type
+  const type = action.type;
 
   if (!action.args) {
-    action.args = {}
+    action.args = {};
   }
   const [args, setArgs, argsRef] = useStateRef<typeof action.args>(action.args);
   useEffect(() => {
     action.args = args;
   }, [args, action]);
 
-
-
   if (!action.returns) {
-    action.returns = {}
+    action.returns = {};
   }
-  const [returns, setReturns, returnsRef] = useStateRef<typeof action.returns>(action.returns);
+  const [returns, setReturns, returnsRef] = useStateRef<typeof action.returns>(
+    action.returns
+  );
   useEffect(() => {
     action.returns = returns;
   }, [returns, action]);
 
-
-
   const grabbedObjectType = useContext(GrabbedObjectTypeContext);
   useEffect(() => {
-    if (grabbedObjectType) {
-      setArgs((args) =>
-        recurseResolve(TypedNodeProperties[type], args, grabbedObjectType)
-      );
-    }
-  }, [grabbedObjectType, type, setArgs, argsRef])
+    setArgs((args) =>
+      recurseResolve(
+        ActionNodeProperties[type],
+        DefaultValueNodeProperties[type],
+        args,
+        grabbedObjectType
+      )
+    );
 
+    setReturns((returns) =>
+      recurseResolve(
+        TypedActionReturns[type],
+        DefaultValueNodeProperties[type],
+        returns,
+        grabbedObjectType
+      )
+    );
+  }, [action]);
 
   return useMemo(() => {
     const { name, description } = getActionInfo(type);
 
-    if (!TypedNodeProperties[type]) {
+    if (!ActionNodeProperties[type]) {
       return <div>Unknown action type: {type}</div>;
     }
     if (type === "action:logic.if") {
-      return <IfNode args={argsRef.current as ActionLogicIf["args"]} setArgs={setArgs} />
+      return (
+        <IfNode
+          args={argsRef.current as ActionLogicIf["args"]}
+          setArgs={setArgs}
+        />
+      );
     }
     return (
-      <div className={styles.actionNode} >
-
+      <div className={styles.actionNode}>
         <div>
           <h1> {name} </h1>
           <p>{description}</p>
         </div>
         <div className={styles.rowList}>
-          < NodeData type={type} data={args} setData={setArgs} TypedDataObject={TypedNodeProperties} preferredOrder={[""]} />
-          < NodeData type={type} data={returns} setData={setReturns} TypedDataObject={TypedActionReturns} prefix={"Returns"} />
+          <NodeData
+            type={type}
+            data={args}
+            setData={setArgs}
+            TypedDataObject={ActionNodeProperties}
+            DefaultDataObject={DefaultValueNodeProperties}
+          />
+          <NodeData
+            type={type}
+            data={returns}
+            setData={setReturns}
+            TypedDataObject={TypedActionReturns}
+            DefaultDataObject={{}}
+            prefix="return"
+          />
         </div>
       </div>
-    )
-  }, [type, args, argsRef, returns, setArgs, setReturns])
+    );
+  }, [type, args, argsRef, returns, setArgs, setReturns]);
+};
 
-}
-
-const IfNode: React.FC<{ args: ActionLogicIf["args"], setArgs: Dispatch<SetStateAction<ActionLogicIf["args"]>> }> = ({ args, setArgs }) => {
-  let held = useContext(ObjectIsGrabbedContext)
-  const type = "action:logic.if"
+const IfNode: React.FC<{
+  args: ActionLogicIf["args"];
+  setArgs: Dispatch<SetStateAction<ActionLogicIf["args"]>>;
+}> = ({ args, setArgs }) => {
+  const type = "action:logic.if";
   const { name, description } = getActionInfo(type);
   return (
-    <div className={styles.actionNode} style={held ? { border: "2px solid red" } : {}}>
+    <div className={styles.actionNode}>
       <div className={styles.columnList}>
         <div className={styles.rowList}>
           <div>
-            <h1
-              style={{
-                textAlign: "center",
-                padding: "0px",
-                margin: "0px",
-                marginTop: "10px",
-              }}
-            >
-              {name}
-            </h1>
+            <h1>{name}</h1>
             <p>{description}</p>
-
           </div>
           <TypedArgument
             value={args.condition}
             $key={"condition"}
             setValue={(newValue) => {
-              setArgs({ ...args, condition: newValue as Condition })
+              setArgs({ ...args, condition: newValue as Condition });
             }}
-            acceptableTypes={TypedNodeProperties[type]["condition"]}
+            acceptableTypes={ActionNodeProperties[type]["condition"]}
           />
-
         </div>
 
         <div className={styles.rowList}>
           <div className={styles.actionNode}>
-
             <TypedArgument
               value={args.true_actions}
               $key={"true_actions"}
               setValue={(newValue) => {
-                setArgs({ ...args, true_actions: newValue as Action[] })
-
+                setArgs({ ...args, true_actions: newValue as Action[] });
               }}
-              acceptableTypes={TypedNodeProperties[type]["true_actions"]}
+              acceptableTypes={ActionNodeProperties[type]["true_actions"]}
             />
           </div>
           <div className={styles.actionNode}>
-
             <TypedArgument
               value={args.false_actions}
               $key={"false_actions"}
               setValue={(newValue) => {
-                setArgs({ ...args, false_actions: newValue as Action[] })
+                setArgs({ ...args, false_actions: newValue as Action[] });
               }}
-              acceptableTypes={TypedNodeProperties[type]["false_actions"]}
+              acceptableTypes={ActionNodeProperties[type]["false_actions"]}
             />
           </div>
         </div>
       </div>
-
-    </div >
-  )
+    </div>
+  );
 };
 
 function getActionInfo(type: Action["type"]): {

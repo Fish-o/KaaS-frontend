@@ -54,6 +54,7 @@ const exampleGame: GameObject = {
               },
             },
           },
+          returns: {},
         },
         {
           // Get deck 2
@@ -115,17 +116,20 @@ const exampleGame: GameObject = {
           args: {
             find: "$discard",
           },
+          returns: {},
         },
         {
           // Move cards
           type: "action:cards.move",
           args: { cards: "$cards_to_move", to: "$discard" },
+          returns: {},
         },
         {
           type: "action:debug",
           args: {
             find: "$draw",
           },
+          returns: {},
         },
       ],
       returns: {},
@@ -137,16 +141,26 @@ const exampleGame: GameObject = {
       },
       actions: [
         {
-          type: "action:user_input.select_players",
+          type: "action:user_input",
           args: {
-            selector: `$current`,
-            max: 1,
-            min: 1,
-            message: "Select a player",
+            inputs: [
+              {
+                type: "input:select_players",
+                input: {
+                  min: 1,
+                  max: 1,
+                  message: "Select a player",
+                  selector: "$current",
+                  actions: [],
+                },
+                returns: {
+                  selected: "$selected",
+                },
+              },
+            ],
+            operation: "all",
           },
-          returns: {
-            selected: "$selected",
-          },
+          returns: {},
         },
         {
           type: "action:find.cards",
@@ -190,6 +204,7 @@ const exampleGame: GameObject = {
             cards: "$card",
             to: "$hand",
           },
+          returns: {},
         },
       ],
     },

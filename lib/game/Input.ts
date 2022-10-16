@@ -22,10 +22,9 @@ class BaseInput {
     [key: string]: any;
   };
   returns: { [key: string]: Variable };
-  actions: Action[];
 }
 
-class InputUserSelectPlayers extends BaseInput {
+class InputUserSelectPlayers implements BaseInput {
   type: "input:select_players";
   input: {
     selector: PlayerResolvable;
@@ -40,7 +39,7 @@ class InputUserSelectPlayers extends BaseInput {
   };
 }
 
-class InputUserSelectCards extends BaseInput {
+class InputUserSelectCards implements BaseInput {
   type: "input:select_cards";
   input: {
     selector: PlayerResolvable;
@@ -69,7 +68,7 @@ async function performActionUserInputSelectPlayers(
   game: Game,
   debugContext: DebugContext
 ) {
-  const { from, max, min, message, selector } = input.input;
+  const { from, max, min, message, selector, actions } = input.input;
   const players = await resolvePlayerResolvable(
     from,
     variables,
@@ -106,7 +105,7 @@ async function performActionUserInputSelectPlayers(
       );
     }
 
-    await performActions(input.actions, variables, game, debugContext);
+    await performActions(actions, variables, game, debugContext);
     if (input.returns) {
       const { selected } = input.returns;
       if (isValidVariableName(selected)) variables.set(selected, results);
@@ -127,7 +126,7 @@ async function preformActionUserInputSelectCards(
   game: Game,
   debugContext: DebugContext
 ) {
-  const { from, max, min, message, selector } = input.input;
+  const { from, max, min, message, selector, actions } = input.input;
 
   const cards = await resolveCardResolvable(
     from,
@@ -164,7 +163,7 @@ async function preformActionUserInputSelectCards(
       );
     }
 
-    await performActions(input.actions, variables, game, debugContext);
+    await performActions(actions, variables, game, debugContext);
     if (input.returns) {
       const { selected } = input.returns;
       if (isValidVariableName(selected)) variables.set(selected, results);

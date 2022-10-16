@@ -24,7 +24,8 @@ export type Resolvable =
   | PlayerResolvable
   | CardResolvable
   | DeckResolvable
-  | HandResolvable;
+  | HandResolvable
+  | CardHolderResolvable;
 
 export async function resolvePlayerResolvable(
   resolvable: PlayerResolvable | undefined,
