@@ -237,6 +237,16 @@
   flex-direction: row;
   justify-content: center;
   align-items: center;
+  width:100%;
+  .filterKey {
+    width:100%;
+    flex-grow: 1;
+    text-align: right;
+  }
+  .filterValue{
+    width:100%;
+    flex-grow: 1
+  }
 }
 // .active {}
 .dropPosition {

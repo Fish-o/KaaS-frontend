@@ -155,8 +155,8 @@ export let FilterNodeProperties: TypedObject<FiltersByType> = {
     },
 
     iterator: {
-      actions: ["array", "action"],
       parameter: ["variable"],
+      actions: ["array", "action"],
       condition: ["condition"],
     },
 
@@ -437,12 +437,16 @@ export let DefaultValueNodeProperties: DefaultsTypedObject<EverythingByType> = {
     iterator: {
       parameter: "$deck",
     },
+    maxAmount: 99999999,
+    minAmount: 1,
   },
   "filter:hand": {
     iterator: {
       parameter: "$hand",
     },
-
+    has_x_of_cards:{
+      amount: 1,
+    },
     maxAmount: 99999999,
     minAmount: 1,
   },
@@ -450,6 +454,8 @@ export let DefaultValueNodeProperties: DefaultsTypedObject<EverythingByType> = {
     iterator: {
       parameter: "$player",
     },
+    maxAmount: 99999999,
+    minAmount: 1,
   },
 };
 

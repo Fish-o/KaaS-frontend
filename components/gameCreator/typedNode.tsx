@@ -307,6 +307,8 @@ export const TypedInput: React.FC<{
     }, [value]);
 
     return (
+      <div style={{"height":helper.helperText ? "3.8rem" : ""}}>
+
       <Input
         {...bindings}
         {...helper}
@@ -321,7 +323,9 @@ export const TypedInput: React.FC<{
           e.target.select();
         }}
         onBlur={onBlur}
-      />
+        
+        />
+        </div>
     );
   }
 );
@@ -346,13 +350,16 @@ function getAllowedInputTypes(acceptableTypes: string[]) {
     required: acceptableTypes.includes("required"),
     nodeAllowed: acceptableTypes.some(
       (type) =>
-        type.startsWith("filter:") ||
+        type.startsWith("filter") ||
         type.startsWith("action") ||
         type.startsWith("condition")
     ),
 
     nodeTypes: acceptableTypes.filter(
-      (value) => value != "string" && value != "array"
+      (type) =>
+        type.startsWith("filter") ||
+        type.startsWith("action") ||
+        type.startsWith("condition")
     ) as unknown as ObjectTypes["type"],
     specificStringsAllowed,
   };
@@ -373,22 +380,26 @@ export const ActualResolvedValue: React.FC<{
 }) => {
   if (typeof value === "object") {
     return (
-      <DeleteSelfContext.Provider
+      <div className={styles.filterValue}>
+        <DeleteSelfContext.Provider
         value={() => {
           setValue(undefined);
         }}
-      >
-        <DraggableObject
-          fillData={value}
-          onGrab={() => {
-            setValue(undefined);
-          }}
         >
-          <>
-            <ResolveNodeType objectData={value} />
-          </>
-        </DraggableObject>
-      </DeleteSelfContext.Provider>
+          <DraggableObject
+            fillData={value}
+            onGrab={() => {
+              setValue(undefined);
+            }}
+          >
+            <>
+              {JSON.stringify(value)}
+              <ResolveNodeType objectData={value} />
+            </>
+          </DraggableObject>
+        </DeleteSelfContext.Provider>
+      </div>
+      
     );
   }
 
@@ -452,14 +463,11 @@ export const ActualResolvedValue: React.FC<{
         disable={true}
         key={value}
       >
-        <div
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
-          onMouseDown={(e) => {
-            e.stopPropagation();
-          }}
-        ></div>
+        <Input 
+          value={"[" + allowedInputTypes.nodeTypes.join(",") + "]"} 
+          readOnly 
+          status={allowedInputTypes.required ? "error" : "primary"}  
+          />
       </DropPosition>
     );
   }
@@ -528,7 +536,7 @@ export const TypedArgument: React.FC<{
       ) {
         return (
           <div className={styles.filterArgument}>
-            <h3>{key}:</h3>
+            <h3 className={styles.filterKey}>{key}:</h3>
             <div>
               {Object.keys(value).map((key) => {
                 return (
@@ -587,13 +595,14 @@ export const TypedArgument: React.FC<{
         let CoolAddbutton =
           allowedInputTypes.stringsAllowed ||
           allowedInputTypes.variablesAllowed;
-        let showAddButton = value[value.length - 1] !== undefined;
+        let showAddButton = value[value.length - 1] !== undefined || value.length === 0;
         return (
           <div className={styles.filterArgument}>
-            <h3>{key}:</h3>
+            <h3 className={styles.filterKey}>{key}:</h3>
             <div
               className={
-                orientation == "horizontal" ? styles.rowList : styles.columnList
+                orientation == "horizontal" ? styles.rowList : styles.columnList +" "
+                + styles.filterValue
               }
             >
               {value.map((innerValue, index, array) => {
@@ -708,6 +717,7 @@ export const TypedArgument: React.FC<{
                 disable={held}
                 key={`dp_${value.length}_${showAddButton}`}
               >
+                <>
                 {showAddButton && CoolAddbutton ? (
                   <>
                     <div
@@ -730,6 +740,12 @@ export const TypedArgument: React.FC<{
                     </Button>
                   </>
                 ) : undefined}
+                {!CoolAddbutton && value.length === 0 ? (
+                  <Input readOnly value="[Drag a node]" status="primary"/>)
+                  : undefined
+                }
+                </>
+
               </DropPosition>
             </div>
           </div>
@@ -737,13 +753,17 @@ export const TypedArgument: React.FC<{
       }
       return (
         <div className={styles.filterArgument}>
-          <h3>{key}:</h3>
-          <ActualResolvedValue
-            value={value}
-            allowedInputTypes={allowedInputTypes}
-            defaultValue={defaultValue as string}
-            setValue={setValue}
-          />
+          <h3 className={styles.filterKey}>{key}:</h3>
+          <div className={styles.filterValue}>
+
+            <ActualResolvedValue
+              value={value}
+              allowedInputTypes={allowedInputTypes}
+              defaultValue={defaultValue as string}
+              setValue={setValue}
+            />
+          </div>
+          
         </div>
       );
       // eslint-disable-next-line react-hooks/exhaustive-deps

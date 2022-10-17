@@ -53,21 +53,7 @@ export function NodeData<T extends ObjectDatas>({
       }
       return true;
     });
-
-    // let orderedEntries = [];
-    // if (preferredOrder) {
-    //   preferredOrder.forEach((key) => {
-    //     let foundEntry = unorderedEntries.find((search) => search[0] === key);
-    //     if (foundEntry) {
-    //       orderedEntries.push(foundEntry);
-    //       let foundEntryIndex = unorderedEntries.findIndex(
-    //         (search) => search[0] === key
-    //       );
-    //       unorderedEntries.splice(foundEntryIndex, 1);
-    //     }
-    //   });
-    // }
-    // orderedEntries.push(...unorderedEntries);
+    if(orderedEntries.length === 0) return     (<p>Theres nothing to show (Click Maximize)</p>)
 
     return (
       <>

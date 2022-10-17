@@ -42,12 +42,19 @@ function resolveValue(
   if (
     possibleTypes?.includes("string") ||
     possibleTypes?.includes("variable") ||
-    possibleTypes?.includes("condition")
+    possibleTypes?.includes("condition") 
   ) {
     //@ts-ignore
     filterObj[key] = undefined;
     return;
   }
+  // if possibleTypes includes something that starts with "object"
+  if (possibleTypes?.some((type: string) => type.startsWith("filter"))) {
+    //@ts-ignore
+    filterObj[key] = undefined; 
+    return;
+  }
+
 
   filterObj[key] = undefined;
 }
@@ -56,7 +63,6 @@ function reorderObject(obj: any, order: string[]) {
   // The input and output have to be the same object
   // example: reorderObject({a: 1, b: 2, c: 3}, ['c', 'b', 'a']) // {c: 3, b: 2, a: 1}
 
-  // Get the keys of the object
   const keys = Object.keys(obj);
 
   // the order may only have some of the keys
@@ -128,6 +134,19 @@ function recurseCleanup(
       //@ts-ignore
       delete filterObj[key];
     } else if (Array.isArray(value)) {
+
+
+      // Filter in place
+      for (let i = value.length - 1; i >= 0; i--) {
+        if (
+          value[i] === "<Placeholder>" ||
+          value[i] === undefined ||
+          value[i] === null ||
+          value[i] === ""
+        ) {
+          value.splice(i, 1);
+        }
+      }
       if (value.length === 0) {
         //@ts-ignore
         delete filterObj[key];
@@ -229,6 +248,15 @@ export const FilterResolver: React.FC<{ filter: Filter }> = memo(
         }));
       }
     }, [type, grabbedObjectType, maximized, setData]);
+
+    useEffect(() => {
+      if(maximizeTimeout){
+        
+      }
+    })
+
+
+
     console.log("Filter2", { ...dataRef.current });
 
     return (
@@ -271,7 +299,7 @@ export const FilterResolver: React.FC<{ filter: Filter }> = memo(
             DefaultDataObject={DefaultValueNodeProperties}
             TypedDataObject={FilterNodeProperties}
             showDefaults={maximized}
-            allowDelete
+            allowDelete={!maximized}
           />
         </div>
       </IdleHoverChecker>

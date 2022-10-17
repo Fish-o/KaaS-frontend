@@ -33,12 +33,31 @@ function startsWith<Prefix extends string>(
 
 type ValueOf<T> = T[keyof T];
 
-function GetValidObject(type: any) {
+function GetValidObject(type: any,defaults:any = {}){
   let defaultObject = {} as { [key: string]: any };
 
   Object.entries(type).forEach(([key, value]) => {
-    if (!Array.isArray(value)) return;
+    
+    
+    
+    if (!Array.isArray(value)) 
+    {
+      // if (typeof value === "object") {
+      //   defaultObject[key] = GetValidObject(value);
+      //   return
+      // } 
+      return
+    };
+    if (defaults[key]) {
+      defaultObject[key] = defaults[key];
+      return
+    }
+    
+    
     if (!value.includes("required")) return;
+
+
+
 
     if (value.includes("array")) {
       defaultObject[key] = new Array();
@@ -65,7 +84,6 @@ function GetValidObject(type: any) {
       defaultObject[key] = false;
       return;
     }
-    defaultObject[key] = "{UNKNOWN}";
   });
   return defaultObject;
 }
@@ -75,7 +93,7 @@ function MakeValidDraggableObject<
 >(type: T): Extract<Action | Filter | Condition | UserInput, { type: T }> {
   if (startsWith("action:", type)) {
     if (!ActionNodeProperties[type]) throw new Error(`Invalid type ${type}`);
-    let defaultObject = GetValidObject(ActionNodeProperties[type]);
+    let defaultObject = GetValidObject(ActionNodeProperties[type],DefaultValueNodeProperties[type]);
     return {
       type: type,
       args: defaultObject,
@@ -89,7 +107,7 @@ function MakeValidDraggableObject<
 
   if (startsWith("condition:", type)) {
     if (!ConditionNodeProperties[type]) throw new Error(`Invalid type ${type}`);
-    let defaultObject = GetValidObject(ConditionNodeProperties[type]);
+    let defaultObject = GetValidObject(ConditionNodeProperties[type],DefaultValueNodeProperties[type]);
     return {
       condition: defaultObject,
       type: type,
@@ -98,7 +116,7 @@ function MakeValidDraggableObject<
 
   if (startsWith("filter:", type)) {
     if (!FilterNodeProperties[type]) throw new Error(`Invalid type ${type}`);
-    let defaultObject = GetValidObject(FilterNodeProperties[type]);
+    let defaultObject = GetValidObject(FilterNodeProperties[type],DefaultValueNodeProperties[type]);
     return {
       type: type,
       filter: defaultObject,
@@ -106,7 +124,7 @@ function MakeValidDraggableObject<
   }
   if (startsWith("input:", type)) {
     if (!InputNodeProperties[type]) throw new Error(`Invalid type ${type}`);
-    let defaultObject = GetValidObject(InputNodeProperties[type]);
+    let defaultObject = GetValidObject(InputNodeProperties[type],DefaultValueNodeProperties[type]);
     return {
       type: type,
       filter: defaultObject,
